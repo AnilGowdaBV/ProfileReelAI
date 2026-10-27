@@ -85,9 +85,11 @@ const btnReScore = document.getElementById('btn-re-score');
 let isPlaying = false;
 let playInterval = null;
 let currentProgress = 0; // 0 to 100
-const REEL_DURATION_SEC = 24; // 6s per slide
+let reelTotalSeconds = 30; // dynamically calculated based on speech!
 let isAudioEnabled = true;
 let currentUtterance = null;
+let speechKeepAliveTimer = null;
+let reelStartTime = 0;
 let cachedCandidate = null;
 let cachedScore = null;
 let generatedScript = '';
@@ -483,11 +485,24 @@ function renderAllThreeSections(candidate, score, video) {
 // ==========================================================
 // REEL PLAYER CONTROLLER (INTERACTIVE SCENES + SPEECH)
 // ==========================================================
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function updateReelDuration() {
+  const words = (generatedScript || '').split(/\s+/).filter(Boolean);
+  // Natural speech is ~2.0 words per second; give a comfortable reading buffer
+  reelTotalSeconds = Math.max(26, Math.ceil(words.length / 1.9) + 2);
+  reelTimer.textContent = `0:00 / ${formatTime(reelTotalSeconds)}`;
+}
+
 function resetReelPlayer() {
   stopReelPlayback();
   currentProgress = 0;
   reelTrackFill.style.width = '0%';
-  reelTimer.textContent = '0:00 / 0:24';
+  updateReelDuration();
   showSlide(1);
 }
 
@@ -502,6 +517,12 @@ btnPlayPause.addEventListener('click', () => {
   if (isPlaying) {
     pauseReelPlayback();
   } else {
+    // If completed or near end, restart from beginning
+    if (currentProgress >= 100) {
+      currentProgress = 0;
+      reelTrackFill.style.width = '0%';
+      showSlide(1);
+    }
     startReelPlayback();
   }
 });
@@ -509,6 +530,7 @@ btnPlayPause.addEventListener('click', () => {
 function startReelPlayback() {
   isPlaying = true;
   playBtnIcon.textContent = '⏸ Pause';
+  reelStartTime = Date.now() - (currentProgress / 100) * reelTotalSeconds * 1000;
 
   // Speak narration
   if (isAudioEnabled && 'speechSynthesis' in window && generatedScript) {
@@ -516,25 +538,53 @@ function startReelPlayback() {
     currentUtterance = new SpeechSynthesisUtterance(generatedScript);
     currentUtterance.rate = 1.0;
     currentUtterance.pitch = 1.0;
+
+    // Listen to natural completion of speech
+    currentUtterance.onend = () => {
+      onReelFinished();
+    };
+
+    currentUtterance.onerror = (e) => {
+      console.warn('Speech event:', e);
+    };
+
     window.speechSynthesis.speak(currentUtterance);
+
+    // Chrome speech synthesis keep-alive (prevents Chromium from freezing after 15s)
+    if (speechKeepAliveTimer) clearInterval(speechKeepAliveTimer);
+    speechKeepAliveTimer = setInterval(() => {
+      if (isPlaying && window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      } else {
+        clearInterval(speechKeepAliveTimer);
+      }
+    }, 7000);
   }
 
-  const stepMs = 250;
-  const totalMs = REEL_DURATION_SEC * 1000;
+  const stepMs = 200;
+  const totalMs = reelTotalSeconds * 1000;
 
+  if (playInterval) clearInterval(playInterval);
   playInterval = setInterval(() => {
-    currentProgress += (stepMs / totalMs) * 100;
+    const elapsed = Date.now() - reelStartTime;
+    currentProgress = (elapsed / totalMs) * 100;
+
     if (currentProgress >= 100) {
-      currentProgress = 100;
-      stopReelPlayback();
-      return;
+      // If audio is still actively speaking, do NOT abruptly cut off! Let it finish!
+      if (isAudioEnabled && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
+        currentProgress = 99.5;
+      } else {
+        onReelFinished();
+        return;
+      }
     }
 
-    reelTrackFill.style.width = `${currentProgress}%`;
-    const elapsedSec = Math.floor((currentProgress / 100) * REEL_DURATION_SEC);
-    reelTimer.textContent = `0:${String(elapsedSec).padStart(2, '0')} / 0:${REEL_DURATION_SEC}`;
+    reelTrackFill.style.width = `${Math.min(100, currentProgress)}%`;
+    const elapsedSec = Math.floor((currentProgress / 100) * reelTotalSeconds);
+    reelTimer.textContent = `${formatTime(elapsedSec)} / ${formatTime(reelTotalSeconds)}`;
 
-    // 4 scenes evenly distributed
+    // 4 scenes smoothly transitioning
     if (currentProgress < 25) showSlide(1);
     else if (currentProgress < 50) showSlide(2);
     else if (currentProgress < 75) showSlide(3);
@@ -545,16 +595,29 @@ function startReelPlayback() {
 function pauseReelPlayback() {
   isPlaying = false;
   playBtnIcon.textContent = '▶ Play';
-  clearInterval(playInterval);
+  if (playInterval) clearInterval(playInterval);
+  if (speechKeepAliveTimer) clearInterval(speechKeepAliveTimer);
   if ('speechSynthesis' in window) {
     window.speechSynthesis.pause();
   }
 }
 
+function onReelFinished() {
+  isPlaying = false;
+  currentProgress = 100;
+  reelTrackFill.style.width = '100%';
+  reelTimer.textContent = `${formatTime(reelTotalSeconds)} / ${formatTime(reelTotalSeconds)}`;
+  playBtnIcon.textContent = '🔄 Replay Reel';
+  if (playInterval) clearInterval(playInterval);
+  if (speechKeepAliveTimer) clearInterval(speechKeepAliveTimer);
+  showSlide(4);
+}
+
 function stopReelPlayback() {
   isPlaying = false;
   playBtnIcon.textContent = '▶ Play';
-  clearInterval(playInterval);
+  if (playInterval) clearInterval(playInterval);
+  if (speechKeepAliveTimer) clearInterval(speechKeepAliveTimer);
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
