@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProfileReel AI - Candidate Scorer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-badge">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">ProfileReel AI</div>
+          <div class="brand-subtitle">10-Point LinkedIn Scorer</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="backend-status-dot" class="status-dot connected" title="Backend Connected"></span>
+        <button id="btn-toggle-settings" class="icon-btn" title="API Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Settings Panel (Drawer) -->
+    <div id="settings-panel" class="settings-panel hidden">
+      <div class="settings-title">Extension Settings</div>
+      <label class="settings-label" for="input-api-url">Backend API Base URL</label>
+      <input type="text" id="input-api-url" class="text-input" placeholder="https://profilereel-ai-backend.onrender.com/api" />
+      <div class="settings-buttons">
+        <button id="btn-test-connection" class="btn btn-secondary">Test Server</button>
+        <button id="btn-save-settings" class="btn btn-primary">Save</button>
+      </div>
+      <div id="settings-feedback" class="settings-feedback"></div>
+    </div>
+
+    <!-- Active Profile Bar -->
+    <div class="profile-input-card">
+      <div class="card-status-row">
+        <span id="tab-detected-badge" class="badge badge-detected">
+          <span class="pulse-dot"></span> LinkedIn Profile Detected
+        </span>
+      </div>
+      <div class="input-group">
+        <input type="text" id="input-profile-url" class="text-input" placeholder="https://www.linkedin.com/in/username" />
+        <button id="btn-score-candidate" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+          </svg>
+          Score Candidate
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading-state" class="state-container hidden">
+      <div class="radar-spinner">
+        <div class="radar-circle"></div>
+        <div class="radar-core"></div>
+      </div>
+      <div class="loading-title" id="loading-title">Analyzing Candidate...</div>
+      <div class="loading-desc" id="loading-desc">Fetching live LinkedIn profile via Apify scraper engine</div>
+      <div class="loading-steps">
+        <div class="step-item active" id="step-1">1. URL Validation & Ingestion</div>
+        <div class="step-item" id="step-2">2. Live Scraper Extraction</div>
+        <div class="step-item" id="step-3">3. 10-Point Multi-Vector Scoring</div>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error-state" class="state-container error-card hidden">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title" id="error-title">Analysis Failed</div>
+      <div class="error-message" id="error-message">Could not fetch profile data.</div>
+      <button id="btn-retry" class="btn btn-secondary">Try Again</button>
+    </div>
+
+    <!-- Score Results Card -->
+    <div id="results-card" class="results-card hidden">
+      <!-- Candidate Info -->
+      <div class="candidate-header">
+        <div class="candidate-avatar" id="res-avatar">P</div>
+        <div class="candidate-meta">
+          <div class="candidate-name" id="res-name">Candidate Name</div>
+          <div class="candidate-headline" id="res-headline">Engineering Lead | React, Node.js</div>
+        </div>
+      </div>
+
+      <!-- Overall Score Gauge -->
+      <div class="score-hero">
+        <div class="score-circle-container">
+          <div class="score-val" id="res-overall-score">8.5</div>
+          <div class="score-max">/ 10.0</div>
+        </div>
+        <div class="score-tier-wrap">
+          <div class="score-tier-label">Overall Evaluation Tier</div>
+          <span class="tier-badge" id="res-tier-badge">STRONG</span>
+        </div>
+      </div>
+
+      <!-- 4 Pillars Breakdown -->
+      <div class="pillars-section">
+        <div class="section-title">Score Breakdown</div>
+        
+        <div class="pillar-row">
+          <div class="pillar-label-row">
+            <span>Experience & Seniority</span>
+            <span class="pillar-val" id="val-experience">3.2 / 3.5</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="bar-experience" style="width: 90%;"></div>
+          </div>
+        </div>
+
+        <div class="pillar-row">
+          <div class="pillar-label-row">
+            <span>Skills & Tech Stack</span>
+            <span class="pillar-val" id="val-skills">2.3 / 2.5</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="bar-skills" style="width: 92%;"></div>
+          </div>
+        </div>
+
+        <div class="pillar-row">
+          <div class="pillar-label-row">
+            <span>Education & Credentials</span>
+            <span class="pillar-val" id="val-education">1.7 / 2.0</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="bar-education" style="width: 85%;"></div>
+          </div>
+        </div>
+
+        <div class="pillar-row">
+          <div class="pillar-label-row">
+            <span>Impact & Presence</span>
+            <span class="pillar-val" id="val-impact">1.6 / 2.0</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="bar-impact" style="width: 80%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Strengths & Growth Areas -->
+      <div class="insights-section">
+        <div class="section-title">Key Strengths</div>
+        <div class="tags-row" id="res-strengths">
+          <span class="tag tag-strength">10+ Years Experience</span>
+        </div>
+
+        <div class="section-title mt-2">Growth & Focus Areas</div>
+        <div class="tags-row" id="res-growth">
+          <span class="tag tag-growth">Cloud Architecture</span>
+        </div>
+
+        <div class="section-title mt-2">Recommended Roles</div>
+        <div class="tags-row" id="res-roles">
+          <span class="tag tag-role">Senior Full-Stack Engineer</span>
+        </div>
+      </div>
+
+      <!-- Bottom Action Row -->
+      <div class="results-actions">
+        <button id="btn-copy-summary" class="btn btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span id="copy-btn-text">Copy Summary</span>
+        </button>
+        <button id="btn-refresh-score" class="btn btn-secondary" title="Re-run analysis">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Re-Score
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty Initial State (If no profile yet) -->
+    <div id="idle-guide" class="idle-guide">
+      <div class="guide-icon">💡</div>
+      <div class="guide-text">
+        Navigate to any candidate's <strong>LinkedIn profile</strong>, or paste their profile URL above to generate an instant 10-point AI evaluation score.
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span>Powered by ProfileReel AI • Production Engine</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
