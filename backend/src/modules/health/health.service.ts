@@ -36,7 +36,10 @@ export class HealthService {
       uptimeSeconds: Math.floor(process.uptime()),
       database: {
         connected: dbConnected,
-        provider: 'MySQL 8.4',
+        provider:
+          this.dataSource.options.type === 'postgres'
+            ? 'Supabase PostgreSQL'
+            : 'MySQL 8.4',
       },
       features: {
         profileRetrievalProvider: process.env.PROFILE_DATA_PROVIDER || 'mock',

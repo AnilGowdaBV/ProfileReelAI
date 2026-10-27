@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: profilereel-ai-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: node dist/main.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: PROFILE_DATA_PROVIDER
+        value: apify
+      - key: APIFY_ACTOR_ID
+        value: calm_builder~linkedin-profile-scraper
+      - key: APIFY_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        sync: false
