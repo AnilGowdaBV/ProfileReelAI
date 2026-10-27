@@ -10,6 +10,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
+import { API_BASE } from '../services/api';
+
 interface VideoReelPlayerProps {
   videoId: string;
   candidateName: string;
@@ -28,8 +30,8 @@ export const VideoReelPlayer: React.FC<VideoReelPlayerProps> = ({
   isGenerating = false,
 }) => {
   const [showScript, setShowScript] = useState(false);
-  const streamUrl = `/api/videos/${videoId}/stream`;
-  const downloadUrl = `/api/videos/${videoId}/download`;
+  const streamUrl = `${API_BASE}/videos/${videoId}/stream`;
+  const downloadUrl = `${API_BASE}/videos/${videoId}/download`;
 
   return (
     <div className="glass-panel-elevated rounded-2xl p-6 sm:p-8 border border-brand-500/40 relative overflow-hidden animate-in fade-in zoom-in-95 duration-300">

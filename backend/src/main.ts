@@ -48,8 +48,8 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-  logger.log(`ProfileReel AI Backend is running on: http://localhost:${port}/api`);
+  await app.listen(port, '0.0.0.0');
+  logger.log(`ProfileReel AI Backend is running on: http://0.0.0.0:${port}/api`);
   logger.log(`Swagger OpenAPI Documentation: http://localhost:${port}/api/docs`);
 }
 

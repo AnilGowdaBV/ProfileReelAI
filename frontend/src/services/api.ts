@@ -7,8 +7,11 @@ import {
   VideoMetadata,
   CandidateScore,
 } from '../types/candidate';
-
-const API_BASE = '/api';
+const rawBase =
+  ((import.meta as any).env?.VITE_API_BASE_URL as string | undefined) || '';
+export const API_BASE = rawBase.endsWith('/api')
+  ? rawBase
+  : `${rawBase.replace(/\/$/, '')}/api`;
 
 export class ApiError extends Error {
   constructor(

@@ -8,11 +8,11 @@ import { CandidateScore } from '../modules/profile-scoring/entities/candidate-sc
 
 export const getDatabaseConfig = (): TypeOrmModuleOptions => ({
   type: 'mysql',
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
-  username: process.env.DB_USERNAME || 'root',
-  password: process.env.DB_PASSWORD || 'anil@2005',
-  database: process.env.DB_DATABASE || 'profilereel_ai',
+  host: process.env.DB_HOST || process.env.MYSQLHOST || '127.0.0.1',
+  port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306', 10),
+  username: process.env.DB_USERNAME || process.env.MYSQLUSER || 'root',
+  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+  database: process.env.DB_DATABASE || process.env.MYSQLDATABASE || 'profilereel_ai',
   entities: [User, Candidate, CandidateFact, GenerationJob, GeneratedVideo, CandidateScore],
   synchronize: false, // Migrations manage the schema
   logging: process.env.DB_LOGGING === 'true',
