@@ -56,28 +56,30 @@ try {
     fs.writeFileSync(psScriptPath, psScript, 'utf8');
 
     try {
-      this.logger.log(`Synthesizing narration speech to: ${outputWavPath}`);
-      cp.execSync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${psScriptPath}" "${outputWavPath}" "${textFilePath}"`,
-        { stdio: 'pipe', timeout: 45000 },
-      );
+      if (process.platform === 'win32') {
+        try {
+          this.logger.log(`Synthesizing narration speech to: ${outputWavPath}`);
+          cp.execSync(
+            `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${psScriptPath}" "${outputWavPath}" "${textFilePath}"`,
+            { stdio: 'pipe', timeout: 15000 },
+          );
 
-      if (fs.existsSync(outputWavPath)) {
-        const stats = fs.statSync(outputWavPath);
-        if (stats.size > 1000) {
-          // PCM 16-bit mono: 22050Hz is 44,100 bytes/sec, 44100Hz is 88,200 bytes/sec
-          // Calculate exact duration
-          const duration = Math.max(10, Math.round((stats.size - 44) / 44100));
-          this.logger.log(`Audio narration synthesized successfully: ${stats.size} bytes (~${duration}s)`);
-          return {
-            audioPath: outputWavPath,
-            durationSeconds: duration,
-          };
+          if (fs.existsSync(outputWavPath)) {
+            const stats = fs.statSync(outputWavPath);
+            if (stats.size > 1000) {
+              const duration = Math.max(10, Math.round((stats.size - 44) / 44100));
+              this.logger.log(`Audio narration synthesized successfully: ${stats.size} bytes (~${duration}s)`);
+              return {
+                audioPath: outputWavPath,
+                durationSeconds: duration,
+              };
+            }
+          }
+        } catch (err: any) {
+          const stderr = err.stderr ? err.stderr.toString() : err.message;
+          this.logger.warn(`Windows speech synthesis warning: ${stderr}`);
         }
       }
-    } catch (err: any) {
-      const stderr = err.stderr ? err.stderr.toString() : err.message;
-      this.logger.error(`Speech synthesis error: ${stderr}`);
     } finally {
       // Clean up temp scripts
       if (fs.existsSync(psScriptPath)) {

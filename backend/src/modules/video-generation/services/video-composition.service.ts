@@ -36,13 +36,15 @@ export class VideoCompositionService {
     // Ensure video duration matches audio or script length with a 1-second buffer
     const duration = Math.max(15, (audioDurationSeconds || script.estimatedDurationSeconds || 30) + 1);
     
-    const candidateName = (script.candidateName || 'Candidate')
-      .replace(/['":\\&%]/g, ' ')
-      .trim();
-    const headline = (script.headline || 'Professional')
-      .replace(/['":\\&%]/g, ' ')
-      .slice(0, 60)
-      .trim();
+    // Strictly sanitize text for FFmpeg drawtext to avoid filtergraph syntax errors
+    const sanitizeFfmpeg = (str: string) =>
+      (str || '')
+        .replace(/[^\w\s\.,\-\/]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const candidateName = sanitizeFfmpeg(script.candidateName || 'Candidate');
+    const headline = sanitizeFfmpeg(script.headline || 'Professional').slice(0, 55);
 
     this.logger.log(`Rendering Profile Reel video for ${candidateName} (hasAudio=${hasAudio}, Duration: ${duration}s)...`);
 
@@ -72,15 +74,15 @@ export class VideoCompositionService {
     let cmd: string;
     if (hasAudio) {
       this.logger.log(`Using real narration audio stream from: ${narrationWavPath}`);
-      cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -i "${narrationWavPath}" -vf "${filterGraph}" -c:v libx264 -preset fast -pix_fmt yuv420p -c:a aac -ar 44100 -b:a 192k -shortest "${outputMp4Path}"`;
+      cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -i "${narrationWavPath}" -vf "${filterGraph}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -ar 44100 -b:a 192k -shortest "${outputMp4Path}"`;
     } else {
       this.logger.warn(`No valid audio found at ${narrationWavPath}, using silent fallback audio`);
-      cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -f lavfi -i anullsrc=r=44100:cl=mono -vf "${filterGraph}" -c:v libx264 -preset fast -pix_fmt yuv420p -c:a aac -shortest "${outputMp4Path}"`;
+      cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -f lavfi -i anullsrc=r=44100:cl=mono -vf "${filterGraph}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -shortest "${outputMp4Path}"`;
     }
 
     try {
       this.logger.log(`Executing FFmpeg video render pipeline...`);
-      cp.execSync(cmd, { stdio: 'pipe', timeout: 60000 });
+      cp.execSync(cmd, { stdio: 'pipe', timeout: 120000 });
 
       if (fs.existsSync(outputMp4Path)) {
         const stats = fs.statSync(outputMp4Path);
