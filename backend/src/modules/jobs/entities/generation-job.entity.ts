@@ -36,7 +36,7 @@ export class GenerationJob {
   id: string;
 
   @Index('idx_generation_jobs_candidate_id')
-  @Column({ type: 'varchar', length: 36 })
+  @Column()
   candidateId: string;
 
   @ManyToOne(() => Candidate, (candidate) => candidate.jobs, {

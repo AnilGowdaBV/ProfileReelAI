@@ -22,7 +22,7 @@ export class GeneratedVideo {
   id: string;
 
   @Index('idx_generated_videos_candidate_id')
-  @Column({ type: 'varchar', length: 36 })
+  @Column()
   candidateId: string;
 
   @ManyToOne(() => Candidate, (candidate) => candidate.videos, {

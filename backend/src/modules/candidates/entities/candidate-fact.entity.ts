@@ -30,7 +30,7 @@ export class CandidateFact {
   id: string;
 
   @Index('idx_candidate_facts_candidate_id')
-  @Column({ type: 'varchar', length: 36 })
+  @Column()
   candidateId: string;
 
   @ManyToOne(() => Candidate, (candidate) => candidate.facts, {

@@ -28,7 +28,7 @@ export class CandidateScore {
   id: string;
 
   @Index('idx_candidate_scores_candidate_id')
-  @Column({ type: 'varchar', length: 36 })
+  @Column()
   candidateId: string;
 
   @ManyToOne(() => Candidate, { onDelete: 'CASCADE' })
