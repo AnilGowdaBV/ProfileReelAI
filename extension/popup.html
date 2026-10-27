@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ProfileReel AI - Candidate Scorer</title>
+  <title>ProfileReel AI - LinkedIn Candidate Scorer</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -12,19 +12,19 @@
     <header class="app-header">
       <div class="brand">
         <div class="logo-badge">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
           </svg>
         </div>
         <div>
           <div class="brand-title">ProfileReel AI</div>
-          <div class="brand-subtitle">10-Point LinkedIn Scorer</div>
+          <div class="brand-subtitle">AI Candidate Video & 10-Point Scorer</div>
         </div>
       </div>
       <div class="header-actions">
-        <span id="backend-status-dot" class="status-dot connected" title="Backend Connected"></span>
+        <span id="backend-status-dot" class="status-dot connected" title="Backend Live"></span>
         <button id="btn-toggle-settings" class="icon-btn" title="API Settings">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
@@ -32,19 +32,19 @@
       </div>
     </header>
 
-    <!-- Settings Panel (Drawer) -->
+    <!-- Settings Drawer -->
     <div id="settings-panel" class="settings-panel hidden">
-      <div class="settings-title">Extension Settings</div>
-      <label class="settings-label" for="input-api-url">Backend API Base URL</label>
+      <div class="settings-title">Server Settings</div>
+      <label class="settings-label" for="input-api-url">Backend Endpoint</label>
       <input type="text" id="input-api-url" class="text-input" placeholder="https://profilereel-ai-backend.onrender.com/api" />
       <div class="settings-buttons">
-        <button id="btn-test-connection" class="btn btn-secondary">Test Server</button>
+        <button id="btn-test-connection" class="btn btn-secondary">Test Ping</button>
         <button id="btn-save-settings" class="btn btn-primary">Save</button>
       </div>
       <div id="settings-feedback" class="settings-feedback"></div>
     </div>
 
-    <!-- Active Profile Bar -->
+    <!-- Active Candidate Bar -->
     <div class="profile-input-card">
       <div class="card-status-row">
         <span id="tab-detected-badge" class="badge badge-detected">
@@ -55,7 +55,7 @@
         <input type="text" id="input-profile-url" class="text-input" placeholder="https://www.linkedin.com/in/username" />
         <button id="btn-score-candidate" class="btn btn-primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
           </svg>
           Score Candidate
         </button>
@@ -68,12 +68,12 @@
         <div class="radar-circle"></div>
         <div class="radar-core"></div>
       </div>
-      <div class="loading-title" id="loading-title">Analyzing Candidate...</div>
-      <div class="loading-desc" id="loading-desc">Fetching live LinkedIn profile via Apify scraper engine</div>
+      <div class="loading-title" id="loading-title">Analyzing Candidate Profile...</div>
+      <div class="loading-desc" id="loading-desc">Extracting verified LinkedIn data via Apify engine</div>
       <div class="loading-steps">
         <div class="step-item active" id="step-1">1. URL Validation & Ingestion</div>
-        <div class="step-item" id="step-2">2. Live Scraper Extraction</div>
-        <div class="step-item" id="step-3">3. 10-Point Multi-Vector Scoring</div>
+        <div class="step-item" id="step-2">2. Scraper Data Normalization (Apify)</div>
+        <div class="step-item" id="step-3">3. Synthesizing AI Video Reel & 10-Pt Score</div>
       </div>
     </div>
 
@@ -81,126 +81,266 @@
     <div id="error-state" class="state-container error-card hidden">
       <div class="error-icon">⚠️</div>
       <div class="error-title" id="error-title">Analysis Failed</div>
-      <div class="error-message" id="error-message">Could not fetch profile data.</div>
-      <button id="btn-retry" class="btn btn-secondary">Try Again</button>
+      <div class="error-message" id="error-message">Could not retrieve candidate data.</div>
+      <button id="btn-retry" class="btn btn-secondary">Retry</button>
     </div>
 
-    <!-- Score Results Card -->
-    <div id="results-card" class="results-card hidden">
-      <!-- Candidate Info -->
-      <div class="candidate-header">
-        <div class="candidate-avatar" id="res-avatar">P</div>
-        <div class="candidate-meta">
-          <div class="candidate-name" id="res-name">Candidate Name</div>
-          <div class="candidate-headline" id="res-headline">Engineering Lead | React, Node.js</div>
-        </div>
-      </div>
+    <!-- MAIN 3-SECTION CONTAINER -->
+    <div id="candidate-results" class="results-container hidden">
 
-      <!-- Overall Score Gauge -->
-      <div class="score-hero">
-        <div class="score-circle-container">
-          <div class="score-val" id="res-overall-score">8.5</div>
-          <div class="score-max">/ 10.0</div>
-        </div>
-        <div class="score-tier-wrap">
-          <div class="score-tier-label">Overall Evaluation Tier</div>
-          <span class="tier-badge" id="res-tier-badge">STRONG</span>
-        </div>
-      </div>
-
-      <!-- 4 Pillars Breakdown -->
-      <div class="pillars-section">
-        <div class="section-title">Score Breakdown</div>
-        
-        <div class="pillar-row">
-          <div class="pillar-label-row">
-            <span>Experience & Seniority</span>
-            <span class="pillar-val" id="val-experience">3.2 / 3.5</span>
+      <!-- ============================================== -->
+      <!-- SECTION 1: AI VIDEO REEL (APPEARS FIRST)        -->
+      <!-- ============================================== -->
+      <section class="result-section section-video" id="sec-video">
+        <div class="section-badge-bar">
+          <div class="badge-tag tag-sec1">
+            <span>🎬</span> SECTION 1: AI PROFILE REEL
           </div>
-          <div class="progress-track">
-            <div class="progress-bar" id="bar-experience" style="width: 90%;"></div>
-          </div>
+          <span class="hd-badge">720p HD</span>
         </div>
 
-        <div class="pillar-row">
-          <div class="pillar-label-row">
-            <span>Skills & Tech Stack</span>
-            <span class="pillar-val" id="val-skills">2.3 / 2.5</span>
+        <div class="video-reel-box">
+          <!-- Reel Screen -->
+          <div class="reel-viewport" id="reel-viewport">
+            <!-- Scene 1: Intro -->
+            <div class="reel-slide active" id="slide-1">
+              <div class="slide-tag" id="slide-1-tag">VERIFIED CANDIDATE REEL</div>
+              <div class="slide-avatar-ring">
+                <div class="slide-avatar" id="slide-avatar">P</div>
+              </div>
+              <div class="slide-name" id="slide-name">Loading Candidate...</div>
+              <div class="slide-headline" id="slide-headline">Professional Headline</div>
+              <div class="slide-location" id="slide-location">📍 Location</div>
+            </div>
+
+            <!-- Scene 2: Experience -->
+            <div class="reel-slide" id="slide-2">
+              <div class="slide-tag">CAREER HIGHLIGHTS</div>
+              <div class="slide-role-icon">💼</div>
+              <div class="slide-name" id="slide-exp-role">Role Title</div>
+              <div class="slide-headline" id="slide-exp-company">Company Name</div>
+              <div class="slide-location" id="slide-exp-dates">Dates & Duration</div>
+            </div>
+
+            <!-- Scene 3: Skills -->
+            <div class="reel-slide" id="slide-3">
+              <div class="slide-tag">SKILLS & COMPETENCIES</div>
+              <div class="slide-role-icon">⚡</div>
+              <div class="slide-name" style="font-size: 15px;">Core Tech Stack</div>
+              <div class="slide-skills-cloud" id="slide-skills-cloud"></div>
+            </div>
+
+            <!-- Scene 4: Education -->
+            <div class="reel-slide" id="slide-4">
+              <div class="slide-tag">ACADEMIC FOUNDATION</div>
+              <div class="slide-role-icon">🎓</div>
+              <div class="slide-name" id="slide-edu-degree">Degree & Specialization</div>
+              <div class="slide-headline" id="slide-edu-school">Institution</div>
+              <div class="slide-location" id="slide-edu-year">Graduation Year</div>
+            </div>
+
+            <!-- Native HTML5 Video Element (when MP4 is generated) -->
+            <video id="html5-reel-video" class="native-reel-video hidden" controls playsinline></video>
           </div>
-          <div class="progress-track">
-            <div class="progress-bar" id="bar-skills" style="width: 92%;"></div>
+
+          <!-- Video Controls Bar -->
+          <div class="reel-control-bar">
+            <button id="btn-play-pause" class="reel-btn play-btn" title="Play / Pause Reel">
+              <span id="play-btn-icon">▶ Play</span>
+            </button>
+            <div class="reel-track-wrap">
+              <div class="reel-track-fill" id="reel-track-fill"></div>
+            </div>
+            <span class="reel-timer" id="reel-timer">0:00 / 0:25</span>
+            <button id="btn-audio-voice" class="reel-icon-btn" title="AI Voiceover Narration">
+              <span id="audio-voice-icon">🔊</span>
+            </button>
+            <a id="btn-download-mp4" class="reel-icon-btn hidden" title="Download MP4 Video" download target="_blank">
+              💾
+            </a>
           </div>
+
+          <!-- Spoken Narration Script Accordion -->
+          <details class="narration-accordion" id="narration-accordion">
+            <summary class="narration-summary">
+              <span>🎙️ View AI Voiceover Script</span>
+              <span class="acc-arrow">▼</span>
+            </summary>
+            <div class="narration-body" id="reel-script-body">
+              Synthesizing grounded narration from profile facts...
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- SECTION 2: 10-POINT CANDIDATE SCORE (SECOND)   -->
+      <!-- ============================================== -->
+      <section class="result-section section-score" id="sec-score">
+        <div class="section-badge-bar">
+          <div class="badge-tag tag-sec2">
+            <span>⭐</span> SECTION 2: 10-POINT CANDIDATE SCORE
+          </div>
+          <span class="tier-pill" id="res-tier-pill">STRONG</span>
         </div>
 
-        <div class="pillar-row">
-          <div class="pillar-label-row">
-            <span>Education & Credentials</span>
-            <span class="pillar-val" id="val-education">1.7 / 2.0</span>
+        <div class="score-card-box">
+          <!-- Overall Hero -->
+          <div class="score-hero-row">
+            <div class="score-number-group">
+              <div class="score-big" id="res-overall-score">--</div>
+              <div class="score-sub">/ 10.0</div>
+            </div>
+            <div class="tier-badge-wrap">
+              <span class="tier-badge" id="res-tier-badge">STRONG</span>
+              <span class="score-subtext" id="res-score-summary">Evaluated across 4 key dimensions</span>
+            </div>
           </div>
-          <div class="progress-track">
-            <div class="progress-bar" id="bar-education" style="width: 85%;"></div>
+
+          <!-- 4 Pillars Breakdown -->
+          <div class="pillars-container">
+            <!-- Experience -->
+            <div class="pillar-item">
+              <div class="pillar-info">
+                <span class="pillar-title">Experience & Seniority</span>
+                <span class="pillar-score-text" id="val-experience">-- / 3.5</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-bar" id="bar-experience" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- Skills -->
+            <div class="pillar-item">
+              <div class="pillar-info">
+                <span class="pillar-title">Technical Skills & Stack</span>
+                <span class="pillar-score-text" id="val-skills">-- / 2.5</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-bar" id="bar-skills" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- Education -->
+            <div class="pillar-item">
+              <div class="pillar-info">
+                <span class="pillar-title">Education & Credentials</span>
+                <span class="pillar-score-text" id="val-education">-- / 2.0</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-bar" id="bar-education" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- Impact -->
+            <div class="pillar-item">
+              <div class="pillar-info">
+                <span class="pillar-title">Impact & Professional Presence</span>
+                <span class="pillar-score-text" id="val-impact">-- / 2.0</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-bar" id="bar-impact" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Key Strengths & Growth Areas -->
+          <div class="insights-box">
+            <div class="insight-label">Key Strengths</div>
+            <div class="tag-row" id="res-strengths"></div>
+
+            <div class="insight-label mt-2">Growth & Focus Areas</div>
+            <div class="tag-row" id="res-growth"></div>
+
+            <div class="insight-label mt-2">Recommended Target Roles</div>
+            <div class="tag-row" id="res-roles"></div>
           </div>
         </div>
+      </section>
 
-        <div class="pillar-row">
-          <div class="pillar-label-row">
-            <span>Impact & Presence</span>
-            <span class="pillar-val" id="val-impact">1.6 / 2.0</span>
+      <!-- ============================================== -->
+      <!-- SECTION 3: EXPERIENCE & EDUCATION (THIRD)       -->
+      <!-- ============================================== -->
+      <section class="result-section section-background" id="sec-background">
+        <div class="section-badge-bar">
+          <div class="badge-tag tag-sec3">
+            <span>📋</span> SECTION 3: CANDIDATE EXPERIENCE & EDUCATION
           </div>
-          <div class="progress-track">
-            <div class="progress-bar" id="bar-impact" style="width: 80%;"></div>
+          <span class="verified-label">✓ Exact LinkedIn Facts</span>
+        </div>
+
+        <div class="background-card-box">
+          <!-- Work Experience -->
+          <div class="fact-group">
+            <div class="fact-group-title">
+              <span>💼</span> Work Experience
+            </div>
+            <div class="fact-list" id="res-experience-list">
+              <div class="empty-fact">No experience records found</div>
+            </div>
+          </div>
+
+          <!-- Education -->
+          <div class="fact-group">
+            <div class="fact-group-title">
+              <span>🎓</span> Education & Academic History
+            </div>
+            <div class="fact-list" id="res-education-list">
+              <div class="empty-fact">No education records found</div>
+            </div>
+          </div>
+
+          <!-- Skills Cloud -->
+          <div class="fact-group">
+            <div class="fact-group-title">
+              <span>🛠️</span> Extracted Skills & Tools
+            </div>
+            <div class="skills-cloud-wrap" id="res-skills-cloud">
+              <div class="empty-fact">No skills extracted</div>
+            </div>
+          </div>
+
+          <!-- Certifications (if any) -->
+          <div class="fact-group hidden" id="group-certifications">
+            <div class="fact-group-title">
+              <span>📜</span> Licenses & Certifications
+            </div>
+            <div class="fact-list" id="res-certifications-list"></div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Strengths & Growth Areas -->
-      <div class="insights-section">
-        <div class="section-title">Key Strengths</div>
-        <div class="tags-row" id="res-strengths">
-          <span class="tag tag-strength">10+ Years Experience</span>
-        </div>
-
-        <div class="section-title mt-2">Growth & Focus Areas</div>
-        <div class="tags-row" id="res-growth">
-          <span class="tag tag-growth">Cloud Architecture</span>
-        </div>
-
-        <div class="section-title mt-2">Recommended Roles</div>
-        <div class="tags-row" id="res-roles">
-          <span class="tag tag-role">Senior Full-Stack Engineer</span>
-        </div>
-      </div>
-
-      <!-- Bottom Action Row -->
-      <div class="results-actions">
+      <!-- Bottom Global Action Bar -->
+      <div class="footer-actions">
         <button id="btn-copy-summary" class="btn btn-secondary">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
           </svg>
-          <span id="copy-btn-text">Copy Summary</span>
+          <span id="copy-btn-text">Copy Full Report</span>
         </button>
-        <button id="btn-refresh-score" class="btn btn-secondary" title="Re-run analysis">
+        <button id="btn-re-score" class="btn btn-secondary" title="Re-run Analysis">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10"></polyline>
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
           </svg>
-          Re-Score
+          Re-Score Profile
         </button>
       </div>
+
     </div>
 
-    <!-- Empty Initial State (If no profile yet) -->
+    <!-- Empty Initial State -->
     <div id="idle-guide" class="idle-guide">
       <div class="guide-icon">💡</div>
       <div class="guide-text">
-        Navigate to any candidate's <strong>LinkedIn profile</strong>, or paste their profile URL above to generate an instant 10-point AI evaluation score.
+        Click <strong>Score Candidate</strong> to generate the <strong>AI Profile Reel</strong>, <strong>10-Point Score Card</strong>, and <strong>Verified Background Breakdown</strong>.
       </div>
     </div>
 
     <!-- Footer -->
     <footer class="app-footer">
-      <span>Powered by ProfileReel AI • Production Engine</span>
+      <span>ProfileReel AI • 10-Point LinkedIn Scoring Engine</span>
     </footer>
   </div>
 

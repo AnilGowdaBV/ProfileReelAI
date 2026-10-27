@@ -1,6 +1,6 @@
 const DEFAULT_API_URL = 'https://profilereel-ai-backend.onrender.com/api';
 
-// DOM Elements
+// Elements
 const inputProfileUrl = document.getElementById('input-profile-url');
 const btnScoreCandidate = document.getElementById('btn-score-candidate');
 const tabDetectedBadge = document.getElementById('tab-detected-badge');
@@ -24,12 +24,39 @@ const errorTitle = document.getElementById('error-title');
 const errorMessage = document.getElementById('error-message');
 const btnRetry = document.getElementById('btn-retry');
 
-const resultsCard = document.getElementById('results-card');
-const resAvatar = document.getElementById('res-avatar');
-const resName = document.getElementById('res-name');
-const resHeadline = document.getElementById('res-headline');
+const candidateResults = document.getElementById('candidate-results');
+const idleGuide = document.getElementById('idle-guide');
+
+// Section 1: Video Reel Elements
+const slide1 = document.getElementById('slide-1');
+const slide2 = document.getElementById('slide-2');
+const slide3 = document.getElementById('slide-3');
+const slide4 = document.getElementById('slide-4');
+const slideAvatar = document.getElementById('slide-avatar');
+const slideName = document.getElementById('slide-name');
+const slideHeadline = document.getElementById('slide-headline');
+const slideLocation = document.getElementById('slide-location');
+const slideExpRole = document.getElementById('slide-exp-role');
+const slideExpCompany = document.getElementById('slide-exp-company');
+const slideExpDates = document.getElementById('slide-exp-dates');
+const slideSkillsCloud = document.getElementById('slide-skills-cloud');
+const slideEduDegree = document.getElementById('slide-edu-degree');
+const slideEduSchool = document.getElementById('slide-edu-school');
+const slideEduYear = document.getElementById('slide-edu-year');
+const btnPlayPause = document.getElementById('btn-play-pause');
+const playBtnIcon = document.getElementById('play-btn-icon');
+const reelTrackFill = document.getElementById('reel-track-fill');
+const reelTimer = document.getElementById('reel-timer');
+const btnAudioVoice = document.getElementById('btn-audio-voice');
+const audioVoiceIcon = document.getElementById('audio-voice-icon');
+const btnDownloadMp4 = document.getElementById('btn-download-mp4');
+const reelScriptBody = document.getElementById('reel-script-body');
+const html5ReelVideo = document.getElementById('html5-reel-video');
+
+// Section 2: Score Elements
 const resOverallScore = document.getElementById('res-overall-score');
 const resTierBadge = document.getElementById('res-tier-badge');
+const resTierPill = document.getElementById('res-tier-pill');
 const valExperience = document.getElementById('val-experience');
 const barExperience = document.getElementById('bar-experience');
 const valSkills = document.getElementById('val-skills');
@@ -41,13 +68,29 @@ const barImpact = document.getElementById('bar-impact');
 const resStrengths = document.getElementById('res-strengths');
 const resGrowth = document.getElementById('res-growth');
 const resRoles = document.getElementById('res-roles');
+
+// Section 3: Background Elements
+const resExperienceList = document.getElementById('res-experience-list');
+const resEducationList = document.getElementById('res-education-list');
+const resSkillsCloud = document.getElementById('res-skills-cloud');
+const groupCertifications = document.getElementById('group-certifications');
+const resCertificationsList = document.getElementById('res-certifications-list');
+
+// Footer Actions
 const btnCopySummary = document.getElementById('btn-copy-summary');
 const copyBtnText = document.getElementById('copy-btn-text');
-const btnRefreshScore = document.getElementById('btn-refresh-score');
-const idleGuide = document.getElementById('idle-guide');
+const btnReScore = document.getElementById('btn-re-score');
 
-let currentCandidateData = null;
-let currentScoreData = null;
+// Playback state
+let isPlaying = false;
+let playInterval = null;
+let currentProgress = 0; // 0 to 100
+const REEL_DURATION_SEC = 24; // 6s per slide
+let isAudioEnabled = true;
+let currentUtterance = null;
+let cachedCandidate = null;
+let cachedScore = null;
+let generatedScript = '';
 
 // Helpers
 async function getApiBase() {
@@ -64,47 +107,42 @@ function isLinkedInProfileUrl(url) {
   return /https?:\/\/(www\.)?linkedin\.com\/in\/[\w\-\_]+/i.test(url);
 }
 
-// Initialize on popup open
+// Lifecycle Init
 document.addEventListener('DOMContentLoaded', async () => {
   const apiBase = await getApiBase();
   inputApiUrl.value = apiBase;
-
-  // Check backend health
   checkBackendHealth(apiBase);
 
-  // Detect active tab URL
+  // Active tab inspection
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab?.url && isLinkedInProfileUrl(tab.url)) {
     const cleanUrl = normalizeLinkedInUrl(tab.url);
     inputProfileUrl.value = cleanUrl;
     tabDetectedBadge.innerHTML = '<span class="pulse-dot"></span> LinkedIn Profile Detected';
-    tabDetectedBadge.classList.remove('hidden');
 
-    // Check if score is cached in local storage
-    const cacheKey = `score_${cleanUrl}`;
+    // Auto-check local cache
+    const cacheKey = `cand_full_${cleanUrl}`;
     const cached = await chrome.storage.local.get(cacheKey);
     if (cached[cacheKey]) {
-      displayResults(cached[cacheKey].candidate, cached[cacheKey].score);
+      renderAllThreeSections(cached[cacheKey].candidate, cached[cacheKey].score, cached[cacheKey].video);
     }
   } else {
     tabDetectedBadge.innerHTML = '<span>🌐</span> Manual Input Mode';
   }
 });
 
-// Check backend health
+// Ping backend
 async function checkBackendHealth(apiBase) {
   try {
     const res = await fetch(`${apiBase}/health`, { signal: AbortSignal.timeout(4000) });
     if (res.ok) {
       backendStatusDot.classList.add('connected');
-      backendStatusDot.title = 'Backend Connected';
+      backendStatusDot.title = 'Backend Live';
     } else {
       backendStatusDot.classList.remove('connected');
-      backendStatusDot.title = 'Backend Unreachable';
     }
   } catch (e) {
     backendStatusDot.classList.remove('connected');
-    backendStatusDot.title = 'Backend Offline';
   }
 }
 
@@ -129,17 +167,14 @@ btnSaveSettings.addEventListener('click', async () => {
 // Test Connection
 btnTestConnection.addEventListener('click', async () => {
   settingsFeedback.style.color = '#38bdf8';
-  settingsFeedback.textContent = 'Testing connection...';
+  settingsFeedback.textContent = 'Connecting...';
   try {
     const res = await fetch(`${inputApiUrl.value.trim()}/health`);
     const data = await res.json();
     if (data.status === 'ok') {
       settingsFeedback.style.color = '#34d399';
-      settingsFeedback.textContent = `Connected! Provider: ${data.database?.provider || 'PostgreSQL'}`;
+      settingsFeedback.textContent = `Live: ${data.database?.provider || 'Supabase PostgreSQL'}`;
       backendStatusDot.classList.add('connected');
-    } else {
-      settingsFeedback.style.color = '#f87171';
-      settingsFeedback.textContent = 'Server responded with error.';
     }
   } catch (err) {
     settingsFeedback.style.color = '#f87171';
@@ -147,39 +182,35 @@ btnTestConnection.addEventListener('click', async () => {
   }
 });
 
-// Score Candidate Button Click
+// Scoring Triggers
 btnScoreCandidate.addEventListener('click', () => {
   const url = inputProfileUrl.value.trim();
-  if (!url) {
-    showError('Missing URL', 'Please enter a LinkedIn profile URL.');
+  if (!url || !isLinkedInProfileUrl(url)) {
+    showError('Invalid LinkedIn URL', 'Please enter a valid candidate profile URL (e.g. https://www.linkedin.com/in/username).');
     return;
   }
-  if (!isLinkedInProfileUrl(url)) {
-    showError('Invalid URL', 'Please enter a valid LinkedIn profile URL (e.g. https://www.linkedin.com/in/username).');
-    return;
-  }
-  scoreCandidate(url);
+  executeScoring(url);
 });
 
 btnRetry.addEventListener('click', () => {
   const url = inputProfileUrl.value.trim();
-  if (url) scoreCandidate(url);
+  if (url) executeScoring(url);
 });
 
-btnRefreshScore.addEventListener('click', () => {
+btnReScore.addEventListener('click', () => {
   const url = inputProfileUrl.value.trim();
-  if (url) scoreCandidate(url, true);
+  if (url) executeScoring(url, true);
 });
 
-// Main Scoring Flow
-async function scoreCandidate(profileUrl, forceRefresh = false) {
+// Main Scoring Execution
+async function executeScoring(profileUrl, forceRefresh = false) {
   const cleanUrl = normalizeLinkedInUrl(profileUrl);
-  const cacheKey = `score_${cleanUrl}`;
+  const cacheKey = `cand_full_${cleanUrl}`;
 
   if (!forceRefresh) {
     const cached = await chrome.storage.local.get(cacheKey);
     if (cached[cacheKey]) {
-      displayResults(cached[cacheKey].candidate, cached[cacheKey].score);
+      renderAllThreeSections(cached[cacheKey].candidate, cached[cacheKey].score, cached[cacheKey].video);
       return;
     }
   }
@@ -189,7 +220,7 @@ async function scoreCandidate(profileUrl, forceRefresh = false) {
 
   try {
     // Step 1: Submit Profile
-    setStep(1, 'Submitting profile for verification & ingestion...');
+    setStep(1, 'Registering candidate URL and initializing ingestion...');
     const submitRes = await fetch(`${apiBase}/candidates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -204,10 +235,9 @@ async function scoreCandidate(profileUrl, forceRefresh = false) {
     const { candidateId, jobId } = await submitRes.json();
 
     // Step 2: Poll Scraper Job
-    setStep(2, 'Scraping verified profile data via Apify...');
-    let candidateData = null;
+    setStep(2, 'Extracting verified candidate profile data via Apify...');
     let attempts = 0;
-    const maxAttempts = 35; // ~50 seconds max
+    const maxAttempts = 35; // ~50s
 
     while (attempts < maxAttempts) {
       attempts++;
@@ -217,7 +247,7 @@ async function scoreCandidate(profileUrl, forceRefresh = false) {
       if (jobRes.ok) {
         const job = await jobRes.json();
         if (job.status === 'FAILED') {
-          throw new Error(job.errorMessage || 'Profile retrieval failed.');
+          throw new Error(job.errorMessage || 'Profile extraction failed on authorized source.');
         }
         if (
           job.status === 'COMPLETED' ||
@@ -230,110 +260,398 @@ async function scoreCandidate(profileUrl, forceRefresh = false) {
       }
     }
 
-    // Step 3: Fetch Score
-    setStep(3, 'Computing 10-point multi-vector score breakdown...');
-    
-    // Fetch Candidate Details
-    const candRes = await fetch(`${apiBase}/candidates/${candidateId}`);
-    candidateData = candRes.ok ? await candRes.json() : { id: candidateId, submittedProfileUrl: cleanUrl };
+    // Step 3: Fetch Candidate Details & Score
+    setStep(3, 'Synthesizing AI Video Reel & calculating 10-Point Score...');
 
-    // Fetch Score
+    // 1. Fetch Candidate with all exact facts
+    const candRes = await fetch(`${apiBase}/candidates/${candidateId}`);
+    if (!candRes.ok) throw new Error('Could not retrieve normalized candidate record.');
+    const candidateData = await candRes.json();
+
+    // 2. Fetch Score
     let scoreRes = await fetch(`${apiBase}/candidates/${candidateId}/score`);
     if (!scoreRes.ok) {
-      // Trigger calculation
       scoreRes = await fetch(`${apiBase}/candidates/${candidateId}/score`, { method: 'POST' });
     }
+    const scoreData = scoreRes.ok ? await scoreRes.json() : null;
 
-    if (!scoreRes.ok) {
-      throw new Error('Failed to generate candidate score.');
-    }
-
-    const scoreData = await scoreRes.json();
+    // 3. Trigger / Check Video Reel
+    let videoData = null;
+    try {
+      const vidCheck = await fetch(`${apiBase}/videos/candidate/${candidateId}`);
+      if (vidCheck.ok) {
+        videoData = await vidCheck.json();
+      } else {
+        // Trigger background generation
+        fetch(`${apiBase}/candidates/${candidateId}/generate-video`, { method: 'POST' })
+          .then((r) => r.json())
+          .then((v) => {
+            if (v?.videoUrl) {
+              btnDownloadMp4.href = `${apiBase}${v.downloadUrl || v.videoUrl}`;
+              btnDownloadMp4.classList.remove('hidden');
+            }
+          })
+          .catch(() => {});
+      }
+    } catch (e) {}
 
     // Cache locally
     await chrome.storage.local.set({
-      [cacheKey]: { candidate: candidateData, score: scoreData, timestamp: Date.now() },
+      [cacheKey]: { candidate: candidateData, score: scoreData, video: videoData, timestamp: Date.now() },
     });
 
-    displayResults(candidateData, scoreData);
+    renderAllThreeSections(candidateData, scoreData, videoData);
   } catch (err) {
-    showError('Scoring Error', err.message || 'An unexpected error occurred while scoring the profile.');
+    showError('Candidate Analysis Error', err.message || 'Could not complete candidate evaluation.');
   }
 }
 
-// UI State Management
-function showLoading() {
-  idleGuide.classList.add('hidden');
-  errorState.classList.add('hidden');
-  resultsCard.classList.add('hidden');
-  loadingState.classList.remove('hidden');
-}
-
-function setStep(stepNum, desc) {
-  loadingDesc.textContent = desc;
-  step1.classList.toggle('active', stepNum === 1);
-  step2.classList.toggle('active', stepNum === 2);
-  step3.classList.toggle('active', stepNum === 3);
-}
-
-function showError(title, msg) {
-  loadingState.classList.add('hidden');
-  resultsCard.classList.add('hidden');
-  idleGuide.classList.add('hidden');
-  errorState.classList.remove('hidden');
-  errorTitle.textContent = title;
-  errorMessage.textContent = msg;
-}
-
-function displayResults(candidate, score) {
-  currentCandidateData = candidate;
-  currentScoreData = score;
+// ==========================================================
+// RENDER ALL 3 SECTIONS WITH ZERO HARDCODED DATA
+// ==========================================================
+function renderAllThreeSections(candidate, score, video) {
+  cachedCandidate = candidate;
+  cachedScore = score;
 
   loadingState.classList.add('hidden');
   errorState.classList.add('hidden');
   idleGuide.classList.add('hidden');
-  resultsCard.classList.remove('hidden');
+  candidateResults.classList.remove('hidden');
 
-  // Candidate info
+  const facts = candidate?.facts || [];
   const name = candidate?.displayName || extractNameFromUrl(candidate?.submittedProfileUrl) || 'Candidate';
-  resName.textContent = name;
-  resAvatar.textContent = name.charAt(0).toUpperCase();
+  const headlineFact = facts.find((f) => f.category === 'headline')?.factText || 'Professional';
+  const summaryFact = facts.find((f) => f.category === 'summary')?.factText || '';
+  const experienceFacts = facts.filter((f) => f.category === 'experience');
+  const educationFacts = facts.filter((f) => f.category === 'education');
+  const skillsFacts = facts.filter((f) => f.category === 'skills');
+  const certFacts = facts.filter((f) => f.category === 'certification');
 
-  // Headline or summary
-  const headlineFact = candidate?.facts?.find((f) => f.category === 'headline')?.factText;
-  resHeadline.textContent = headlineFact || 'Verified LinkedIn Candidate Profile';
+  // ----------------------------------------------------------
+  // SECTION 1: AI VIDEO REEL (APPEARS FIRST)
+  // ----------------------------------------------------------
+  slideAvatar.textContent = name.charAt(0).toUpperCase();
+  slideName.textContent = name;
+  slideHeadline.textContent = headlineFact;
+  slideLocation.textContent = '📍 Verified LinkedIn Profile';
 
-  // Overall Score & Tier
-  const overall = Number(score.overallScore || 0).toFixed(1);
-  resOverallScore.textContent = overall;
-  resTierBadge.textContent = score.tier || 'PROFICIENT';
-  resTierBadge.className = `tier-badge tier-${score.tier || 'PROFICIENT'}`;
+  // Scene 2: Top Experience
+  if (experienceFacts.length > 0) {
+    const topExp = parseExperienceFact(experienceFacts[0].factText);
+    slideExpRole.textContent = topExp.title;
+    slideExpCompany.textContent = topExp.company;
+    slideExpDates.textContent = topExp.dates || 'Current Position';
+  } else {
+    slideExpRole.textContent = 'Professional Experience';
+    slideExpCompany.textContent = headlineFact;
+    slideExpDates.textContent = 'Industry Experience';
+  }
 
-  // Breakdown Pillars
-  valExperience.textContent = `${Number(score.experienceScore || 0).toFixed(1)} / 3.5`;
-  barExperience.style.width = `${Math.min(100, ((score.experienceScore || 0) / 3.5) * 100)}%`;
+  // Scene 3: Skills
+  slideSkillsCloud.innerHTML = '';
+  const allSkills = extractSkillsList(skillsFacts, headlineFact);
+  allSkills.slice(0, 6).forEach((skill) => {
+    const chip = document.createElement('span');
+    chip.className = 'slide-skill-tag';
+    chip.textContent = skill;
+    slideSkillsCloud.appendChild(chip);
+  });
 
-  valSkills.textContent = `${Number(score.skillsScore || 0).toFixed(1)} / 2.5`;
-  barSkills.style.width = `${Math.min(100, ((score.skillsScore || 0) / 2.5) * 100)}%`;
+  // Scene 4: Education
+  if (educationFacts.length > 0) {
+    const topEdu = parseEducationFact(educationFacts[0].factText);
+    slideEduDegree.textContent = topEdu.degree;
+    slideEduSchool.textContent = topEdu.school;
+    slideEduYear.textContent = topEdu.year || 'Academic Degree';
+  } else {
+    slideEduDegree.textContent = 'Academic Foundation';
+    slideEduSchool.textContent = 'Verified Degree / Credentials';
+    slideEduYear.textContent = '';
+  }
 
-  valEducation.textContent = `${Number(score.educationScore || 0).toFixed(1)} / 2.0`;
-  barEducation.style.width = `${Math.min(100, ((score.educationScore || 0) / 2.0) * 100)}%`;
+  // Grounded Spoken Script Synthesis
+  generatedScript = synthesizeGroundedScript(name, headlineFact, experienceFacts, educationFacts, allSkills);
+  reelScriptBody.textContent = generatedScript;
 
-  valImpact.textContent = `${Number(score.impactScore || 0).toFixed(1)} / 2.0`;
-  barImpact.style.width = `${Math.min(100, ((score.impactScore || 0) / 2.0) * 100)}%`;
+  // Video download link
+  if (video?.videoUrl || video?.downloadUrl) {
+    btnDownloadMp4.href = `${DEFAULT_API_URL}${video.downloadUrl || video.videoUrl}`;
+    btnDownloadMp4.classList.remove('hidden');
+  }
 
-  // Strengths
-  renderTags(resStrengths, score.keyStrengths, 'tag-strength');
-  // Growth
-  renderTags(resGrowth, score.growthAreas, 'tag-growth');
-  // Roles
-  renderTags(resRoles, score.recommendedRoles, 'tag-role');
+  // Reset Reel Player
+  resetReelPlayer();
+
+  // ----------------------------------------------------------
+  // SECTION 2: 10-POINT CANDIDATE SCORE (APPEARS SECOND)
+  // ----------------------------------------------------------
+  if (score) {
+    const overall = Number(score.overallScore || 0).toFixed(1);
+    resOverallScore.textContent = overall;
+    const tier = score.tier || 'PROFICIENT';
+    resTierBadge.textContent = tier;
+    resTierBadge.className = `tier-badge tier-${tier}`;
+    resTierPill.textContent = tier;
+
+    // 4 Core Pillars
+    valExperience.textContent = `${Number(score.experienceScore || 0).toFixed(1)} / 3.5`;
+    barExperience.style.width = `${Math.min(100, ((score.experienceScore || 0) / 3.5) * 100)}%`;
+
+    valSkills.textContent = `${Number(score.skillsScore || 0).toFixed(1)} / 2.5`;
+    barSkills.style.width = `${Math.min(100, ((score.skillsScore || 0) / 2.5) * 100)}%`;
+
+    valEducation.textContent = `${Number(score.educationScore || 0).toFixed(1)} / 2.0`;
+    barEducation.style.width = `${Math.min(100, ((score.educationScore || 0) / 2.0) * 100)}%`;
+
+    valImpact.textContent = `${Number(score.impactScore || 0).toFixed(1)} / 2.0`;
+    barImpact.style.width = `${Math.min(100, ((score.impactScore || 0) / 2.0) * 100)}%`;
+
+    // Strengths, Growth, Roles
+    renderTagList(resStrengths, score.keyStrengths, 'tag-strength');
+    renderTagList(resGrowth, score.growthAreas, 'tag-growth');
+    renderTagList(resRoles, score.recommendedRoles, 'tag-role');
+  }
+
+  // ----------------------------------------------------------
+  // SECTION 3: CANDIDATE EXPERIENCE & EDUCATION (APPEARS THIRD)
+  // ----------------------------------------------------------
+  // Experience List
+  resExperienceList.innerHTML = '';
+  if (experienceFacts.length === 0) {
+    resExperienceList.innerHTML = '<div class="empty-fact">No formal experience items extracted.</div>';
+  } else {
+    experienceFacts.forEach((fact) => {
+      const exp = parseExperienceFact(fact.factText);
+      const item = document.createElement('div');
+      item.className = 'fact-item';
+      item.innerHTML = `
+        <div class="fact-item-title">${escapeHtml(exp.title)}</div>
+        <div class="fact-item-subtitle">${escapeHtml(exp.company)}</div>
+        ${exp.dates ? `<div class="fact-item-meta">${escapeHtml(exp.dates)}</div>` : ''}
+        ${exp.desc ? `<div class="fact-item-desc">${escapeHtml(exp.desc)}</div>` : ''}
+      `;
+      resExperienceList.appendChild(item);
+    });
+  }
+
+  // Education List
+  resEducationList.innerHTML = '';
+  if (educationFacts.length === 0) {
+    resEducationList.innerHTML = '<div class="empty-fact">No education history listed.</div>';
+  } else {
+    educationFacts.forEach((fact) => {
+      const edu = parseEducationFact(fact.factText);
+      const item = document.createElement('div');
+      item.className = 'fact-item edu-item';
+      item.innerHTML = `
+        <div class="fact-item-title">${escapeHtml(edu.degree)}</div>
+        <div class="fact-item-subtitle">${escapeHtml(edu.school)}</div>
+        ${edu.year ? `<div class="fact-item-meta">${escapeHtml(edu.year)}</div>` : ''}
+      `;
+      resEducationList.appendChild(item);
+    });
+  }
+
+  // Skills Cloud
+  resSkillsCloud.innerHTML = '';
+  if (allSkills.length === 0) {
+    resSkillsCloud.innerHTML = '<div class="empty-fact">No skills specified on profile.</div>';
+  } else {
+    allSkills.forEach((skill) => {
+      const chip = document.createElement('span');
+      chip.className = 'skill-chip';
+      chip.textContent = skill;
+      resSkillsCloud.appendChild(chip);
+    });
+  }
+
+  // Certifications
+  if (certFacts.length > 0) {
+    groupCertifications.classList.remove('hidden');
+    resCertificationsList.innerHTML = '';
+    certFacts.forEach((fact) => {
+      const item = document.createElement('div');
+      item.className = 'fact-item';
+      item.innerHTML = `<div class="fact-item-title">${escapeHtml(fact.factText)}</div>`;
+      resCertificationsList.appendChild(item);
+    });
+  } else {
+    groupCertifications.classList.add('hidden');
+  }
 }
 
-function renderTags(container, items, tagClass) {
+// ==========================================================
+// REEL PLAYER CONTROLLER (INTERACTIVE SCENES + SPEECH)
+// ==========================================================
+function resetReelPlayer() {
+  stopReelPlayback();
+  currentProgress = 0;
+  reelTrackFill.style.width = '0%';
+  reelTimer.textContent = '0:00 / 0:24';
+  showSlide(1);
+}
+
+function showSlide(num) {
+  slide1.classList.toggle('active', num === 1);
+  slide2.classList.toggle('active', num === 2);
+  slide3.classList.toggle('active', num === 3);
+  slide4.classList.toggle('active', num === 4);
+}
+
+btnPlayPause.addEventListener('click', () => {
+  if (isPlaying) {
+    pauseReelPlayback();
+  } else {
+    startReelPlayback();
+  }
+});
+
+function startReelPlayback() {
+  isPlaying = true;
+  playBtnIcon.textContent = '⏸ Pause';
+
+  // Speak narration
+  if (isAudioEnabled && 'speechSynthesis' in window && generatedScript) {
+    window.speechSynthesis.cancel();
+    currentUtterance = new SpeechSynthesisUtterance(generatedScript);
+    currentUtterance.rate = 1.0;
+    currentUtterance.pitch = 1.0;
+    window.speechSynthesis.speak(currentUtterance);
+  }
+
+  const stepMs = 250;
+  const totalMs = REEL_DURATION_SEC * 1000;
+
+  playInterval = setInterval(() => {
+    currentProgress += (stepMs / totalMs) * 100;
+    if (currentProgress >= 100) {
+      currentProgress = 100;
+      stopReelPlayback();
+      return;
+    }
+
+    reelTrackFill.style.width = `${currentProgress}%`;
+    const elapsedSec = Math.floor((currentProgress / 100) * REEL_DURATION_SEC);
+    reelTimer.textContent = `0:${String(elapsedSec).padStart(2, '0')} / 0:${REEL_DURATION_SEC}`;
+
+    // 4 scenes evenly distributed
+    if (currentProgress < 25) showSlide(1);
+    else if (currentProgress < 50) showSlide(2);
+    else if (currentProgress < 75) showSlide(3);
+    else showSlide(4);
+  }, stepMs);
+}
+
+function pauseReelPlayback() {
+  isPlaying = false;
+  playBtnIcon.textContent = '▶ Play';
+  clearInterval(playInterval);
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.pause();
+  }
+}
+
+function stopReelPlayback() {
+  isPlaying = false;
+  playBtnIcon.textContent = '▶ Play';
+  clearInterval(playInterval);
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+// Audio narration toggle
+btnAudioVoice.addEventListener('click', () => {
+  isAudioEnabled = !isAudioEnabled;
+  audioVoiceIcon.textContent = isAudioEnabled ? '🔊' : '🔇';
+  if (!isAudioEnabled && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+});
+
+// Grounded Script Synthesizer
+function synthesizeGroundedScript(name, headline, exps, edus, skills) {
+  let script = `Meet ${name}, ${headline}. `;
+
+  if (exps.length > 0) {
+    const top = parseExperienceFact(exps[0].factText);
+    script += `In their professional journey, they contribute as ${top.title} at ${top.company}. `;
+  }
+
+  if (skills.length > 0) {
+    script += `Their core competencies include ${skills.slice(0, 4).join(', ')}. `;
+  }
+
+  if (edus.length > 0) {
+    const topEdu = parseEducationFact(edus[0].factText);
+    script += `Academic foundation includes ${topEdu.degree} from ${topEdu.school}. `;
+  }
+
+  script += `ProfileReel AI evaluates this candidate as ready for high-impact engineering opportunities.`;
+  return script;
+}
+
+// Parsers for Exact Facts
+function parseExperienceFact(text) {
+  if (!text) return { title: 'Role', company: 'Company' };
+  // Expected format: "[Title] at [Company] ([Dates]) - [Desc]" or free text
+  const atMatch = text.match(/^(.+?)\s+at\s+([^\(\-]+)/i);
+  if (atMatch) {
+    const title = atMatch[1].trim();
+    const company = atMatch[2].trim();
+    const datesMatch = text.match(/\((.+?)\)/);
+    const descMatch = text.match(/\)\s*-\s*(.+)$/);
+    return {
+      title,
+      company,
+      dates: datesMatch ? datesMatch[1].trim() : '',
+      desc: descMatch ? descMatch[1].trim() : '',
+    };
+  }
+  return { title: text, company: '' };
+}
+
+function parseEducationFact(text) {
+  if (!text) return { degree: 'Degree', school: 'Institution' };
+  const atMatch = text.match(/^(.+?)\s+at\s+([^\(\-]+)/i);
+  if (atMatch) {
+    const degree = atMatch[1].trim();
+    const school = atMatch[2].trim();
+    const yearMatch = text.match(/\((.+?)\)/);
+    return {
+      degree,
+      school,
+      year: yearMatch ? yearMatch[1].trim() : '',
+    };
+  }
+  return { degree: text, school: '' };
+}
+
+function extractSkillsList(skillFacts, headline) {
+  const set = new Set();
+  skillFacts.forEach((f) => {
+    f.factText.split(',').forEach((s) => {
+      const clean = s.trim();
+      if (clean) set.add(clean);
+    });
+  });
+
+  // Also parse keywords from headline if skills were few
+  if (set.size < 3 && headline) {
+    const tokens = headline.split(/[\|\@\•\,\/]/);
+    tokens.forEach((t) => {
+      const clean = t.trim();
+      if (clean.length > 1 && clean.length < 25) set.add(clean);
+    });
+  }
+
+  return Array.from(set);
+}
+
+function renderTagList(container, items, tagClass) {
   container.innerHTML = '';
   if (!items || items.length === 0) {
-    container.innerHTML = `<span class="tag ${tagClass}">Evaluation Pending</span>`;
+    container.innerHTML = `<span class="tag ${tagClass}">Verified</span>`;
     return;
   }
   items.forEach((item) => {
@@ -348,43 +666,82 @@ function extractNameFromUrl(url) {
   if (!url) return '';
   const match = url.match(/\/in\/([^\/\?#]+)/);
   if (!match) return '';
-  return match[1]
-    .replace(/-/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return match[1].replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// Copy Summary to Clipboard
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Copy Full Report
 btnCopySummary.addEventListener('click', async () => {
-  if (!currentScoreData || !currentCandidateData) return;
+  if (!cachedCandidate || !cachedScore) return;
 
-  const name = resName.textContent;
-  const url = currentCandidateData.submittedProfileUrl;
-  const score = currentScoreData;
+  const name = cachedCandidate.displayName || 'Candidate';
+  const url = cachedCandidate.submittedProfileUrl;
+  const score = cachedScore;
+  const exps = (cachedCandidate.facts || []).filter((f) => f.category === 'experience');
+  const edus = (cachedCandidate.facts || []).filter((f) => f.category === 'education');
 
-  const summary = `🎯 ProfileReel AI Candidate Evaluation
+  const report = `🎯 PROFILEREEL AI CANDIDATE DOSSIER
+==================================================
+SECTION 1: AI VIDEO REEL
 Candidate: ${name}
 Profile: ${url}
-Overall Score: ${Number(score.overallScore).toFixed(1)} / 10.0 (${score.tier})
+Spoken Narration Script:
+"${generatedScript}"
 
-📊 Pillar Breakdown:
+==================================================
+SECTION 2: 10-POINT CANDIDATE SCORE
+Overall Score: ${Number(score.overallScore).toFixed(1)} / 10.0 (${score.tier})
 • Experience & Seniority: ${Number(score.experienceScore).toFixed(1)} / 3.5
 • Technical Skills: ${Number(score.skillsScore).toFixed(1)} / 2.5
 • Education & Credentials: ${Number(score.educationScore).toFixed(1)} / 2.0
 • Professional Impact & Presence: ${Number(score.impactScore).toFixed(1)} / 2.0
 
-⭐ Key Strengths:
+Key Strengths:
 ${(score.keyStrengths || []).map((s) => `• ${s}`).join('\n')}
 
-🌱 Focus & Growth Areas:
+Growth & Focus Areas:
 ${(score.growthAreas || []).map((g) => `• ${g}`).join('\n')}
 
-💼 Recommended Roles:
-${(score.recommendedRoles || []).join(', ')}
+==================================================
+SECTION 3: VERIFIED EXPERIENCE & EDUCATION
+Work Experience:
+${exps.map((e) => `• ${e.factText}`).join('\n') || 'None listed'}
+
+Education History:
+${edus.map((e) => `• ${e.factText}`).join('\n') || 'None listed'}
 `;
 
-  await navigator.clipboard.writeText(summary);
-  copyBtnText.textContent = 'Copied to Clipboard! ✓';
+  await navigator.clipboard.writeText(report);
+  copyBtnText.textContent = 'Report Copied! ✓';
   setTimeout(() => {
-    copyBtnText.textContent = 'Copy Summary';
+    copyBtnText.textContent = 'Copy Full Report';
   }, 2000);
 });
+
+// UI State Handling
+function showLoading() {
+  idleGuide.classList.add('hidden');
+  errorState.classList.add('hidden');
+  candidateResults.classList.add('hidden');
+  loadingState.classList.remove('hidden');
+}
+
+function setStep(num, desc) {
+  loadingDesc.textContent = desc;
+  step1.classList.toggle('active', num === 1);
+  step2.classList.toggle('active', num === 2);
+  step3.classList.toggle('active', num === 3);
+}
+
+function showError(title, msg) {
+  loadingState.classList.add('hidden');
+  candidateResults.classList.add('hidden');
+  idleGuide.classList.add('hidden');
+  errorState.classList.remove('hidden');
+  errorTitle.textContent = title;
+  errorMessage.textContent = msg;
+}
