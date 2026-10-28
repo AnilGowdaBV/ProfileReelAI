@@ -797,7 +797,7 @@ Education History:
 ${edus.map((e) => `• ${e.factText}`).join('\n') || 'None listed'}
 
 ==================================================
-MATCHING LIVE OPPORTUNITIES (INSTAHYRE)
+TOP 3 MATCHING JOBS
 ${(instahyreJobsPool || []).slice(0, 3).map((j) => `• ${j.title} at ${j.companyName} (${j.location}) - ${j.publicUrl}`).join('\n') || 'None loaded'}
 `;
 
@@ -941,7 +941,7 @@ async function loadInstahyreJobs(isRefresh = false) {
   instahyreJobsList.innerHTML = `
     <div class="instahyre-loading">
       <div class="mini-spinner"></div>
-      <span>Loading live Instahyre roles...</span>
+      <span>Loading live jobs...</span>
     </div>
   `;
 
@@ -957,7 +957,7 @@ async function loadInstahyreJobs(isRefresh = false) {
   if (!instahyreJobsPool || instahyreJobsPool.length === 0) {
     instahyreJobsList.innerHTML = `
       <div class="instahyre-empty">
-        Could not connect to live Instahyre feed.
+        Could not connect to live job feed.
         <a href="#" id="link-retry-jobs" style="color: #a78bfa; margin-left: 6px; text-decoration: underline; font-weight: 600;">Retry</a>
       </div>
     `;
@@ -1009,7 +1009,7 @@ async function loadInstahyreJobs(isRefresh = false) {
         <div class="job-company-initial" style="display:${job.companyLogo ? 'none' : 'flex'}">${escapeHtml(initial)}</div>
       </div>
       <div class="job-details">
-        <a href="${job.publicUrl}" target="_blank" class="job-title-link" title="Open ${escapeHtml(job.title)} on Instahyre">
+        <a href="${job.publicUrl}" target="_blank" class="job-title-link" title="View ${escapeHtml(job.title)}">
           ${escapeHtml(job.title)}
         </a>
         <div class="job-company-loc">
@@ -1024,7 +1024,7 @@ async function loadInstahyreJobs(isRefresh = false) {
         </div>
         ${skillChips ? `<div class="job-skills-row">${skillChips}</div>` : ''}
       </div>
-      <button class="btn-job-apply ${isApplied ? 'applied' : ''}" data-job-id="${job.id}" data-job-url="${job.publicUrl}" title="${isApplied ? 'Already Applied' : 'Apply on Instahyre'}">
+      <button class="btn-job-apply ${isApplied ? 'applied' : ''}" data-job-id="${job.id}" data-job-url="${job.publicUrl}" title="${isApplied ? 'Already Applied' : 'Apply'}">
         ${isApplied ? '✓ Applied' : 'Apply'}
       </button>
     `;
@@ -1070,7 +1070,7 @@ async function handleApplyClick(jobId, jobUrl, btn) {
     await chrome.storage.local.set({ [key]: true });
     btn.classList.add('applied');
     btn.textContent = '✓ Applied';
-    btn.title = 'Applied to Instahyre Job';
+    btn.title = 'Applied';
 
     // Open Instahyre job in background tab so application link opens
     if (jobUrl) {
