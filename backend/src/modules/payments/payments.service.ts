@@ -31,17 +31,20 @@ export class PaymentsService {
   private readonly activeSubscriptions = new Map<string, SubscriptionRecord>();
 
   constructor(private readonly configService: ConfigService) {
-    this.keyId =
-      this.configService.get<string>('RAZORPAY_KEY_ID') || 'rzp_test_TtGKzOsymGLWBg';
-    this.keySecret =
-      this.configService.get<string>('RAZORPAY_KEY_SECRET') || 'FCS4HcTIR7NRWCr1IzSxFZMj';
+    this.keyId = this.configService.get<string>('RAZORPAY_KEY_ID') || '';
+    this.keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET') || '';
 
     try {
-      this.razorpay = new Razorpay({
-        key_id: this.keyId,
-        key_secret: this.keySecret,
-      });
-      this.logger.log(`Initialized Razorpay client with Key ID: ${this.keyId}`);
+      if (this.keyId && this.keySecret) {
+        this.razorpay = new Razorpay({
+          key_id: this.keyId,
+          key_secret: this.keySecret,
+        });
+        const maskedKey = this.keyId.length > 8 ? this.keyId.substring(0, 8) + '***' : 'Configured';
+        this.logger.log(`Initialized Razorpay client with Key ID: ${maskedKey}`);
+      } else {
+        this.logger.warn('Razorpay keys not provided in environment variables');
+      }
     } catch (err: any) {
       this.logger.error(`Failed to initialize Razorpay: ${err.message}`);
     }
