@@ -170,10 +170,15 @@ export class PaymentsService {
       expiresAt,
     };
 
-    // Store by paymentId and by candidateProfileUrl
+    // Store by paymentId, orderId, latest, and candidateProfileUrl
     this.activeSubscriptions.set(dto.razorpayPaymentId, record);
+    this.activeSubscriptions.set(dto.razorpayOrderId, record);
+    this.activeSubscriptions.set('latest', record);
     if (dto.candidateProfileUrl) {
       this.activeSubscriptions.set(dto.candidateProfileUrl, record);
+      const clean = dto.candidateProfileUrl.replace(/\/+$/, '');
+      this.activeSubscriptions.set(clean, record);
+      this.activeSubscriptions.set(clean + '/', record);
     }
 
     this.logger.log(`✓ Payment verified successfully! Pro activated for ${durationDays} days.`);
@@ -333,10 +338,17 @@ export class PaymentsService {
    * Query subscription status
    */
   getSubscriptionStatus(identifier?: string) {
-    if (!identifier) {
-      return { isPremium: false };
+    let record: SubscriptionRecord | undefined;
+    if (identifier) {
+      const clean = identifier.replace(/\/+$/, '');
+      record =
+        this.activeSubscriptions.get(identifier) ||
+        this.activeSubscriptions.get(clean) ||
+        this.activeSubscriptions.get(clean + '/');
     }
-    const record = this.activeSubscriptions.get(identifier);
+    if (!record) {
+      record = this.activeSubscriptions.get('latest');
+    }
     if (!record) {
       return { isPremium: false };
     }

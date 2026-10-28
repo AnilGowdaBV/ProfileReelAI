@@ -165,10 +165,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   checkBackendHealth(apiBase);
   setupCareerTabs();
 
-  // Load freemium subscription state
-  const subData = await chrome.storage.local.get(['isPremium', 'selectedPlan']);
+  // 1. Load local freemium subscription state
+  const subData = await chrome.storage.local.get(['isPremium', 'selectedPlan', 'lastOrderId']);
   isPremium = !!subData.isPremium;
   selectedPlan = subData.selectedPlan || 'monthly';
+
+  // 2. Inspect active LinkedIn tab
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  let cleanUrl = '';
+  if (tab?.url && isLinkedInProfileUrl(tab.url)) {
+    cleanUrl = normalizeLinkedInUrl(tab.url);
+    inputProfileUrl.value = cleanUrl;
+    tabDetectedBadge.innerHTML = '<span class="pulse-dot"></span> LinkedIn Profile Detected';
+  } else {
+    tabDetectedBadge.innerHTML = '<span>🌐</span> Manual Input Mode';
+  }
+
+  // 3. Auto-sync with backend if not already unlocked
+  if (!isPremium) {
+    try {
+      const checkId = cleanUrl || subData.lastOrderId || '';
+      const statusRes = await fetch(`${apiBase}/payments/status?identifier=${encodeURIComponent(checkId)}`, {
+        signal: AbortSignal.timeout(3500),
+      }).then((r) => r.json());
+
+      if (statusRes?.isPremium) {
+        isPremium = true;
+        await chrome.storage.local.set({ isPremium: true });
+      }
+    } catch (e) {
+      // Backend offline or blip, fallback to local storage
+    }
+  }
+
   if (selectedPlan === 'annual' && planCardAnnual && planCardMonthly) {
     planCardAnnual.classList.add('active');
     planCardMonthly.classList.remove('active');
@@ -176,22 +205,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateSubscriptionUI();
   initSubscriptionHandlers();
 
-  // Active tab inspection
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.url && isLinkedInProfileUrl(tab.url)) {
-    const cleanUrl = normalizeLinkedInUrl(tab.url);
-    inputProfileUrl.value = cleanUrl;
-    tabDetectedBadge.innerHTML = '<span class="pulse-dot"></span> LinkedIn Profile Detected';
-
-    // Auto-check local cache
+  // 4. Auto-check local cache for candidate profile rendering
+  if (cleanUrl) {
     const cacheKey = `cand_full_${cleanUrl}`;
     const cached = await chrome.storage.local.get(cacheKey);
     if (cached[cacheKey]) {
       renderAllThreeSections(cached[cacheKey].candidate, cached[cacheKey].score, cached[cacheKey].video);
     }
-  } else {
-    tabDetectedBadge.innerHTML = '<span>🌐</span> Manual Input Mode';
   }
+});
+
+// Auto-sync when user refocuses the extension window after payment
+window.addEventListener('focus', async () => {
+  if (isPremium) return;
+  try {
+    const apiBase = await getApiBase();
+    const subData = await chrome.storage.local.get(['lastOrderId']);
+    const checkId = cachedCandidate?.submittedProfileUrl || subData?.lastOrderId || '';
+    const statusRes = await fetch(`${apiBase}/payments/status?identifier=${encodeURIComponent(checkId)}`).then((r) => r.json());
+    if (statusRes?.isPremium) {
+      await activateProSubscription();
+    }
+  } catch (e) {}
 });
 
 // Ping backend
