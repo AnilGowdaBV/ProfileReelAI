@@ -51,16 +51,26 @@ export class JobsController {
         }
       }
 
-      return items.slice(0, take).map((j: any) => ({
-        id: j.id,
-        title: j.title || j.candidate_title || 'Software Engineer',
-        companyName: j.employer?.company_name || 'Tech Company',
-        companyLogo: j.employer?.profile_image_src || '',
-        companyTagline: j.employer?.company_tagline || '',
-        location: Array.isArray(j.locations) ? j.locations.join(', ') : (j.locations || 'Remote'),
-        skills: Array.isArray(j.keywords) ? j.keywords : [],
-        publicUrl: j.public_url || `https://www.instahyre.com/job-${j.id}`,
-      }));
+      return items.slice(0, take).map((j: any) => {
+        const compSlug = (j.employer?.company_name || '')
+          .toLowerCase()
+          .replace(/[\.\,\(\)\']/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9\-]/g, '')
+          .replace(/^-+|-+$/g, '');
+
+        return {
+          id: j.id,
+          title: j.title || j.candidate_title || 'Software Engineer',
+          companyName: j.employer?.company_name || 'Tech Company',
+          companyLogo: j.employer?.profile_image_src || '',
+          companyTagline: j.employer?.company_tagline || '',
+          companyLinkedInUrl: `https://www.linkedin.com/company/${compSlug}`,
+          location: Array.isArray(j.locations) ? j.locations.join(', ') : (j.locations || 'Remote'),
+          skills: Array.isArray(j.keywords) ? j.keywords : [],
+          publicUrl: j.public_url || `https://www.instahyre.com/job-${j.id}`,
+        };
+      });
     } catch (err) {
       return [];
     }

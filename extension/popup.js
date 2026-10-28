@@ -883,17 +883,33 @@ async function fetchLiveInstahyreJobs(offset = 0, count = 25, skills = []) {
   return [];
 }
 
+function getCompanyLinkedInUrl(companyName) {
+  if (!companyName) return 'https://www.linkedin.com';
+  const slug = companyName
+    .trim()
+    .toLowerCase()
+    .replace(/[\.\,\(\)\']/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '')
+    .replace(/^-+|-+$/g, '');
+  return `https://www.linkedin.com/company/${slug}`;
+}
+
 function normalizeInstahyreObjects(objects) {
-  return objects.map((j) => ({
-    id: j.id,
-    title: j.title || j.candidate_title || 'Software Engineer',
-    companyName: j.employer?.company_name || 'Tech Company',
-    companyLogo: j.employer?.profile_image_src || '',
-    companyTagline: j.employer?.company_tagline || '',
-    location: Array.isArray(j.locations) ? j.locations.join(', ') : (j.locations || 'Remote'),
-    skills: Array.isArray(j.keywords) ? j.keywords : [],
-    publicUrl: j.public_url || `https://www.instahyre.com/job-${j.id}`,
-  }));
+  return objects.map((j) => {
+    const compName = j.employer?.company_name || j.companyName || 'Tech Company';
+    return {
+      id: j.id,
+      title: j.title || j.candidate_title || 'Software Engineer',
+      companyName: compName,
+      companyLogo: j.employer?.profile_image_src || j.companyLogo || '',
+      companyTagline: j.employer?.company_tagline || j.companyTagline || '',
+      companyLinkedInUrl: j.companyLinkedInUrl || getCompanyLinkedInUrl(compName),
+      location: Array.isArray(j.locations) ? j.locations.join(', ') : (j.locations || j.location || 'Remote'),
+      skills: Array.isArray(j.keywords) ? j.keywords : (j.skills || []),
+      publicUrl: j.public_url || j.publicUrl || `https://www.instahyre.com/job-${j.id}`,
+    };
+  });
 }
 
 function rankJobsForCandidate(jobs, candidateSkills) {
@@ -973,6 +989,7 @@ async function loadInstahyreJobs(isRefresh = false) {
   top3.forEach((job) => {
     const isApplied = !!storageData[`applied_instahyre_${job.id}`];
     const initial = (job.companyName || 'C').charAt(0).toUpperCase();
+    const compLinkedIn = job.companyLinkedInUrl || getCompanyLinkedInUrl(job.companyName);
 
     const card = document.createElement('div');
     card.className = 'instahyre-job-card';
@@ -997,6 +1014,11 @@ async function loadInstahyreJobs(isRefresh = false) {
         </a>
         <div class="job-company-loc">
           <span class="job-comp">🏢 ${escapeHtml(job.companyName)}</span>
+          <button class="company-linkedin-btn" data-url="${compLinkedIn}" title="Open ${escapeHtml(job.companyName)} LinkedIn Profile">
+            <svg viewBox="0 0 24 24">
+              <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+            </svg>
+          </button>
           <span class="job-dot">•</span>
           <span class="job-loc">📍 ${escapeHtml(job.location)}</span>
         </div>
@@ -1007,6 +1029,24 @@ async function loadInstahyreJobs(isRefresh = false) {
       </button>
     `;
 
+    // LinkedIn button handler
+    const linkedInBtn = card.querySelector('.company-linkedin-btn');
+    if (linkedInBtn) {
+      linkedInBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const url = linkedInBtn.dataset.url;
+        if (url) {
+          if (chrome?.tabs?.create) {
+            chrome.tabs.create({ url, active: true });
+          } else {
+            window.open(url, '_blank');
+          }
+        }
+      });
+    }
+
+    // Apply button handler
     const applyBtn = card.querySelector('.btn-job-apply');
     applyBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
