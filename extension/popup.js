@@ -501,17 +501,22 @@ function renderAllThreeSections(candidate, score, video) {
     resTierPill.textContent = tier;
 
     // 4 Core Pillars
-    valExperience.textContent = `${Number(score.experienceScore || 0).toFixed(1)} / 3.5`;
-    barExperience.style.width = `${Math.min(100, ((score.experienceScore || 0) / 3.5) * 100)}%`;
+    const expScore = score.breakdown?.experience?.score ?? score.experienceScore ?? 0;
+    const skillsScore = score.breakdown?.skills?.score ?? score.skillsScore ?? 0;
+    const eduScore = score.breakdown?.education?.score ?? score.educationScore ?? 0;
+    const impactScore = score.breakdown?.activeness?.score ?? score.breakdown?.impact?.score ?? score.impactScore ?? 0;
 
-    valSkills.textContent = `${Number(score.skillsScore || 0).toFixed(1)} / 2.5`;
-    barSkills.style.width = `${Math.min(100, ((score.skillsScore || 0) / 2.5) * 100)}%`;
+    valExperience.textContent = `${Number(expScore).toFixed(1)} / 3.5`;
+    barExperience.style.width = `${Math.min(100, (expScore / 3.5) * 100)}%`;
 
-    valEducation.textContent = `${Number(score.educationScore || 0).toFixed(1)} / 2.0`;
-    barEducation.style.width = `${Math.min(100, ((score.educationScore || 0) / 2.0) * 100)}%`;
+    valSkills.textContent = `${Number(skillsScore).toFixed(1)} / 2.5`;
+    barSkills.style.width = `${Math.min(100, (skillsScore / 2.5) * 100)}%`;
 
-    valImpact.textContent = `${Number(score.impactScore || 0).toFixed(1)} / 2.0`;
-    barImpact.style.width = `${Math.min(100, ((score.impactScore || 0) / 2.0) * 100)}%`;
+    valEducation.textContent = `${Number(eduScore).toFixed(1)} / 2.0`;
+    barEducation.style.width = `${Math.min(100, (eduScore / 2.0) * 100)}%`;
+
+    valImpact.textContent = `${Number(impactScore).toFixed(1)} / 2.0`;
+    barImpact.style.width = `${Math.min(100, (impactScore / 2.0) * 100)}%`;
 
     // Strengths, Growth, Roles
     renderTagList(resStrengths, score.keyStrengths, 'tag-strength');

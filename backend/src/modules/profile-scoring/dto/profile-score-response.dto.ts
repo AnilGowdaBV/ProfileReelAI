@@ -35,6 +35,10 @@ export class ProfileScoreResponseDto {
   overallScore: number;
   tier: ScoreTier;
   tierLabel: string;
+  experienceScore?: number;
+  skillsScore?: number;
+  educationScore?: number;
+  impactScore?: number;
   breakdown: ScoreBreakdownDto;
   keyStrengths: string[];
   growthAreas: string[];

@@ -53,7 +53,7 @@ export class ProfileScoringService {
     const certFacts = facts.filter((f) => f.category === FactCategory.CERTIFICATION);
 
     // Detect Career Stage (FRESHER, JUNIOR, MID, SENIOR, STAFF)
-    const careerStage = this.detectCareerStage(experienceFacts, headlineFacts);
+    const careerStage = this.detectCareerStage(experienceFacts, headlineFacts, educationFacts);
 
     // 1. Evaluate Experience & Projects (Max: 3.5)
     const { score: experienceScore, description: expDesc } =
@@ -191,6 +191,10 @@ export class ProfileScoringService {
       overallScore,
       tier,
       tierLabel,
+      experienceScore,
+      skillsScore,
+      educationScore,
+      impactScore: activenessScore,
       breakdown,
       keyStrengths,
       growthAreas,
@@ -201,64 +205,10 @@ export class ProfileScoringService {
 
   /**
    * Retrieves the latest profile score for a candidate.
+   * Re-evaluates dynamically so formula updates take effect immediately.
    */
   async getLatestScore(candidateId: string): Promise<ProfileScoreResponseDto> {
-    const existing = await this.scoreRepo.findOne({
-      where: { candidateId },
-      order: { createdAt: 'DESC' },
-    });
-
-    if (!existing) {
-      // Auto-compute score if candidate exists
-      return this.scoreCandidate(candidateId);
-    }
-
-    const candidate = await this.candidateRepo.findOne({ where: { id: candidateId } });
-
-    let tierLabel = 'Foundational Talent (Early Career / Fresher)';
-    if (existing.overallScore >= 9.0) tierLabel = 'Top 5% Talent (Staff / Principal Architect)';
-    else if (existing.overallScore >= 7.8) tierLabel = 'High-Performing Professional (Senior / Lead)';
-    else if (existing.overallScore >= 6.0) tierLabel = 'Solid Foundation (Junior / Mid-Level)';
-
-    return {
-      id: existing.id,
-      candidateId,
-      candidateName: candidate?.displayName || 'Candidate',
-      overallScore: existing.overallScore,
-      tier: existing.tier,
-      tierLabel,
-      breakdown: {
-        experience: {
-          score: existing.experienceScore,
-          max: 3.5,
-          description: 'Career stability, track record, and verified seniority',
-        },
-        skills: {
-          score: existing.skillsScore,
-          max: 2.5,
-          description: 'Technical stack depth and applied framework mastery',
-        },
-        education: {
-          score: existing.educationScore,
-          max: 2.0,
-          description: 'Degrees, academic credentials, and certifications',
-        },
-        activeness: {
-          score: existing.impactScore,
-          max: 2.0,
-          description: 'LinkedIn activity, industry reach, and network presence',
-        },
-        impact: {
-          score: existing.impactScore,
-          max: 2.0,
-          description: 'LinkedIn activity, industry reach, and network presence',
-        },
-      },
-      keyStrengths: existing.keyStrengths,
-      growthAreas: existing.growthAreas,
-      recommendedRoles: existing.recommendedRoles,
-      evaluatedAt: existing.updatedAt || existing.createdAt,
-    };
+    return this.scoreCandidate(candidateId);
   }
 
   // --- Career Stage Detection ---
@@ -269,47 +219,13 @@ export class ProfileScoringService {
   private detectCareerStage(
     expFacts: CandidateFact[],
     headlineFacts: CandidateFact[],
+    educationFacts: CandidateFact[],
   ): 'FRESHER' | 'JUNIOR' | 'MID' | 'SENIOR' | 'STAFF' {
     const expTexts = expFacts.map((f) => f.factText.toLowerCase());
     const headline = headlineFacts.map((f) => f.factText.toLowerCase()).join(' ');
-    const combined = [headline, ...expTexts].join(' ');
+    const eduText = educationFacts.map((e) => e.factText.toLowerCase()).join(' ');
 
-    // 1. Staff / Principal / Architect / Executive
-    const staffKeywords = [
-      'staff',
-      'principal',
-      'architect',
-      'director',
-      'head of',
-      'vp ',
-      'vice president',
-      'chief ',
-      'founder',
-      'co-founder',
-      'cto',
-      'cio',
-      'fellow',
-    ];
-    if (staffKeywords.some((k) => combined.includes(k))) {
-      return 'STAFF';
-    }
-
-    // 2. Senior / Lead / Manager
-    const seniorKeywords = [
-      'senior',
-      'sr.',
-      'lead',
-      'tech lead',
-      'team lead',
-      'engineering manager',
-      'specialist',
-      'consultant',
-    ];
-    if (seniorKeywords.some((k) => combined.includes(k))) {
-      return 'SENIOR';
-    }
-
-    // 3. Fresher / Intern / Student Detection
+    // Fresher / Intern / Student Detection keywords
     const fresherKeywords = [
       'intern',
       'internship',
@@ -331,29 +247,78 @@ export class ProfileScoringService {
       'college',
     ];
 
-    const hasFresherHeadline = fresherKeywords.some((k) => headline.includes(k));
-    const allRolesAreInternOrTrainee =
-      expFacts.length > 0 &&
-      expFacts.every((f) => {
-        const text = f.factText.toLowerCase();
-        return fresherKeywords.some((k) => text.includes(k));
-      });
+    // Check if education indicates currently studying or graduating in 2024/2025/2026/2027/2028
+    const isStudentOrRecentGrad =
+      eduText.includes('2025') ||
+      eduText.includes('2026') ||
+      eduText.includes('2027') ||
+      eduText.includes('2028') ||
+      fresherKeywords.some((k) => eduText.includes(k)) ||
+      fresherKeywords.some((k) => headline.includes(k));
 
-    // If 0 roles, or all roles are internships/trainees, or 1 role and headline is fresher/student:
+    // Count how many verified full-time, non-intern, non-student commercial roles exist
+    const nonInternRoles = expFacts.filter((f) => {
+      const text = f.factText.toLowerCase();
+      return !fresherKeywords.some((k) => text.includes(k));
+    });
+
+    // 1. Staff / Principal / Architect / Executive
+    const staffKeywords = [
+      'staff',
+      'principal',
+      'architect',
+      'director',
+      'head of',
+      'vp ',
+      'vice president',
+      'chief ',
+      'founder',
+      'co-founder',
+      'cto',
+      'cio',
+      'fellow',
+    ];
+    if (staffKeywords.some((k) => headline.includes(k) || expTexts.some((t) => t.includes(k)))) {
+      // Must not be a student/intern
+      if (!isStudentOrRecentGrad && nonInternRoles.length >= 4) {
+        return 'STAFF';
+      }
+    }
+
+    // 2. Senior / Lead / Manager
+    const seniorKeywords = [
+      'senior',
+      'sr.',
+      'lead',
+      'tech lead',
+      'team lead',
+      'engineering manager',
+      'specialist',
+      'consultant',
+    ];
+    if (seniorKeywords.some((k) => headline.includes(k) || expTexts.some((t) => t.includes(k)))) {
+      if (!isStudentOrRecentGrad && nonInternRoles.length >= 3) {
+        return 'SENIOR';
+      }
+    }
+
+    // 3. Fresher Evaluation:
+    // If no roles, NO non-intern roles (only internships), OR is a student/recent grad with <= 1 starter role:
     if (
       expFacts.length === 0 ||
-      allRolesAreInternOrTrainee ||
-      (expFacts.length <= 1 && hasFresherHeadline)
+      nonInternRoles.length === 0 ||
+      (isStudentOrRecentGrad && nonInternRoles.length <= 1) ||
+      (nonInternRoles.length === 1 && expFacts.length <= 3 && isStudentOrRecentGrad)
     ) {
       return 'FRESHER';
     }
 
-    // 4. Junior (1-2 years / 1-2 junior roles)
-    if (expFacts.length <= 2) {
+    // 4. Junior (1-2 non-intern commercial roles)
+    if (nonInternRoles.length <= 2) {
       return 'JUNIOR';
     }
 
-    // 5. Mid-level (3+ verified commercial roles)
+    // 5. Mid-level (3+ verified commercial non-intern roles)
     return 'MID';
   }
 
