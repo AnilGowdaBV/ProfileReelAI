@@ -837,7 +837,23 @@ function showError(title, msg) {
 // ==========================================================
 
 async function fetchLiveInstahyreJobs(offset = 0, count = 25, skills = []) {
-  // Strategy 1: Direct fetch to Instahyre's public endpoint
+  // Strategy 1: Backend proxy fetch (No browser CORS restrictions, fast, reliable)
+  try {
+    const apiBase = await getApiBase();
+    const skillsQuery = encodeURIComponent((skills || []).slice(0, 5).join(','));
+    const res = await fetch(`${apiBase}/jobs/instahyre/live?offset=${offset}&limit=${count}&skills=${skillsQuery}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        chrome.storage.local.set({ instahyre_cached_jobs: data }).catch(() => {});
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('Backend proxy Instahyre fetch failed, trying direct:', err);
+  }
+
+  // Strategy 2: Direct fetch to Instahyre's public endpoint
   try {
     const res = await fetch(`https://www.instahyre.com/api/v1/job_search?offset=${offset}&count=${count}`, {
       headers: {
@@ -847,27 +863,22 @@ async function fetchLiveInstahyreJobs(offset = 0, count = 25, skills = []) {
     if (res.ok) {
       const data = await res.json();
       if (data && Array.isArray(data.objects) && data.objects.length > 0) {
-        return normalizeInstahyreObjects(data.objects);
+        const normalized = normalizeInstahyreObjects(data.objects);
+        chrome.storage.local.set({ instahyre_cached_jobs: normalized }).catch(() => {});
+        return normalized;
       }
     }
   } catch (err) {
-    console.warn('Direct Instahyre fetch failed, attempting backend proxy:', err);
+    console.warn('Direct Instahyre fetch failed:', err);
   }
 
-  // Strategy 2: Backend proxy fetch
+  // Strategy 3: Check cached jobs from previous fetch
   try {
-    const apiBase = await getApiBase();
-    const skillsQuery = encodeURIComponent((skills || []).slice(0, 5).join(','));
-    const res = await fetch(`${apiBase}/jobs/instahyre/live?offset=${offset}&limit=${count}&skills=${skillsQuery}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
+    const cached = await chrome.storage.local.get('instahyre_cached_jobs');
+    if (Array.isArray(cached?.instahyre_cached_jobs) && cached.instahyre_cached_jobs.length > 0) {
+      return cached.instahyre_cached_jobs;
     }
-  } catch (err) {
-    console.warn('Backend proxy Instahyre fetch failed:', err);
-  }
+  } catch (err) {}
 
   return [];
 }
@@ -907,37 +918,40 @@ async function loadInstahyreJobs(isRefresh = false) {
   if (isLoadingInstahyre) return;
   isLoadingInstahyre = true;
 
-  if (isRefresh && refreshIcon) {
+  if (refreshIcon) {
     refreshIcon.classList.add('spinning');
   }
 
-  // If pool empty or user explicitly requested refresh, fetch fresh batch from Instahyre
-  if (instahyreJobsPool.length === 0 || isRefresh) {
-    if (!isRefresh || instahyreJobsList.children.length === 0) {
-      instahyreJobsList.innerHTML = `
-        <div class="instahyre-loading">
-          <div class="mini-spinner"></div>
-          <span>Loading live Instahyre roles...</span>
-        </div>
-      `;
-    }
+  instahyreJobsList.innerHTML = `
+    <div class="instahyre-loading">
+      <div class="mini-spinner"></div>
+      <span>Loading live Instahyre roles...</span>
+    </div>
+  `;
 
-    if (isRefresh) {
-      instahyreOffset += 3;
-    }
-
-    const rawJobs = await fetchLiveInstahyreJobs(instahyreOffset, 25, candidateSkillsCache);
-    if (rawJobs.length > 0) {
-      instahyreJobsPool = rankJobsForCandidate(rawJobs, candidateSkillsCache);
-    }
+  if (isRefresh) {
+    instahyreOffset += 3;
   }
 
-  if (instahyreJobsPool.length === 0) {
+  const rawJobs = await fetchLiveInstahyreJobs(instahyreOffset, 25, candidateSkillsCache);
+  if (rawJobs.length > 0) {
+    instahyreJobsPool = rankJobsForCandidate(rawJobs, candidateSkillsCache);
+  }
+
+  if (!instahyreJobsPool || instahyreJobsPool.length === 0) {
     instahyreJobsList.innerHTML = `
       <div class="instahyre-empty">
-        Could not retrieve live Instahyre jobs right now. Check connection.
+        Could not connect to live Instahyre feed.
+        <a href="#" id="link-retry-jobs" style="color: #a78bfa; margin-left: 6px; text-decoration: underline; font-weight: 600;">Retry</a>
       </div>
     `;
+    const retryLink = document.getElementById('link-retry-jobs');
+    if (retryLink) {
+      retryLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        loadInstahyreJobs(true);
+      });
+    }
     isLoadingInstahyre = false;
     if (refreshIcon) refreshIcon.classList.remove('spinning');
     return;
