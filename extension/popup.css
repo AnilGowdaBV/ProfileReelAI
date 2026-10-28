@@ -2178,6 +2178,63 @@ body::-webkit-scrollbar-thumb:hover {
   transform: translateY(-1px);
 }
 
+.payment-pending-box {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.18) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  border-radius: 9px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.25s ease;
+}
+
+.pending-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.pending-text strong {
+  color: #fff;
+  font-size: 11.5px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.pending-text span {
+  font-size: 10px;
+  color: #cbd5e1;
+  line-height: 1.35;
+  display: block;
+}
+
+.btn-demo-free-unlock {
+  width: 100%;
+  margin-top: 3px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  color: #94a3b8;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-demo-free-unlock:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
 .sub-guarantee {
   text-align: center;
   font-size: 9.5px;

@@ -520,10 +520,22 @@
         </div>
       </div>
 
+      <!-- Pending Checkout Notice Box -->
+      <div id="payment-pending-box" class="payment-pending-box hidden">
+        <div class="pending-spinner"></div>
+        <div class="pending-text">
+          <strong>Razorpay Checkout Opened in New Tab!</strong>
+          <span>Complete payment via UPI or Cards. Money is settled directly to your bank account.</span>
+        </div>
+        <button id="btn-check-payment-status" class="btn btn-secondary" style="font-size: 10.5px; padding: 5px 12px; width: 100%;">
+          ✓ I Have Paid • Unlock Pro Now
+        </button>
+      </div>
+
       <!-- Call to Action -->
       <button id="btn-activate-trial" class="btn-sub-cta">
         <span class="cta-glow"></span>
-        <span class="cta-text" id="cta-button-text">🚀 Start 7-Day Free Trial (₹0 Today)</span>
+        <span class="cta-text" id="cta-button-text">💳 Pay ₹999 with Razorpay (Instant Unlock)</span>
       </button>
 
       <!-- Instant Reset / Demo Switcher inside Modal -->
@@ -531,8 +543,13 @@
         ↺ Cancel Pro &amp; Switch Back to Free Tier
       </button>
 
+      <!-- Instant Demo Unlock (For Quick Testing/Demos without live card) -->
+      <button id="btn-quick-demo-unlock" class="btn-demo-free-unlock" title="Quick testing demo unlock without paying">
+        ⚡ Instant Demo Unlock (Skip Payment)
+      </button>
+
       <div class="sub-guarantee">
-        🔒 Easy cancel anytime in 1-click. Zero commitments.
+        🔒 Real Razorpay Gateway • 256-Bit SSL Encrypted • Direct Bank Settlement
       </div>
     </div>
   </div>

@@ -9,6 +9,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { ScriptGenerationModule } from './modules/script-generation/script-generation.module';
 import { VideoGenerationModule } from './modules/video-generation/video-generation.module';
 import { ProfileScoringModule } from './modules/profile-scoring/profile-scoring.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ProfileScoringModule } from './modules/profile-scoring/profile-scoring.
     ScriptGenerationModule,
     VideoGenerationModule,
     ProfileScoringModule,
+    PaymentsModule,
   ],
 })
 export class AppModule {}

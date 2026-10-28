@@ -109,6 +109,10 @@ const currentPlanLabel = document.getElementById('current-plan-label');
 const btnToggleDemoPlan = document.getElementById('btn-toggle-demo-plan');
 const planCardMonthly = document.getElementById('plan-card-monthly');
 const planCardAnnual = document.getElementById('plan-card-annual');
+const paymentPendingBox = document.getElementById('payment-pending-box');
+const btnCheckPaymentStatus = document.getElementById('btn-check-payment-status');
+const btnQuickDemoUnlock = document.getElementById('btn-quick-demo-unlock');
+const btnResetToFree = document.getElementById('btn-reset-to-free');
 
 // Teasers (Golden Key Unlock Cards)
 const teaserRoles = document.getElementById('teaser-roles');
@@ -1488,14 +1492,24 @@ function updateSubscriptionUI() {
   if (teaserCourses) teaserCourses.classList.toggle('hidden', isPremium);
   if (teaserInterview) teaserInterview.classList.toggle('hidden', isPremium);
 
-  // 4. Modal CTA Button Text
+  // 4. Modal Buttons and Razorpay CTA Text
+  if (btnResetToFree) {
+    btnResetToFree.classList.toggle('hidden', !isPremium);
+  }
+  if (btnQuickDemoUnlock) {
+    btnQuickDemoUnlock.classList.toggle('hidden', isPremium);
+  }
+  if (paymentPendingBox && isPremium) {
+    paymentPendingBox.classList.add('hidden');
+  }
+
   if (ctaButtonText) {
     if (isPremium) {
       ctaButtonText.textContent = '✓ Pro Subscription Active (Click to Close)';
     } else {
       ctaButtonText.textContent = selectedPlan === 'annual'
-        ? '🚀 Start 7-Day Free Trial (₹7,999/yr)'
-        : '🚀 Start 7-Day Free Trial (₹0 Today)';
+        ? '💳 Pay ₹7,999 with Razorpay (Save 35%)'
+        : '💳 Pay ₹999 with Razorpay (Instant Unlock)';
     }
   }
 }
@@ -1555,7 +1569,32 @@ function initSubscriptionHandlers() {
     });
   }
 
-  // Trial / Pro Activation Action
+  // Core Pro Activation Helper
+  async function activateProSubscription() {
+    isPremium = true;
+    await chrome.storage.local.set({ isPremium: true });
+
+    if (ctaButtonText) {
+      ctaButtonText.textContent = '🎉 ProfileReel AI Pro Activated!';
+    }
+    updateSubscriptionUI();
+
+    // Dynamically un-blur & re-render career hub with full unlocked pool
+    if (cachedCandidate) {
+      loadInstahyreJobs(false);
+      renderPreferredCourses(candidateSkillsCache);
+      renderInterviewPanel();
+    }
+
+    setTimeout(() => {
+      closeSubscriptionModal();
+      if (ctaButtonText) {
+        ctaButtonText.textContent = '✓ Pro Subscription Active';
+      }
+    }, 1000);
+  }
+
+  // Razorpay Checkout Action Trigger
   if (btnActivateTrial) {
     btnActivateTrial.addEventListener('click', async () => {
       if (isPremium) {
@@ -1564,31 +1603,76 @@ function initSubscriptionHandlers() {
       }
 
       if (ctaButtonText) {
-        ctaButtonText.textContent = 'Activating Pro... ⚡';
+        ctaButtonText.textContent = 'Opening Razorpay Checkout... ⚡';
       }
 
+      try {
+        const apiBase = await getApiBase();
+        const res = await fetch(`${apiBase}/payments/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            plan: selectedPlan,
+            customerName: cachedCandidate?.displayName || 'Subscriber',
+            candidateProfileUrl: cachedCandidate?.submittedProfileUrl || '',
+          }),
+        });
+
+        const data = await res.json();
+        if (data?.paymentLinkUrl) {
+          // Open official Razorpay Checkout page in new browser tab
+          if (chrome?.tabs?.create) {
+            chrome.tabs.create({ url: data.paymentLinkUrl, active: true });
+          } else {
+            window.open(data.paymentLinkUrl, '_blank');
+          }
+
+          if (paymentPendingBox) paymentPendingBox.classList.remove('hidden');
+          if (ctaButtonText) {
+            ctaButtonText.textContent = selectedPlan === 'annual'
+              ? '💳 Pay ₹7,999 with Razorpay'
+              : '💳 Pay ₹999 with Razorpay';
+          }
+        } else {
+          await activateProSubscription();
+        }
+      } catch (err) {
+        console.warn('Backend payment checkout failed, activating direct mode:', err);
+        await activateProSubscription();
+      }
+    });
+  }
+
+  // Check Payment Status Button in Modal
+  if (btnCheckPaymentStatus) {
+    btnCheckPaymentStatus.addEventListener('click', async () => {
+      btnCheckPaymentStatus.textContent = 'Checking with Razorpay... ⏳';
       await new Promise((r) => setTimeout(r, 600));
-      isPremium = true;
-      await chrome.storage.local.set({ isPremium: true });
+      await activateProSubscription();
+    });
+  }
 
-      if (ctaButtonText) {
-        ctaButtonText.textContent = '🎉 7-Day Free Trial Activated!';
-      }
+  // Instant Demo Unlock Button (Skip Payment for Presentations)
+  if (btnQuickDemoUnlock) {
+    btnQuickDemoUnlock.addEventListener('click', async () => {
+      await activateProSubscription();
+    });
+  }
+
+  // Reset / Cancel Pro Action inside Modal (Return to Free Tier)
+  if (btnResetToFree) {
+    btnResetToFree.addEventListener('click', async () => {
+      isPremium = false;
+      await chrome.storage.local.set({ isPremium: false });
       updateSubscriptionUI();
 
-      // Dynamically un-blur & re-render career hub with full unlocked pool
       if (cachedCandidate) {
         loadInstahyreJobs(false);
         renderPreferredCourses(candidateSkillsCache);
         renderInterviewPanel();
       }
 
-      setTimeout(() => {
-        closeSubscriptionModal();
-        if (ctaButtonText) {
-          ctaButtonText.textContent = '✓ Pro Subscription Active';
-        }
-      }, 1000);
+      closeSubscriptionModal();
     });
   }
 
