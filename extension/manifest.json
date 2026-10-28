@@ -25,6 +25,7 @@
   "host_permissions": [
     "https://profilereel-ai-backend.onrender.com/*",
     "http://localhost:3000/*",
-    "https://*.linkedin.com/*"
+    "https://*.linkedin.com/*",
+    "https://*.instahyre.com/*"
   ]
 }

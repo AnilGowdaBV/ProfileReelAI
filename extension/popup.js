@@ -76,6 +76,18 @@ const resSkillsCloud = document.getElementById('res-skills-cloud');
 const groupCertifications = document.getElementById('group-certifications');
 const resCertificationsList = document.getElementById('res-certifications-list');
 
+// Instahyre Section Elements
+const secInstahyreJobs = document.getElementById('sec-instahyre-jobs');
+const instahyreJobsList = document.getElementById('instahyre-jobs-list');
+const btnRefreshJobs = document.getElementById('btn-refresh-jobs');
+const refreshIcon = document.getElementById('refresh-icon');
+
+// Instahyre State
+let instahyreJobsPool = [];
+let instahyreOffset = 0;
+let candidateSkillsCache = [];
+let isLoadingInstahyre = false;
+
 // Footer Actions
 const btnCopySummary = document.getElementById('btn-copy-summary');
 const copyBtnText = document.getElementById('copy-btn-text');
@@ -383,6 +395,13 @@ function renderAllThreeSections(candidate, score, video) {
 
   // Reset Reel Player
   resetReelPlayer();
+
+  // ----------------------------------------------------------
+  // TOP 3 MATCHING JOBS (INSTAHYRE LIVE - ZERO HARDCODED)
+  // ----------------------------------------------------------
+  candidateSkillsCache = allSkills;
+  instahyreOffset = 0;
+  loadInstahyreJobs(false);
 
   // ----------------------------------------------------------
   // SECTION 2: 10-POINT CANDIDATE SCORE (APPEARS SECOND)
@@ -776,6 +795,10 @@ ${exps.map((e) => `• ${e.factText}`).join('\n') || 'None listed'}
 
 Education History:
 ${edus.map((e) => `• ${e.factText}`).join('\n') || 'None listed'}
+
+==================================================
+MATCHING LIVE OPPORTUNITIES (INSTAHYRE)
+${(instahyreJobsPool || []).slice(0, 3).map((j) => `• ${j.title} at ${j.companyName} (${j.location}) - ${j.publicUrl}`).join('\n') || 'None loaded'}
 `;
 
   await navigator.clipboard.writeText(report);
@@ -808,3 +831,215 @@ function showError(title, msg) {
   errorTitle.textContent = title;
   errorMessage.textContent = msg;
 }
+
+// ==========================================================
+// INSTAHYRE LIVE JOBS ENGINE (DYNAMIC - ZERO HARDCODED)
+// ==========================================================
+
+async function fetchLiveInstahyreJobs(offset = 0, count = 25, skills = []) {
+  // Strategy 1: Direct fetch to Instahyre's public endpoint
+  try {
+    const res = await fetch(`https://www.instahyre.com/api/v1/job_search?offset=${offset}&count=${count}`, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.objects) && data.objects.length > 0) {
+        return normalizeInstahyreObjects(data.objects);
+      }
+    }
+  } catch (err) {
+    console.warn('Direct Instahyre fetch failed, attempting backend proxy:', err);
+  }
+
+  // Strategy 2: Backend proxy fetch
+  try {
+    const apiBase = await getApiBase();
+    const skillsQuery = encodeURIComponent((skills || []).slice(0, 5).join(','));
+    const res = await fetch(`${apiBase}/jobs/instahyre/live?offset=${offset}&limit=${count}&skills=${skillsQuery}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('Backend proxy Instahyre fetch failed:', err);
+  }
+
+  return [];
+}
+
+function normalizeInstahyreObjects(objects) {
+  return objects.map((j) => ({
+    id: j.id,
+    title: j.title || j.candidate_title || 'Software Engineer',
+    companyName: j.employer?.company_name || 'Tech Company',
+    companyLogo: j.employer?.profile_image_src || '',
+    companyTagline: j.employer?.company_tagline || '',
+    location: Array.isArray(j.locations) ? j.locations.join(', ') : (j.locations || 'Remote'),
+    skills: Array.isArray(j.keywords) ? j.keywords : [],
+    publicUrl: j.public_url || `https://www.instahyre.com/job-${j.id}`,
+  }));
+}
+
+function rankJobsForCandidate(jobs, candidateSkills) {
+  if (!candidateSkills || candidateSkills.length === 0) return jobs;
+  const tokens = candidateSkills.map((s) => s.toLowerCase().trim()).filter(Boolean);
+
+  const scored = jobs.map((job) => {
+    const jobKeywords = (job.skills || []).map((k) => k.toLowerCase()).join(' ');
+    const jobTitle = (job.title || '').toLowerCase();
+    let score = 0;
+    tokens.forEach((t) => {
+      if (jobKeywords.includes(t)) score += 2;
+      if (jobTitle.includes(t)) score += 3;
+    });
+    return { ...job, matchScore: score };
+  });
+
+  return scored.sort((a, b) => b.matchScore - a.matchScore);
+}
+
+async function loadInstahyreJobs(isRefresh = false) {
+  if (isLoadingInstahyre) return;
+  isLoadingInstahyre = true;
+
+  if (isRefresh && refreshIcon) {
+    refreshIcon.classList.add('spinning');
+  }
+
+  // If pool empty or user explicitly requested refresh, fetch fresh batch from Instahyre
+  if (instahyreJobsPool.length === 0 || isRefresh) {
+    if (!isRefresh || instahyreJobsList.children.length === 0) {
+      instahyreJobsList.innerHTML = `
+        <div class="instahyre-loading">
+          <div class="mini-spinner"></div>
+          <span>Loading live Instahyre roles...</span>
+        </div>
+      `;
+    }
+
+    if (isRefresh) {
+      instahyreOffset += 3;
+    }
+
+    const rawJobs = await fetchLiveInstahyreJobs(instahyreOffset, 25, candidateSkillsCache);
+    if (rawJobs.length > 0) {
+      instahyreJobsPool = rankJobsForCandidate(rawJobs, candidateSkillsCache);
+    }
+  }
+
+  if (instahyreJobsPool.length === 0) {
+    instahyreJobsList.innerHTML = `
+      <div class="instahyre-empty">
+        Could not retrieve live Instahyre jobs right now. Check connection.
+      </div>
+    `;
+    isLoadingInstahyre = false;
+    if (refreshIcon) refreshIcon.classList.remove('spinning');
+    return;
+  }
+
+  // Pick top 3 jobs for current slice
+  const startIndex = isRefresh ? (instahyreOffset % instahyreJobsPool.length) : 0;
+  let top3 = instahyreJobsPool.slice(startIndex, startIndex + 3);
+  if (top3.length < 3) {
+    top3 = instahyreJobsPool.slice(0, 3);
+  }
+
+  // Query chrome.storage.local for applied state
+  const keysToCheck = top3.map((j) => `applied_instahyre_${j.id}`);
+  const storageData = await chrome.storage.local.get(keysToCheck);
+
+  // Render the 3 cards
+  instahyreJobsList.innerHTML = '';
+  top3.forEach((job) => {
+    const isApplied = !!storageData[`applied_instahyre_${job.id}`];
+    const initial = (job.companyName || 'C').charAt(0).toUpperCase();
+
+    const card = document.createElement('div');
+    card.className = 'instahyre-job-card';
+
+    const skillChips = (job.skills || [])
+      .slice(0, 3)
+      .map((s) => `<span class="job-mini-chip">${escapeHtml(s)}</span>`)
+      .join('');
+
+    card.innerHTML = `
+      <div class="job-logo-wrap">
+        ${
+          job.companyLogo
+            ? `<img src="${job.companyLogo}" class="job-company-logo" alt="${escapeHtml(job.companyName)}" onerror="this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='flex';" />`
+            : ''
+        }
+        <div class="job-company-initial" style="display:${job.companyLogo ? 'none' : 'flex'}">${escapeHtml(initial)}</div>
+      </div>
+      <div class="job-details">
+        <a href="${job.publicUrl}" target="_blank" class="job-title-link" title="Open ${escapeHtml(job.title)} on Instahyre">
+          ${escapeHtml(job.title)}
+        </a>
+        <div class="job-company-loc">
+          <span class="job-comp">🏢 ${escapeHtml(job.companyName)}</span>
+          <span class="job-dot">•</span>
+          <span class="job-loc">📍 ${escapeHtml(job.location)}</span>
+        </div>
+        ${skillChips ? `<div class="job-skills-row">${skillChips}</div>` : ''}
+      </div>
+      <button class="btn-job-apply ${isApplied ? 'applied' : ''}" data-job-id="${job.id}" data-job-url="${job.publicUrl}" title="${isApplied ? 'Already Applied' : 'Apply on Instahyre'}">
+        ${isApplied ? '✓ Applied' : 'Apply'}
+      </button>
+    `;
+
+    const applyBtn = card.querySelector('.btn-job-apply');
+    applyBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await handleApplyClick(job.id, job.publicUrl, applyBtn);
+    });
+
+    instahyreJobsList.appendChild(card);
+  });
+
+  isLoadingInstahyre = false;
+  if (refreshIcon) refreshIcon.classList.remove('spinning');
+}
+
+async function handleApplyClick(jobId, jobUrl, btn) {
+  const key = `applied_instahyre_${jobId}`;
+  const data = await chrome.storage.local.get(key);
+  const alreadyApplied = !!data[key];
+
+  if (!alreadyApplied) {
+    // Mark as applied in storage
+    await chrome.storage.local.set({ [key]: true });
+    btn.classList.add('applied');
+    btn.textContent = '✓ Applied';
+    btn.title = 'Applied to Instahyre Job';
+
+    // Open Instahyre job in background tab so application link opens
+    if (jobUrl) {
+      try {
+        if (chrome?.tabs?.create) {
+          chrome.tabs.create({ url: jobUrl, active: false });
+        } else {
+          window.open(jobUrl, '_blank');
+        }
+      } catch (err) {}
+    }
+  } else {
+    // Already applied - clicking opens the link directly
+    if (jobUrl) {
+      window.open(jobUrl, '_blank');
+    }
+  }
+}
+
+// Refresh jobs listener
+if (btnRefreshJobs) {
+  btnRefreshJobs.addEventListener('click', () => {
+    loadInstahyreJobs(true);
+  });
+}
+

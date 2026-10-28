@@ -48,6 +48,7 @@ ProfileReel AI automatically analyzes public LinkedIn candidate profiles across 
 | `storage` | Used exclusively to cache scored candidate profiles locally on the user's browser, preventing duplicate API requests and providing instant repeat access. |
 | `https://profilereel-ai-backend.onrender.com/*` | The production backend API endpoint where profile URLs are submitted to generate the 10-point candidate score and fact breakdown. |
 | `https://*.linkedin.com/*` | Required to identify and validate target LinkedIn profile pages. |
+| `https://*.instahyre.com/*` | Required to fetch real-time matching job recommendations from Instahyre for the scored candidate. |
 
 ---
 
