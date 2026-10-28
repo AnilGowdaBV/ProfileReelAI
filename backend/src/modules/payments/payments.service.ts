@@ -121,6 +121,7 @@ export class PaymentsService {
         currency,
         keyId: this.keyId,
         paymentLinkUrl,
+        checkoutPath: `/payments/checkout?orderId=${order.id}&plan=${dto.plan}&amount=${amountInRupees}&candidateProfileUrl=${encodeURIComponent(dto.candidateProfileUrl || '')}`,
         plan: dto.plan,
       };
     } catch (err: any) {

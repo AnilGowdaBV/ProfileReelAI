@@ -78,6 +78,147 @@ export class PaymentsController {
     return this.paymentsService.getSubscriptionStatus(identifier);
   }
 
+  @Get('checkout')
+  @ApiOperation({ summary: 'Hosted official Razorpay checkout page' })
+  checkout(
+    @Query('orderId') orderId: string,
+    @Query('plan') plan: string,
+    @Query('amount') amount: string,
+    @Query('candidateProfileUrl') candidateProfileUrl: string,
+    @Res() res: Response,
+  ) {
+    const isAnnual = plan === 'annual';
+    const numAmount = isAnnual ? 2 : 1;
+    const amountInPaise = numAmount * 100;
+    const keyId = this.paymentsService.getPublicKey();
+
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Razorpay Checkout • ProfileReel AI</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <style>
+          * { box-sizing: border-box; }
+          body {
+            margin: 0; padding: 0;
+            background: #080c16; color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh;
+          }
+          .card {
+            background: rgba(18, 26, 46, 0.95);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 16px;
+            padding: 36px 30px;
+            text-align: center;
+            max-width: 440px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(59, 130, 246, 0.2);
+          }
+          .badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #60a5fa; font-size: 11px; font-weight: 700;
+            padding: 4px 12px; border-radius: 20px; margin-bottom: 16px;
+          }
+          h1 { font-size: 22px; font-weight: 800; margin: 0 0 8px 0; color: #fff; }
+          p { font-size: 13px; color: #94a3b8; line-height: 1.5; margin: 0 0 20px 0; }
+          .amount-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 24px;
+          }
+          .amount-val { font-size: 32px; font-weight: 900; color: #38bdf8; }
+          .order-ref { font-size: 11px; color: #64748b; margin-top: 4px; }
+          .btn-pay {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff; border: 1px solid #3b82f6;
+            padding: 12px 28px; border-radius: 8px;
+            font-size: 14px; font-weight: 700; cursor: pointer;
+            width: 100%; box-shadow: 0 4px 18px rgba(37, 99, 235, 0.4);
+            transition: all 0.2s ease;
+          }
+          .btn-pay:hover { background: #1d4ed8; transform: translateY(-1px); }
+          .footer-note { font-size: 11px; color: #64748b; margin-top: 16px; }
+        </style>
+      </head>
+      <body>
+        <div class="card" id="main-card">
+          <div class="badge">🔒 OFFICIAL RAZORPAY GATEWAY</div>
+          <h1>ProfileReel AI Pro</h1>
+          <p>Scan the Razorpay UPI QR code or pay via Google Pay, PhonePe, Cards, or Netbanking.</p>
+          <div class="amount-box">
+            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">TOTAL AMOUNT DUE</div>
+            <div class="amount-val">₹${numAmount}</div>
+            <div class="order-ref">Order: ${orderId} • Test Mode</div>
+          </div>
+          <button class="btn-pay" id="rzp-button">💳 Open Razorpay Checkout</button>
+          <div class="footer-note">Tracked directly in your Razorpay Dashboard</div>
+        </div>
+
+        <script>
+          var options = {
+            key: "${keyId}",
+            amount: ${amountInPaise},
+            currency: "INR",
+            name: "ProfileReel AI",
+            description: "ProfileReel AI Pro (${isAnnual ? 'Annual' : 'Monthly'})",
+            order_id: "${orderId}",
+            prefill: {
+              name: "Subscriber",
+              email: "subscriber@profilereel.ai",
+              contact: "9876543210"
+            },
+            theme: {
+              color: "#2563eb"
+            },
+            modal: {
+              ondismiss: function() {
+                console.log("Razorpay checkout closed");
+              }
+            },
+            handler: function (response) {
+              document.getElementById('main-card').innerHTML = '<div style="font-size: 40px; color: #10b981; margin-bottom: 12px;">✓</div><h2 style="color:#fff;">Payment Received!</h2><p style="color:#94a3b8;">Verifying with Razorpay...</p>';
+              fetch('/api/payments/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpaySignature: response.razorpay_signature,
+                  plan: "${plan || 'monthly'}",
+                  candidateProfileUrl: "${candidateProfileUrl || ''}"
+                })
+              }).then(function(r) { return r.json(); }).then(function(data) {
+                window.location.href = '/api/payments/callback-success?orderId=' + encodeURIComponent(response.razorpay_order_id);
+              }).catch(function(err) {
+                window.location.href = '/api/payments/callback-success?orderId=' + encodeURIComponent(response.razorpay_order_id);
+              });
+            }
+          };
+          var rzp = new Razorpay(options);
+          document.getElementById('rzp-button').onclick = function(e) {
+            rzp.open();
+            e.preventDefault();
+          };
+          window.onload = function() {
+            setTimeout(function() {
+              rzp.open();
+            }, 400);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+  }
+
   @Get('callback-success')
   @ApiOperation({ summary: 'Hosted callback success page' })
   callbackSuccess(@Query('orderId') orderId: string, @Res() res: Response) {
