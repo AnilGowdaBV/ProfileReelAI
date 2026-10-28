@@ -1508,8 +1508,8 @@ function updateSubscriptionUI() {
       ctaButtonText.textContent = '✓ Pro Subscription Active (Click to Close)';
     } else {
       ctaButtonText.textContent = selectedPlan === 'annual'
-        ? '💳 Pay ₹7,999 with Razorpay (Save 35%)'
-        : '💳 Pay ₹999 with Razorpay (Instant Unlock)';
+        ? '💳 Pay ₹2 with Razorpay (Test Annual)'
+        : '💳 Pay ₹1 with Razorpay (Test Unlock)';
     }
   }
 }
@@ -1630,8 +1630,8 @@ function initSubscriptionHandlers() {
           if (paymentPendingBox) paymentPendingBox.classList.remove('hidden');
           if (ctaButtonText) {
             ctaButtonText.textContent = selectedPlan === 'annual'
-              ? '💳 Pay ₹7,999 with Razorpay'
-              : '💳 Pay ₹999 with Razorpay';
+              ? '💳 Pay ₹2 with Razorpay'
+              : '💳 Pay ₹1 with Razorpay';
           }
         } else {
           await activateProSubscription();

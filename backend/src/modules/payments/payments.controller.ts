@@ -27,8 +27,8 @@ export class PaymentsController {
       keyId: this.paymentsService.getPublicKey(),
       currency: 'INR',
       plans: {
-        monthly: { amount: 999, currency: 'INR', name: 'ProfileReel AI Pro Monthly' },
-        annual: { amount: 7999, currency: 'INR', name: 'ProfileReel AI Pro Annual' },
+        monthly: { amount: 1, currency: 'INR', name: 'ProfileReel AI Pro Monthly (Test Mode - ₹1)' },
+        annual: { amount: 2, currency: 'INR', name: 'ProfileReel AI Pro Annual (Test Mode - ₹2)' },
       },
     };
   }

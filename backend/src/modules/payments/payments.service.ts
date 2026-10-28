@@ -59,7 +59,7 @@ export class PaymentsService {
    */
   async createPaymentOrder(dto: CreatePaymentOrderDto) {
     const isAnnual = dto.plan === SubscriptionPlan.ANNUAL;
-    const amountInRupees = isAnnual ? 7999 : 999;
+    const amountInRupees = isAnnual ? 2 : 1; // Testing Mode: ₹1 for Monthly, ₹2 for Annual
     const amountInPaise = amountInRupees * 100;
     const currency = 'INR';
 
@@ -159,7 +159,7 @@ export class PaymentsService {
       paymentId: dto.razorpayPaymentId,
       orderId: dto.razorpayOrderId,
       plan: dto.plan,
-      amount: dto.plan === 'annual' ? 7999 : 999,
+      amount: dto.plan === 'annual' ? 2 : 1,
       currency: 'INR',
       candidateProfileUrl: dto.candidateProfileUrl,
       status: 'active',
@@ -222,7 +222,7 @@ export class PaymentsService {
         paymentId,
         orderId,
         plan,
-        amount: Number(paymentEntity?.amount || 99900) / 100,
+        amount: Number(paymentEntity?.amount || 100) / 100,
         currency: paymentEntity?.currency || 'INR',
         candidateProfileUrl,
         status: 'active',
