@@ -22,6 +22,9 @@
         </div>
       </div>
       <div class="header-actions">
+        <button id="btn-header-upgrade" class="header-upgrade-btn trigger-sub-modal" title="ProfileReel AI Premium">
+          <span class="crown-icon">👑</span> <span id="header-plan-text">Upgrade</span>
+        </button>
         <span id="backend-status-dot" class="status-dot connected" title="Backend Live"></span>
         <button id="btn-toggle-settings" class="icon-btn" title="API Settings">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -42,6 +45,12 @@
         <button id="btn-save-settings" class="btn btn-primary">Save</button>
       </div>
       <div id="settings-feedback" class="settings-feedback"></div>
+
+      <div class="settings-title" style="margin-top: 10px;">Membership Plan</div>
+      <div class="plan-toggle-row">
+        <span id="current-plan-label" class="plan-label-text">Plan: Free Tier</span>
+        <button id="btn-toggle-demo-plan" class="btn btn-secondary" style="font-size: 10.5px; padding: 4px 8px;">Toggle Pro Mode</button>
+      </div>
     </div>
 
     <!-- Active Candidate Bar -->
@@ -212,6 +221,20 @@
               <span>Loading live jobs...</span>
             </div>
           </div>
+
+          <!-- Roles Premium Teaser -->
+          <div class="premium-unlock-card" id="teaser-roles">
+            <div class="unlock-card-content">
+              <div class="unlock-icon-wrap">🔑</div>
+              <div class="unlock-text-wrap">
+                <div class="unlock-title">Unlock 45+ More Verified Roles</div>
+                <div class="unlock-desc">Explore exclusive high-paying opportunities matching your exact candidate profile.</div>
+              </div>
+              <button class="btn-unlock-premium trigger-sub-modal">
+                <span>👑</span> Unlock with Pro
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- TAB 2: PREFERRED COURSES -->
@@ -225,6 +248,20 @@
           <div class="courses-box" id="preferred-courses-list">
             <!-- Dynamically populated courses -->
           </div>
+
+          <!-- Courses Premium Teaser -->
+          <div class="premium-unlock-card" id="teaser-courses">
+            <div class="unlock-card-content">
+              <div class="unlock-icon-wrap">🔑</div>
+              <div class="unlock-text-wrap">
+                <div class="unlock-title">Unlock Full Curriculum & Certifications</div>
+                <div class="unlock-desc">Access 20+ specialized architect tracks from Google, Meta & DeepLearning.AI.</div>
+              </div>
+              <button class="btn-unlock-premium trigger-sub-modal">
+                <span>👑</span> Unlock with Pro
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- TAB 3: INTERVIEW PANEL (GET INTERVIEWED) -->
@@ -237,6 +274,20 @@
           </div>
           <div class="interview-panel-box" id="interview-panel-list">
             <!-- Dynamically populated expert interviewers -->
+          </div>
+
+          <!-- Interview Panel Premium Teaser -->
+          <div class="premium-unlock-card" id="teaser-interview">
+            <div class="unlock-card-content">
+              <div class="unlock-icon-wrap">🔑</div>
+              <div class="unlock-text-wrap">
+                <div class="unlock-title">Unlock Full FAANG Interview Panel</div>
+                <div class="unlock-desc">Schedule priority 1-on-1 mock technical and behavioral rounds with 15+ Engineering Leaders.</div>
+              </div>
+              <button class="btn-unlock-premium trigger-sub-modal">
+                <span>👑</span> Unlock with Pro
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -410,6 +461,75 @@
     <footer class="app-footer">
       <span>ProfileReel AI • 10-Point LinkedIn Scoring Engine</span>
     </footer>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- LINKEDIN-STYLE PREMIUM SUBSCRIPTION MODAL      -->
+  <!-- ============================================== -->
+  <div id="subscription-modal" class="sub-modal-backdrop hidden">
+    <div class="sub-modal-card">
+      <button id="btn-close-sub-modal" class="modal-close-btn" title="Close">✕</button>
+      
+      <div class="sub-modal-header">
+        <div class="crown-badge">👑</div>
+        <h2 class="sub-modal-title">Unlock Full Career & Hiring Power</h2>
+        <p class="sub-modal-subtitle">Supercharge your career and recruiting workflow with <strong>ProfileReel AI Pro</strong>.</p>
+      </div>
+
+      <div class="sub-features-list">
+        <div class="sub-feature-item">
+          <span class="feat-check">✓</span>
+          <div class="feat-text">
+            <strong>Unlimited Live Job Matches:</strong> Access all 45+ live tech roles on Instahyre with priority 1-click apply.
+          </div>
+        </div>
+        <div class="sub-feature-item">
+          <span class="feat-check">✓</span>
+          <div class="feat-text">
+            <strong>Direct 1-on-1 FAANG Mock Interviews:</strong> Priority scheduling with Staff Engineers & Directors from Google, Microsoft, and Swiggy.
+          </div>
+        </div>
+        <div class="sub-feature-item">
+          <span class="feat-check">✓</span>
+          <div class="feat-text">
+            <strong>Complete Learning Pathways:</strong> Full curriculum access with industry certifications from Meta, Stanford & DeepLearning.AI.
+          </div>
+        </div>
+        <div class="sub-feature-item">
+          <span class="feat-check">✓</span>
+          <div class="feat-text">
+            <strong>Full Candidate Intelligence Dossier:</strong> Unlocked salary benchmarks, growth strategies, and instant PDF report export.
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan Selector Switcher -->
+      <div class="sub-plans-container">
+        <div class="sub-plan-card active" id="plan-card-monthly" data-plan="monthly">
+          <div class="plan-badge">Most Popular</div>
+          <div class="plan-name">Pro Monthly</div>
+          <div class="plan-price">₹999 <span class="period">/ month</span></div>
+          <div class="plan-trial">7-Day Free Trial included</div>
+        </div>
+
+        <div class="sub-plan-card" id="plan-card-annual" data-plan="annual">
+          <div class="plan-badge save-badge">Save 35%</div>
+          <div class="plan-name">Pro Annual</div>
+          <div class="plan-price">₹7,999 <span class="period">/ year</span></div>
+          <div class="plan-trial">₹666/mo billed annually</div>
+        </div>
+      </div>
+
+      <!-- Call to Action -->
+      <button id="btn-activate-trial" class="btn-sub-cta">
+        <span class="cta-glow"></span>
+        <span class="cta-text" id="cta-button-text">🚀 Start 7-Day Free Trial (₹0 Today)</span>
+      </button>
+
+      <div class="sub-guarantee">
+        🔒 Easy cancel anytime in 1-click. Zero commitments.
+      </div>
+    </div>
   </div>
 
   <script src="popup.js"></script>

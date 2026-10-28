@@ -98,6 +98,27 @@ let instahyreOffset = 0;
 let candidateSkillsCache = [];
 let isLoadingInstahyre = false;
 
+// Freemium & Subscription Elements
+const subscriptionModal = document.getElementById('subscription-modal');
+const btnCloseSubModal = document.getElementById('btn-close-sub-modal');
+const btnActivateTrial = document.getElementById('btn-activate-trial');
+const ctaButtonText = document.getElementById('cta-button-text');
+const btnHeaderUpgrade = document.getElementById('btn-header-upgrade');
+const headerPlanText = document.getElementById('header-plan-text');
+const currentPlanLabel = document.getElementById('current-plan-label');
+const btnToggleDemoPlan = document.getElementById('btn-toggle-demo-plan');
+const planCardMonthly = document.getElementById('plan-card-monthly');
+const planCardAnnual = document.getElementById('plan-card-annual');
+
+// Teasers (Golden Key Unlock Cards)
+const teaserRoles = document.getElementById('teaser-roles');
+const teaserCourses = document.getElementById('teaser-courses');
+const teaserInterview = document.getElementById('teaser-interview');
+
+// Freemium State
+let isPremium = false;
+let selectedPlan = 'monthly'; // 'monthly' | 'annual'
+
 // Footer Actions
 const btnCopySummary = document.getElementById('btn-copy-summary');
 const copyBtnText = document.getElementById('copy-btn-text');
@@ -137,6 +158,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   inputApiUrl.value = apiBase;
   checkBackendHealth(apiBase);
   setupCareerTabs();
+
+  // Load freemium subscription state
+  const subData = await chrome.storage.local.get(['isPremium', 'selectedPlan']);
+  isPremium = !!subData.isPremium;
+  selectedPlan = subData.selectedPlan || 'monthly';
+  if (selectedPlan === 'annual' && planCardAnnual && planCardMonthly) {
+    planCardAnnual.classList.add('active');
+    planCardMonthly.classList.remove('active');
+  }
+  updateSubscriptionUI();
+  initSubscriptionHandlers();
 
   // Active tab inspection
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -986,20 +1018,26 @@ async function loadInstahyreJobs(isRefresh = false) {
     return;
   }
 
-  // Pick top 3 jobs for current slice
+  // Pick jobs for current slice (Free: 3, Pro: 6)
+  const jobCount = isPremium ? 6 : 3;
   const startIndex = isRefresh ? (instahyreOffset % instahyreJobsPool.length) : 0;
-  let top3 = instahyreJobsPool.slice(startIndex, startIndex + 3);
-  if (top3.length < 3) {
-    top3 = instahyreJobsPool.slice(0, 3);
+  let visibleJobs = instahyreJobsPool.slice(startIndex, startIndex + jobCount);
+  if (visibleJobs.length < jobCount && instahyreJobsPool.length >= jobCount) {
+    visibleJobs = instahyreJobsPool.slice(0, jobCount);
+  }
+
+  // Update Teaser card visibility
+  if (teaserRoles) {
+    teaserRoles.classList.toggle('hidden', isPremium);
   }
 
   // Query chrome.storage.local for applied state
-  const keysToCheck = top3.map((j) => `applied_instahyre_${j.id}`);
+  const keysToCheck = visibleJobs.map((j) => `applied_instahyre_${j.id}`);
   const storageData = await chrome.storage.local.get(keysToCheck);
 
-  // Render the 3 cards
+  // Render cards
   instahyreJobsList.innerHTML = '';
-  top3.forEach((job) => {
+  visibleJobs.forEach((job) => {
     const isApplied = !!storageData[`applied_instahyre_${job.id}`];
     const initial = (job.companyName || 'C').charAt(0).toUpperCase();
     const compLinkedIn = job.companyLinkedInUrl || getCompanyLinkedInUrl(job.companyName);
@@ -1194,6 +1232,28 @@ const COURSE_CATALOG = [
     url: 'https://www.coursera.org/specializations/machine-learning-introduction',
     keywords: ['data', 'data science', 'analytics', 'statistics', 'ml', 'pandas', 'numpy'],
   },
+  {
+    id: 'course-aws-solutions',
+    title: 'AWS Certified Solutions Architect & Cloud Security Leader',
+    provider: 'Amazon Web Services Training',
+    rating: '4.9 ★',
+    duration: '6 Weeks',
+    logo: '☁️',
+    skills: ['AWS', 'Cloud Architecture', 'Serverless', 'Security'],
+    url: 'https://www.coursera.org/learn/aws-cloud-solutions-architect',
+    keywords: ['aws', 'cloud', 'security', 'serverless', 'lambda', 's3', 'infra'],
+  },
+  {
+    id: 'course-eng-leadership',
+    title: 'High-Performance Engineering Leadership & System Scaling',
+    provider: 'MIT Professional Education',
+    rating: '5.0 ★',
+    duration: '4 Weeks',
+    logo: '🚀',
+    skills: ['Engineering Management', 'System Scaling', 'Tech Strategy'],
+    url: 'https://www.coursera.org/specializations/engineering-management',
+    keywords: ['leadership', 'management', 'architect', 'principal', 'lead', 'strategy'],
+  },
 ];
 
 function renderPreferredCourses(candidateSkills = []) {
@@ -1212,10 +1272,16 @@ function renderPreferredCourses(candidateSkills = []) {
     return { ...course, score };
   }).sort((a, b) => b.score - a.score);
 
-  const top3Courses = scoredCourses.slice(0, 3);
+  // Free Tier: Top 3 courses; Pro Tier: All matching courses
+  const displayCourses = isPremium ? scoredCourses : scoredCourses.slice(0, 3);
+
+  // Update Teaser card visibility
+  if (teaserCourses) {
+    teaserCourses.classList.toggle('hidden', isPremium);
+  }
 
   preferredCoursesList.innerHTML = '';
-  top3Courses.forEach((c) => {
+  displayCourses.forEach((c) => {
     const card = document.createElement('div');
     card.className = 'course-card';
 
@@ -1291,16 +1357,54 @@ const EXPERT_PANEL = [
     rating: '4.9 ★',
     slots: 'Thursday, 4:00 PM',
   },
+  {
+    id: 'panel-ananya',
+    name: 'Ananya Sharma',
+    avatar: 'AS',
+    role: 'Principal Architect at Meta (ex-Stripe)',
+    domain: 'Large Scale Payment Systems & Event-Driven APIs',
+    experience: '12+ yrs exp • 190+ Interviews',
+    rating: '5.0 ★',
+    slots: 'Friday, 6:00 PM',
+  },
+  {
+    id: 'panel-vikram',
+    name: 'Vikram Verma',
+    avatar: 'VV',
+    role: 'VP of Engineering at Razorpay',
+    domain: 'Fintech Security, Resilience & Executive Rounds',
+    experience: '15+ yrs exp • 310+ Interviews',
+    rating: '4.9 ★',
+    slots: 'Saturday, 11:00 AM',
+  },
+  {
+    id: 'panel-sneha',
+    name: 'Sneha Roy',
+    avatar: 'SR',
+    role: 'Engineering Manager at Netflix',
+    domain: 'High-Concurrency Streaming & Distributed Data',
+    experience: '10+ yrs exp • 160+ Interviews',
+    rating: '4.9 ★',
+    slots: 'Monday, 6:30 PM',
+  },
 ];
 
 async function renderInterviewPanel() {
   if (!interviewPanelList) return;
 
-  const storageKeys = EXPERT_PANEL.map((p) => `panel_booked_${p.id}`);
+  // Free Tier: Top 3 interviewers; Pro Tier: All 6 expert panelists
+  const displayPanel = isPremium ? EXPERT_PANEL : EXPERT_PANEL.slice(0, 3);
+
+  // Update Teaser card visibility
+  if (teaserInterview) {
+    teaserInterview.classList.toggle('hidden', isPremium);
+  }
+
+  const storageKeys = displayPanel.map((p) => `panel_booked_${p.id}`);
   const storageData = await chrome.storage.local.get(storageKeys);
 
   interviewPanelList.innerHTML = '';
-  EXPERT_PANEL.forEach((p) => {
+  displayPanel.forEach((p) => {
     const isBooked = !!storageData[`panel_booked_${p.id}`];
 
     const card = document.createElement('div');
@@ -1352,6 +1456,157 @@ async function renderInterviewPanel() {
 
     interviewPanelList.appendChild(card);
   });
+}
+
+// ==========================================================
+// FREEMIUM SUBSCRIPTION & MODAL CONTROLLER
+// ==========================================================
+
+function updateSubscriptionUI() {
+  // 1. Header Upgrade Button
+  if (btnHeaderUpgrade && headerPlanText) {
+    if (isPremium) {
+      btnHeaderUpgrade.classList.add('is-pro');
+      headerPlanText.textContent = 'PRO ACTIVE';
+      btnHeaderUpgrade.title = 'ProfileReel AI Pro Active (Click to view benefits)';
+    } else {
+      btnHeaderUpgrade.classList.remove('is-pro');
+      headerPlanText.textContent = 'Upgrade';
+      btnHeaderUpgrade.title = 'Upgrade to ProfileReel AI Pro';
+    }
+  }
+
+  // 2. Settings Drawer Plan Label & Toggle
+  if (currentPlanLabel) {
+    currentPlanLabel.textContent = isPremium ? 'Plan: 👑 Pro Tier (Active)' : 'Plan: Free Tier';
+  }
+  if (btnToggleDemoPlan) {
+    btnToggleDemoPlan.textContent = isPremium ? 'Switch to Free Tier' : 'Switch to Pro Mode';
+  }
+
+  // 3. Teasers Visibility
+  if (teaserRoles) teaserRoles.classList.toggle('hidden', isPremium);
+  if (teaserCourses) teaserCourses.classList.toggle('hidden', isPremium);
+  if (teaserInterview) teaserInterview.classList.toggle('hidden', isPremium);
+
+  // 4. Modal CTA Button Text
+  if (ctaButtonText) {
+    if (isPremium) {
+      ctaButtonText.textContent = '✓ Pro Subscription Active (Click to Close)';
+    } else {
+      ctaButtonText.textContent = selectedPlan === 'annual'
+        ? '🚀 Start 7-Day Free Trial (₹7,999/yr)'
+        : '🚀 Start 7-Day Free Trial (₹0 Today)';
+    }
+  }
+}
+
+function openSubscriptionModal() {
+  if (!subscriptionModal) return;
+  subscriptionModal.classList.remove('hidden');
+  updateSubscriptionUI();
+}
+
+function closeSubscriptionModal() {
+  if (!subscriptionModal) return;
+  subscriptionModal.classList.add('hidden');
+}
+
+function initSubscriptionHandlers() {
+  // Delegate trigger buttons (e.g. Header 👑 Upgrade button and Golden Key Teasers)
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('.trigger-sub-modal') || e.target.closest('.btn-unlock-premium');
+    if (trigger) {
+      e.preventDefault();
+      e.stopPropagation();
+      openSubscriptionModal();
+    }
+  });
+
+  // Modal Close Button
+  if (btnCloseSubModal) {
+    btnCloseSubModal.addEventListener('click', closeSubscriptionModal);
+  }
+
+  // Click Outside Backdrop to Close
+  if (subscriptionModal) {
+    subscriptionModal.addEventListener('click', (e) => {
+      if (e.target === subscriptionModal) {
+        closeSubscriptionModal();
+      }
+    });
+  }
+
+  // Monthly vs. Annual Plan Selector
+  if (planCardMonthly && planCardAnnual) {
+    planCardMonthly.addEventListener('click', () => {
+      selectedPlan = 'monthly';
+      planCardMonthly.classList.add('active');
+      planCardAnnual.classList.remove('active');
+      chrome.storage.local.set({ selectedPlan });
+      updateSubscriptionUI();
+    });
+
+    planCardAnnual.addEventListener('click', () => {
+      selectedPlan = 'annual';
+      planCardAnnual.classList.add('active');
+      planCardMonthly.classList.remove('active');
+      chrome.storage.local.set({ selectedPlan });
+      updateSubscriptionUI();
+    });
+  }
+
+  // Trial / Pro Activation Action
+  if (btnActivateTrial) {
+    btnActivateTrial.addEventListener('click', async () => {
+      if (isPremium) {
+        closeSubscriptionModal();
+        return;
+      }
+
+      if (ctaButtonText) {
+        ctaButtonText.textContent = 'Activating Pro... ⚡';
+      }
+
+      await new Promise((r) => setTimeout(r, 600));
+      isPremium = true;
+      await chrome.storage.local.set({ isPremium: true });
+
+      if (ctaButtonText) {
+        ctaButtonText.textContent = '🎉 7-Day Free Trial Activated!';
+      }
+      updateSubscriptionUI();
+
+      // Dynamically un-blur & re-render career hub with full unlocked pool
+      if (cachedCandidate) {
+        loadInstahyreJobs(false);
+        renderPreferredCourses(candidateSkillsCache);
+        renderInterviewPanel();
+      }
+
+      setTimeout(() => {
+        closeSubscriptionModal();
+        if (ctaButtonText) {
+          ctaButtonText.textContent = '✓ Pro Subscription Active';
+        }
+      }, 1000);
+    });
+  }
+
+  // Demo Switcher in Settings Drawer (for live presentations)
+  if (btnToggleDemoPlan) {
+    btnToggleDemoPlan.addEventListener('click', async () => {
+      isPremium = !isPremium;
+      await chrome.storage.local.set({ isPremium });
+      updateSubscriptionUI();
+
+      if (cachedCandidate) {
+        loadInstahyreJobs(false);
+        renderPreferredCourses(candidateSkillsCache);
+        renderInterviewPanel();
+      }
+    });
+  }
 }
 
 
