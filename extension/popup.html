@@ -174,28 +174,69 @@
       </section>
 
       <!-- ============================================== -->
-      <!-- TOP 3 MATCHING JOBS (INSTAHYRE LIVE)           -->
+      <!-- CAREER HUB (3 TABS: ROLES | COURSES | INTERVIEW)-->
       <!-- ============================================== -->
-      <section class="result-section section-instahyre" id="sec-instahyre-jobs">
-        <div class="section-badge-bar">
-          <div class="badge-tag tag-instahyre">
-            <span>⚡</span> TOP 3 JOBS
+      <section class="result-section section-career-hub" id="sec-career-hub">
+        <!-- Sub-Tabs Navigation -->
+        <div class="career-tab-bar">
+          <button class="career-tab-btn active" id="tab-btn-roles" data-tab="roles">
+            <span>⚡</span> Roles
+          </button>
+          <button class="career-tab-btn" id="tab-btn-courses" data-tab="courses">
+            <span>📚</span> Preferred Courses
+          </button>
+          <button class="career-tab-btn" id="tab-btn-interview" data-tab="interview">
+            <span>🎙️</span> Interview Panel
+          </button>
+        </div>
+
+        <!-- TAB 1: ROLES (TOP 3 LIVE JOBS) -->
+        <div class="career-tab-pane active" id="pane-roles">
+          <div class="section-badge-bar" style="margin-bottom: 6px;">
+            <div class="badge-tag tag-instahyre">
+              <span>⚡</span> TOP 3 JOBS
+            </div>
+            <div class="instahyre-header-actions">
+              <span class="live-pill"><span class="live-dot"></span> LIVE</span>
+              <button id="btn-refresh-jobs" class="instahyre-refresh-btn" title="Refresh Live Jobs">
+                <svg id="refresh-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
-          <div class="instahyre-header-actions">
-            <span class="live-pill"><span class="live-dot"></span> LIVE</span>
-            <button id="btn-refresh-jobs" class="instahyre-refresh-btn" title="Refresh Live Jobs">
-              <svg id="refresh-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-              </svg>
-              <span>Refresh</span>
-            </button>
+          <div class="instahyre-jobs-box" id="instahyre-jobs-list">
+            <div class="instahyre-loading">
+              <div class="mini-spinner"></div>
+              <span>Loading live jobs...</span>
+            </div>
           </div>
         </div>
 
-        <div class="instahyre-jobs-box" id="instahyre-jobs-list">
-          <div class="instahyre-loading">
-            <div class="mini-spinner"></div>
-            <span>Fetching live Instahyre roles...</span>
+        <!-- TAB 2: PREFERRED COURSES -->
+        <div class="career-tab-pane" id="pane-courses">
+          <div class="section-badge-bar" style="margin-bottom: 6px;">
+            <div class="badge-tag tag-courses">
+              <span>📚</span> PREFERRED COURSES
+            </div>
+            <span class="curated-pill">🎓 Tailored</span>
+          </div>
+          <div class="courses-box" id="preferred-courses-list">
+            <!-- Dynamically populated courses -->
+          </div>
+        </div>
+
+        <!-- TAB 3: INTERVIEW PANEL (GET INTERVIEWED) -->
+        <div class="career-tab-pane" id="pane-interview">
+          <div class="section-badge-bar" style="margin-bottom: 6px;">
+            <div class="badge-tag tag-interview">
+              <span>🎙️</span> 1-ON-1 INTERVIEW PANEL
+            </div>
+            <span class="panel-available-pill"><span class="live-dot"></span> Available Today</span>
+          </div>
+          <div class="interview-panel-box" id="interview-panel-list">
+            <!-- Dynamically populated expert interviewers -->
           </div>
         </div>
       </section>

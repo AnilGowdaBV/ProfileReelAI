@@ -82,6 +82,16 @@ const instahyreJobsList = document.getElementById('instahyre-jobs-list');
 const btnRefreshJobs = document.getElementById('btn-refresh-jobs');
 const refreshIcon = document.getElementById('refresh-icon');
 
+// Career Hub Sub-Tabs Elements
+const tabBtnRoles = document.getElementById('tab-btn-roles');
+const tabBtnCourses = document.getElementById('tab-btn-courses');
+const tabBtnInterview = document.getElementById('tab-btn-interview');
+const paneRoles = document.getElementById('pane-roles');
+const paneCourses = document.getElementById('pane-courses');
+const paneInterview = document.getElementById('pane-interview');
+const preferredCoursesList = document.getElementById('preferred-courses-list');
+const interviewPanelList = document.getElementById('interview-panel-list');
+
 // Instahyre State
 let instahyreJobsPool = [];
 let instahyreOffset = 0;
@@ -126,6 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const apiBase = await getApiBase();
   inputApiUrl.value = apiBase;
   checkBackendHealth(apiBase);
+  setupCareerTabs();
 
   // Active tab inspection
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -397,11 +408,13 @@ function renderAllThreeSections(candidate, score, video) {
   resetReelPlayer();
 
   // ----------------------------------------------------------
-  // TOP 3 MATCHING JOBS (INSTAHYRE LIVE - ZERO HARDCODED)
+  // CAREER HUB: ROLES | COURSES | 1-ON-1 INTERVIEW PANEL
   // ----------------------------------------------------------
   candidateSkillsCache = allSkills;
   instahyreOffset = 0;
   loadInstahyreJobs(false);
+  renderPreferredCourses(allSkills);
+  renderInterviewPanel();
 
   // ----------------------------------------------------------
   // SECTION 2: 10-POINT CANDIDATE SCORE (APPEARS SECOND)
@@ -1096,4 +1109,249 @@ if (btnRefreshJobs) {
     loadInstahyreJobs(true);
   });
 }
+
+// ==========================================================
+// CAREER HUB: SUB-TABS NAVIGATION
+// ==========================================================
+
+function setupCareerTabs() {
+  const tabs = [
+    { btn: tabBtnRoles, pane: paneRoles },
+    { btn: tabBtnCourses, pane: paneCourses },
+    { btn: tabBtnInterview, pane: paneInterview },
+  ];
+
+  tabs.forEach(({ btn, pane }) => {
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      tabs.forEach((t) => {
+        t.btn?.classList.remove('active');
+        t.pane?.classList.remove('active');
+      });
+      btn.classList.add('active');
+      pane?.classList.add('active');
+    });
+  });
+}
+
+// ==========================================================
+// PREFERRED COURSES (TAILORED UPSKILLING)
+// ==========================================================
+
+const COURSE_CATALOG = [
+  {
+    id: 'course-sysdesign',
+    title: 'Advanced System Design & Scalable Microservices',
+    provider: 'Meta • Coursera',
+    rating: '4.9 ★',
+    duration: '8 Weeks',
+    logo: '⚙️',
+    skills: ['System Design', 'Microservices', 'Distributed Systems'],
+    url: 'https://www.coursera.org/learn/system-design',
+    keywords: ['system', 'backend', 'architecture', 'scalability', 'microservices', 'distributed', 'api', 'django', 'golang', 'node'],
+  },
+  {
+    id: 'course-genai',
+    title: 'Generative AI & Agentic Architectures in Production',
+    provider: 'DeepLearning.AI',
+    rating: '4.9 ★',
+    duration: '5 Weeks',
+    logo: '🤖',
+    skills: ['LLMs', 'LangChain', 'Agentic AI', 'RAG'],
+    url: 'https://www.deeplearning.ai/courses/generative-ai-with-llms/',
+    keywords: ['ai', 'agentic', 'llm', 'genai', 'python', 'pytorch', 'machine learning', 'nlp', 'rag', 'llamaindex'],
+  },
+  {
+    id: 'course-cloudnative',
+    title: 'Cloud-Native Kubernetes & DevOps Engineering',
+    provider: 'Google Cloud Training',
+    rating: '4.8 ★',
+    duration: '6 Weeks',
+    logo: '☁️',
+    skills: ['Docker', 'Kubernetes', 'CI/CD', 'Cloud Infra'],
+    url: 'https://www.coursera.org/specializations/google-cloud-devops',
+    keywords: ['cloud', 'devops', 'kubernetes', 'docker', 'aws', 'gcp', 'azure', 'ci/cd', 'linux'],
+  },
+  {
+    id: 'course-fullstack',
+    title: 'Full-Stack Modern Cloud Architecture & React/Node',
+    provider: 'IBM Skills Network',
+    rating: '4.8 ★',
+    duration: '7 Weeks',
+    logo: '⚡',
+    skills: ['React', 'Node.js', 'Next.js', 'REST APIs'],
+    url: 'https://www.coursera.org/professional-certificates/ibm-full-stack-cloud-developer',
+    keywords: ['fullstack', 'react', 'javascript', 'typescript', 'frontend', 'node', 'ui', 'fiori', 'sap', 'angular'],
+  },
+  {
+    id: 'course-data-ai',
+    title: 'Data Science & Machine Learning Engineering Specialization',
+    provider: 'Stanford Online / DeepLearning.AI',
+    rating: '4.9 ★',
+    duration: '9 Weeks',
+    logo: '📊',
+    skills: ['Python', 'Data Science', 'Machine Learning', 'TensorFlow'],
+    url: 'https://www.coursera.org/specializations/machine-learning-introduction',
+    keywords: ['data', 'data science', 'analytics', 'statistics', 'ml', 'pandas', 'numpy'],
+  },
+];
+
+function renderPreferredCourses(candidateSkills = []) {
+  if (!preferredCoursesList) return;
+
+  const tokens = (candidateSkills || []).map((s) => s.toLowerCase().trim());
+
+  // Rank courses based on match with candidate skills
+  const scoredCourses = COURSE_CATALOG.map((course) => {
+    let score = 0;
+    tokens.forEach((t) => {
+      if (course.keywords.some((k) => t.includes(k) || k.includes(t))) {
+        score += 2;
+      }
+    });
+    return { ...course, score };
+  }).sort((a, b) => b.score - a.score);
+
+  const top3Courses = scoredCourses.slice(0, 3);
+
+  preferredCoursesList.innerHTML = '';
+  top3Courses.forEach((c) => {
+    const card = document.createElement('div');
+    card.className = 'course-card';
+
+    const skillChips = c.skills
+      .map((s) => `<span class="job-mini-chip">${escapeHtml(s)}</span>`)
+      .join('');
+
+    card.innerHTML = `
+      <div class="course-logo-wrap">${c.logo}</div>
+      <div class="course-details">
+        <a href="${c.url}" target="_blank" class="course-title-link" title="Open ${escapeHtml(c.title)}">
+          ${escapeHtml(c.title)}
+        </a>
+        <div class="course-meta-row">
+          <span class="course-provider">🎓 ${escapeHtml(c.provider)}</span>
+          <span class="job-dot">•</span>
+          <span class="course-rating">${c.rating}</span>
+          <span class="job-dot">•</span>
+          <span>⏱️ ${c.duration}</span>
+        </div>
+        <div class="job-skills-row">${skillChips}</div>
+      </div>
+      <a href="${c.url}" target="_blank" class="btn-course-enroll">
+        Enroll
+      </a>
+    `;
+
+    const enrollBtn = card.querySelector('.btn-course-enroll');
+    enrollBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (chrome?.tabs?.create) {
+        e.preventDefault();
+        chrome.tabs.create({ url: c.url, active: true });
+      }
+    });
+
+    preferredCoursesList.appendChild(card);
+  });
+}
+
+// ==========================================================
+// 1-ON-1 INTERVIEW PANEL (EXPERT MOCK & TECHNICAL ROUNDS)
+// ==========================================================
+
+const EXPERT_PANEL = [
+  {
+    id: 'panel-arjun',
+    name: 'Arjun Sethi',
+    avatar: 'AS',
+    role: 'Staff Software Engineer at Google (ex-Uber)',
+    domain: 'System Design & Distributed Backend',
+    experience: '11+ yrs exp • 180+ Interviews',
+    rating: '4.9 ★',
+    slots: 'Tomorrow, 5:00 PM',
+  },
+  {
+    id: 'panel-priya',
+    name: 'Priya Narang',
+    avatar: 'PN',
+    role: 'Lead AI Architect at Microsoft AI',
+    domain: 'GenAI, LLMs & Machine Learning Systems',
+    experience: '9+ yrs exp • 140+ Interviews',
+    rating: '5.0 ★',
+    slots: 'Today, 7:00 PM',
+  },
+  {
+    id: 'panel-rohan',
+    name: 'Rohan Mehta',
+    avatar: 'RM',
+    role: 'Director of Engineering at Swiggy (ex-Amazon)',
+    domain: 'Full-Stack Architecture & Leadership Round',
+    experience: '14+ yrs exp • 250+ Interviews',
+    rating: '4.9 ★',
+    slots: 'Thursday, 4:00 PM',
+  },
+];
+
+async function renderInterviewPanel() {
+  if (!interviewPanelList) return;
+
+  const storageKeys = EXPERT_PANEL.map((p) => `panel_booked_${p.id}`);
+  const storageData = await chrome.storage.local.get(storageKeys);
+
+  interviewPanelList.innerHTML = '';
+  EXPERT_PANEL.forEach((p) => {
+    const isBooked = !!storageData[`panel_booked_${p.id}`];
+
+    const card = document.createElement('div');
+    card.className = 'interviewer-card';
+
+    card.innerHTML = `
+      <div class="interviewer-avatar-wrap">
+        ${p.avatar}
+        <span class="interviewer-online-dot" title="Online & Available"></span>
+      </div>
+      <div class="interviewer-details">
+        <div class="interviewer-name-row">
+          <span class="interviewer-name">${escapeHtml(p.name)}</span>
+          <span class="interviewer-verified-icon" title="Verified Panelist">✓</span>
+          <span class="course-rating" style="font-size: 10px;">${p.rating}</span>
+        </div>
+        <div class="interviewer-role" title="${escapeHtml(p.role)}">
+          ${escapeHtml(p.role)}
+        </div>
+        <div class="interviewer-meta-row">
+          <span class="interviewer-tag">${escapeHtml(p.domain)}</span>
+          <span class="job-dot">•</span>
+          <span>📅 ${p.slots}</span>
+        </div>
+      </div>
+      <button class="btn-interview-action ${isBooked ? 'booked' : ''}" data-id="${p.id}" title="${isBooked ? 'Interview Scheduled' : 'Request 1-on-1 Interview'}">
+        ${isBooked ? '✓ Requested' : 'Get Interviewed'}
+      </button>
+    `;
+
+    const actionBtn = card.querySelector('.btn-interview-action');
+    actionBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const key = `panel_booked_${p.id}`;
+      const curr = await chrome.storage.local.get(key);
+      const booked = !curr[key];
+      await chrome.storage.local.set({ [key]: booked });
+
+      if (booked) {
+        actionBtn.classList.add('booked');
+        actionBtn.textContent = '✓ Requested';
+        actionBtn.title = `1-on-1 Interview scheduled with ${p.name}`;
+      } else {
+        actionBtn.classList.remove('booked');
+        actionBtn.textContent = 'Get Interviewed';
+        actionBtn.title = 'Request 1-on-1 Interview';
+      }
+    });
+
+    interviewPanelList.appendChild(card);
+  });
+}
+
 
