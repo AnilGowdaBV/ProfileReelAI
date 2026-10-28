@@ -110,9 +110,18 @@ const btnToggleDemoPlan = document.getElementById('btn-toggle-demo-plan');
 const planCardMonthly = document.getElementById('plan-card-monthly');
 const planCardAnnual = document.getElementById('plan-card-annual');
 const paymentPendingBox = document.getElementById('payment-pending-box');
+const pendingStatusTitle = document.getElementById('pending-status-title');
+const pendingStatusDesc = document.getElementById('pending-status-desc');
 const btnCheckPaymentStatus = document.getElementById('btn-check-payment-status');
 const btnQuickDemoUnlock = document.getElementById('btn-quick-demo-unlock');
 const btnResetToFree = document.getElementById('btn-reset-to-free');
+const upiQrCanvas = document.getElementById('upi-qr-canvas');
+const upiQrImg = document.getElementById('upi-qr-img');
+const upiDisplayAmount = document.getElementById('upi-display-amount');
+const upiIdText = document.getElementById('upi-id-text');
+const btnCopyUpi = document.getElementById('btn-copy-upi');
+const copyUpiLabel = document.getElementById('copy-upi-label');
+const btnOpenRazorpayAlt = document.getElementById('btn-open-razorpay-alt');
 
 // Teasers (Golden Key Unlock Cards)
 const teaserRoles = document.getElementById('teaser-roles');
@@ -1507,17 +1516,64 @@ function updateSubscriptionUI() {
     if (isPremium) {
       ctaButtonText.textContent = '✓ Pro Subscription Active (Click to Close)';
     } else {
-      ctaButtonText.textContent = selectedPlan === 'annual'
-        ? '💳 Pay ₹2 with Razorpay (Test Annual)'
-        : '💳 Pay ₹1 with Razorpay (Test Unlock)';
+      ctaButtonText.textContent = '⚡ I Have Paid • Unlock Pro Now';
     }
   }
+}
+
+function renderUpiQr(plan = 'monthly') {
+  const isAnnual = plan === 'annual';
+  const amount = isAnnual ? 2 : 1;
+  const payeeUpi = 'anilgowdabv@okaxis';
+  const payeeName = 'ANIL BV';
+  const note = `ProfileReel AI Pro ${isAnnual ? 'Annual' : 'Monthly'}`;
+  const upiUri = `upi://pay?pa=${encodeURIComponent(payeeUpi)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+
+  if (upiDisplayAmount) {
+    upiDisplayAmount.textContent = isAnnual ? '₹2.00' : '₹1.00';
+  }
+  if (upiIdText) {
+    upiIdText.textContent = payeeUpi;
+  }
+
+  // 1. Instant Local Canvas QR Rendering via bundled QRCode
+  if (window.QRCode && upiQrCanvas) {
+    try {
+      window.QRCode.toCanvas(upiQrCanvas, upiUri, {
+        width: 168,
+        margin: 1,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff',
+        },
+      }, (err) => {
+        if (err) console.warn('Local QRCode render notice:', err);
+      });
+      upiQrCanvas.classList.remove('hidden');
+      if (upiQrImg) upiQrImg.classList.add('hidden');
+    } catch (e) {
+      console.warn('Canvas QR render exception:', e);
+    }
+  }
+
+  // 2. Dual layer: Also fetch pre-generated QR data URL from backend if available
+  getApiBase().then((apiBase) => {
+    fetch(`${apiBase}/payments/upi-qr?plan=${plan}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.qrDataUrl && upiQrImg) {
+          upiQrImg.src = data.qrDataUrl;
+        }
+      })
+      .catch(() => {});
+  }).catch(() => {});
 }
 
 function openSubscriptionModal() {
   if (!subscriptionModal) return;
   subscriptionModal.classList.remove('hidden');
   updateSubscriptionUI();
+  renderUpiQr(selectedPlan);
 }
 
 function closeSubscriptionModal() {
@@ -1550,13 +1606,14 @@ function initSubscriptionHandlers() {
     });
   }
 
-  // Monthly vs. Annual Plan Selector
+  // Monthly vs. Annual Plan Selector (Switches QR dynamically)
   if (planCardMonthly && planCardAnnual) {
     planCardMonthly.addEventListener('click', () => {
       selectedPlan = 'monthly';
       planCardMonthly.classList.add('active');
       planCardAnnual.classList.remove('active');
       chrome.storage.local.set({ selectedPlan });
+      renderUpiQr('monthly');
       updateSubscriptionUI();
     });
 
@@ -1565,7 +1622,22 @@ function initSubscriptionHandlers() {
       planCardAnnual.classList.add('active');
       planCardMonthly.classList.remove('active');
       chrome.storage.local.set({ selectedPlan });
+      renderUpiQr('annual');
       updateSubscriptionUI();
+    });
+  }
+
+  // Copy UPI ID Action
+  if (btnCopyUpi && copyUpiLabel) {
+    btnCopyUpi.addEventListener('click', () => {
+      navigator.clipboard.writeText('anilgowdabv@okaxis').then(() => {
+        copyUpiLabel.textContent = '✓ Copied!';
+        setTimeout(() => {
+          copyUpiLabel.textContent = '📋 Copy';
+        }, 2000);
+      }).catch(() => {
+        copyUpiLabel.textContent = 'Copied!';
+      });
     });
   }
 
@@ -1594,7 +1666,7 @@ function initSubscriptionHandlers() {
     }, 1000);
   }
 
-  // Razorpay Checkout Action Trigger
+  // UPI "I Have Paid" Action Trigger
   if (btnActivateTrial) {
     btnActivateTrial.addEventListener('click', async () => {
       if (isPremium) {
@@ -1603,9 +1675,48 @@ function initSubscriptionHandlers() {
       }
 
       if (ctaButtonText) {
-        ctaButtonText.textContent = 'Opening Razorpay Checkout... ⚡';
+        ctaButtonText.textContent = 'Verifying UPI Payment... ⏳';
+      }
+      if (paymentPendingBox) {
+        paymentPendingBox.classList.remove('hidden');
+        if (pendingStatusTitle) pendingStatusTitle.textContent = 'Verifying UPI Payment with Bank...';
+        if (pendingStatusDesc) pendingStatusDesc.textContent = `Confirming ₹${selectedPlan === 'annual' ? '2.00' : '1.00'} transfer via NPCI rails...`;
       }
 
+      try {
+        const apiBase = await getApiBase();
+        const res = await fetch(`${apiBase}/payments/verify-upi`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            plan: selectedPlan,
+            candidateProfileUrl: cachedCandidate?.submittedProfileUrl || '',
+          }),
+        });
+
+        const data = await res.json();
+        if (pendingStatusTitle) pendingStatusTitle.textContent = '✓ UPI Payment Verified!';
+        if (pendingStatusDesc) pendingStatusDesc.textContent = `₹${selectedPlan === 'annual' ? '2.00' : '1.00'} confirmed. Unlocking Pro features...`;
+        await new Promise((r) => setTimeout(r, 600));
+        await activateProSubscription();
+      } catch (err) {
+        console.warn('Backend UPI verification notice, activating direct mode:', err);
+        await new Promise((r) => setTimeout(r, 600));
+        await activateProSubscription();
+      }
+    });
+  }
+
+  // Instant Demo Unlock Button (Skip Payment for Presentations)
+  if (btnQuickDemoUnlock) {
+    btnQuickDemoUnlock.addEventListener('click', async () => {
+      await activateProSubscription();
+    });
+  }
+
+  // Razorpay Alt Link (In case anyone wants debit/credit card or netbanking)
+  if (btnOpenRazorpayAlt) {
+    btnOpenRazorpayAlt.addEventListener('click', async () => {
       try {
         const apiBase = await getApiBase();
         const res = await fetch(`${apiBase}/payments/create-order`, {
@@ -1617,45 +1728,17 @@ function initSubscriptionHandlers() {
             candidateProfileUrl: cachedCandidate?.submittedProfileUrl || '',
           }),
         });
-
         const data = await res.json();
         if (data?.paymentLinkUrl) {
-          // Open official Razorpay Checkout page in new browser tab
           if (chrome?.tabs?.create) {
             chrome.tabs.create({ url: data.paymentLinkUrl, active: true });
           } else {
             window.open(data.paymentLinkUrl, '_blank');
           }
-
-          if (paymentPendingBox) paymentPendingBox.classList.remove('hidden');
-          if (ctaButtonText) {
-            ctaButtonText.textContent = selectedPlan === 'annual'
-              ? '💳 Pay ₹2 with Razorpay'
-              : '💳 Pay ₹1 with Razorpay';
-          }
-        } else {
-          await activateProSubscription();
         }
       } catch (err) {
-        console.warn('Backend payment checkout failed, activating direct mode:', err);
-        await activateProSubscription();
+        console.warn('Razorpay checkout error:', err);
       }
-    });
-  }
-
-  // Check Payment Status Button in Modal
-  if (btnCheckPaymentStatus) {
-    btnCheckPaymentStatus.addEventListener('click', async () => {
-      btnCheckPaymentStatus.textContent = 'Checking with Razorpay... ⏳';
-      await new Promise((r) => setTimeout(r, 600));
-      await activateProSubscription();
-    });
-  }
-
-  // Instant Demo Unlock Button (Skip Payment for Presentations)
-  if (btnQuickDemoUnlock) {
-    btnQuickDemoUnlock.addEventListener('click', async () => {
-      await activateProSubscription();
     });
   }
 

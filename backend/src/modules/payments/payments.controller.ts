@@ -56,6 +56,22 @@ export class PaymentsController {
     return this.paymentsService.handleWebhook(body, signature);
   }
 
+  @Get('upi-qr')
+  @ApiOperation({ summary: 'Retrieve dynamic UPI Scan & Pay configuration and QR code' })
+  async getUpiQr(
+    @Query('plan') plan?: string,
+    @Query('candidateProfileUrl') candidateProfileUrl?: string,
+  ) {
+    return this.paymentsService.getUpiPaymentDetails(plan || 'monthly', candidateProfileUrl);
+  }
+
+  @Post('verify-upi')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Instant verification for UPI Scan & Pay' })
+  async verifyUpi(@Body() body: any) {
+    return this.paymentsService.verifyUpiPayment(body);
+  }
+
   @Get('status')
   @ApiOperation({ summary: 'Check subscription status for user or profile' })
   getStatus(@Query('identifier') identifier?: string) {

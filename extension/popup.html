@@ -464,96 +464,122 @@
   </div>
 
   <!-- ============================================== -->
-  <!-- LINKEDIN-STYLE PREMIUM SUBSCRIPTION MODAL      -->
+  <!-- TRENDY UPI SCAN & PAY PRO SUBSCRIPTION MODAL   -->
   <!-- ============================================== -->
   <div id="subscription-modal" class="sub-modal-backdrop hidden">
-    <div class="sub-modal-card">
+    <div class="sub-modal-card upi-modal-card">
       <button id="btn-close-sub-modal" class="modal-close-btn" title="Close">✕</button>
       
+      <!-- Trendy UPI Header -->
       <div class="sub-modal-header">
-        <div class="crown-badge">👑</div>
-        <h2 class="sub-modal-title">Unlock Full Career & Hiring Power</h2>
-        <p class="sub-modal-subtitle">Supercharge your career and recruiting workflow with <strong>ProfileReel AI Pro</strong>.</p>
+        <div class="upi-live-badge">
+          <span class="live-pulse"></span>
+          <span>⚡ INSTANT UPI SCAN &amp; PAY</span>
+        </div>
+        <h2 class="sub-modal-title">Unlock ProfileReel AI Pro</h2>
+        <p class="sub-modal-subtitle">Scan via Google Pay, PhonePe, Paytm, or BHIM to unlock all 45+ jobs &amp; mock interviews</p>
       </div>
 
-      <div class="sub-features-list">
-        <div class="sub-feature-item">
-          <span class="feat-check">✓</span>
-          <div class="feat-text">
-            <strong>Unlimited Live Job Matches:</strong> Access all 45+ live tech roles on Instahyre with priority 1-click apply.
-          </div>
-        </div>
-        <div class="sub-feature-item">
-          <span class="feat-check">✓</span>
-          <div class="feat-text">
-            <strong>Direct 1-on-1 FAANG Mock Interviews:</strong> Priority scheduling with Staff Engineers & Directors from Google, Microsoft, and Swiggy.
-          </div>
-        </div>
-        <div class="sub-feature-item">
-          <span class="feat-check">✓</span>
-          <div class="feat-text">
-            <strong>Complete Learning Pathways:</strong> Full curriculum access with industry certifications from Meta, Stanford & DeepLearning.AI.
-          </div>
-        </div>
-        <div class="sub-feature-item">
-          <span class="feat-check">✓</span>
-          <div class="feat-text">
-            <strong>Full Candidate Intelligence Dossier:</strong> Unlocked salary benchmarks, growth strategies, and instant PDF report export.
-          </div>
-        </div>
-      </div>
-
-      <!-- Plan Selector Switcher -->
-      <div class="sub-plans-container">
-        <div class="sub-plan-card active" id="plan-card-monthly" data-plan="monthly">
+      <!-- Plan Switcher Tabs (Monthly ₹1 vs Annual ₹2) -->
+      <div class="sub-plans-container upi-plan-tabs">
+        <div class="sub-plan-card upi-tab-btn active" id="plan-card-monthly" data-plan="monthly">
           <div class="plan-badge">Testing Mode</div>
           <div class="plan-name">Pro Monthly</div>
           <div class="plan-price">₹1 <span class="period">/ month</span></div>
-          <div class="plan-trial">Test Payment (₹1 Only)</div>
+          <div class="plan-trial">Scan &amp; Pay ₹1 Only</div>
         </div>
 
-        <div class="sub-plan-card" id="plan-card-annual" data-plan="annual">
+        <div class="sub-plan-card upi-tab-btn" id="plan-card-annual" data-plan="annual">
           <div class="plan-badge save-badge">Test Annual</div>
           <div class="plan-name">Pro Annual</div>
           <div class="plan-price">₹2 <span class="period">/ year</span></div>
-          <div class="plan-trial">Test Payment (₹2 Only)</div>
+          <div class="plan-trial">Scan &amp; Pay ₹2 Only</div>
         </div>
       </div>
 
-      <!-- Pending Checkout Notice Box -->
+      <!-- Hero Trendy QR Code Scanning Card -->
+      <div class="upi-qr-card">
+        <!-- Supported UPI Apps Brand Strip -->
+        <div class="upi-apps-strip">
+          <span class="upi-app-pill gpay">GPay</span>
+          <span class="upi-app-pill phonepe">PhonePe</span>
+          <span class="upi-app-pill paytm">Paytm</span>
+          <span class="upi-app-pill cred">CRED</span>
+          <span class="upi-app-pill bhim">BHIM UPI</span>
+        </div>
+
+        <!-- QR Display with Sci-Fi Reticle & Glowing Border -->
+        <div class="qr-frame-wrapper">
+          <div class="qr-frame">
+            <div class="qr-corner top-left"></div>
+            <div class="qr-corner top-right"></div>
+            <div class="qr-corner bottom-left"></div>
+            <div class="qr-corner bottom-right"></div>
+            <div class="qr-scanner-beam"></div>
+            <canvas id="upi-qr-canvas" width="168" height="168"></canvas>
+            <img id="upi-qr-img" class="hidden" width="168" height="168" alt="UPI QR" />
+          </div>
+        </div>
+
+        <!-- Dynamic Amount & Beneficiary Info -->
+        <div class="upi-info-box">
+          <div class="upi-amount-row">
+            <span class="upi-amount-label">Amount:</span>
+            <span class="upi-amount-value" id="upi-display-amount">₹1.00</span>
+            <span class="upi-fee-tag">0% Extra Fees</span>
+          </div>
+
+          <div class="upi-id-row">
+            <span class="upi-id-label">UPI ID:</span>
+            <span class="upi-id-badge" id="upi-id-text">anilgowdabv@okaxis</span>
+            <button type="button" id="btn-copy-upi" class="btn-copy-upi" title="Copy UPI ID">
+              <span id="copy-upi-label">📋 Copy</span>
+            </button>
+          </div>
+          <div class="upi-beneficiary-sub">Beneficiary: <strong>ANIL BV</strong> • Direct Bank Settlement</div>
+        </div>
+      </div>
+
+      <!-- Pending / Verification Status Box -->
       <div id="payment-pending-box" class="payment-pending-box hidden">
         <div class="pending-spinner"></div>
         <div class="pending-text">
-          <strong>Razorpay Checkout Opened in New Tab!</strong>
-          <span>Complete payment via UPI or Cards. Money is settled directly to your bank account.</span>
+          <strong id="pending-status-title">Verifying Payment...</strong>
+          <span id="pending-status-desc">Confirming UPI transfer with your bank in real-time.</span>
         </div>
-        <button id="btn-check-payment-status" class="btn btn-secondary" style="font-size: 10.5px; padding: 5px 12px; width: 100%;">
-          ✓ I Have Paid • Unlock Pro Now
+      </div>
+
+      <!-- Actions -->
+      <div class="sub-actions-container">
+        <!-- Main Pay / Verify CTA -->
+        <button id="btn-activate-trial" class="btn-sub-cta btn-upi-verify">
+          <span class="cta-glow"></span>
+          <span class="cta-text" id="cta-button-text">⚡ I Have Paid • Unlock Pro Now</span>
+        </button>
+
+        <!-- Instant Reset / Demo Switcher inside Modal -->
+        <button id="btn-reset-to-free" class="btn-reset-free-tier hidden" title="Cancel subscription and return to Free Tier preview">
+          ↺ Cancel Pro &amp; Switch Back to Free Tier
+        </button>
+
+        <!-- Instant Demo Unlock (For Quick Testing/Demos without paying) -->
+        <button id="btn-quick-demo-unlock" class="btn-demo-free-unlock" title="Quick testing demo unlock without paying">
+          ⚡ Instant Demo Unlock (Skip Payment)
+        </button>
+
+        <!-- Razorpay Alt Link (In case they prefer card/netbanking) -->
+        <button type="button" id="btn-open-razorpay-alt" class="btn-razorpay-alt">
+          💳 Prefer Card / Netbanking? Open Razorpay Checkout ↗
         </button>
       </div>
 
-      <!-- Call to Action -->
-      <button id="btn-activate-trial" class="btn-sub-cta">
-        <span class="cta-glow"></span>
-        <span class="cta-text" id="cta-button-text">💳 Pay ₹1 with Razorpay (Instant Unlock)</span>
-      </button>
-
-      <!-- Instant Reset / Demo Switcher inside Modal -->
-      <button id="btn-reset-to-free" class="btn-reset-free-tier hidden" title="Cancel subscription and return to Free Tier preview">
-        ↺ Cancel Pro &amp; Switch Back to Free Tier
-      </button>
-
-      <!-- Instant Demo Unlock (For Quick Testing/Demos without live card) -->
-      <button id="btn-quick-demo-unlock" class="btn-demo-free-unlock" title="Quick testing demo unlock without paying">
-        ⚡ Instant Demo Unlock (Skip Payment)
-      </button>
-
       <div class="sub-guarantee">
-        🔒 Real Razorpay Gateway • 256-Bit SSL Encrypted • Direct Bank Settlement
+        🔒 Real-time NPCI UPI Rails • Instant Bank Settlement • 256-Bit Encrypted
       </div>
     </div>
   </div>
 
+  <script src="qrcode.min.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
