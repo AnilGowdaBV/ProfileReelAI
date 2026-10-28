@@ -348,9 +348,9 @@ async function executeScoring(profileUrl, forceRefresh = false) {
               btnDownloadMp4.classList.remove('hidden');
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // Cache locally
     await chrome.storage.local.set({
@@ -890,7 +890,7 @@ async function fetchLiveInstahyreJobs(offset = 0, count = 25, skills = []) {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        chrome.storage.local.set({ instahyre_cached_jobs: data }).catch(() => {});
+        chrome.storage.local.set({ instahyre_cached_jobs: data }).catch(() => { });
         return data;
       }
     }
@@ -909,7 +909,7 @@ async function fetchLiveInstahyreJobs(offset = 0, count = 25, skills = []) {
       const data = await res.json();
       if (data && Array.isArray(data.objects) && data.objects.length > 0) {
         const normalized = normalizeInstahyreObjects(data.objects);
-        chrome.storage.local.set({ instahyre_cached_jobs: normalized }).catch(() => {});
+        chrome.storage.local.set({ instahyre_cached_jobs: normalized }).catch(() => { });
         return normalized;
       }
     }
@@ -923,7 +923,7 @@ async function fetchLiveInstahyreJobs(offset = 0, count = 25, skills = []) {
     if (Array.isArray(cached?.instahyre_cached_jobs) && cached.instahyre_cached_jobs.length > 0) {
       return cached.instahyre_cached_jobs;
     }
-  } catch (err) {}
+  } catch (err) { }
 
   return [];
 }
@@ -1052,11 +1052,10 @@ async function loadInstahyreJobs(isRefresh = false) {
 
     card.innerHTML = `
       <div class="job-logo-wrap">
-        ${
-          job.companyLogo
-            ? `<img src="${job.companyLogo}" class="job-company-logo" alt="${escapeHtml(job.companyName)}" onerror="this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='flex';" />`
-            : ''
-        }
+        ${job.companyLogo
+        ? `<img src="${job.companyLogo}" class="job-company-logo" alt="${escapeHtml(job.companyName)}" onerror="this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='flex';" />`
+        : ''
+      }
         <div class="job-company-initial" style="display:${job.companyLogo ? 'none' : 'flex'}">${escapeHtml(initial)}</div>
       </div>
       <div class="job-details">
@@ -1131,7 +1130,7 @@ async function handleApplyClick(jobId, jobUrl, btn) {
         } else {
           window.open(jobUrl, '_blank');
         }
-      } catch (err) {}
+      } catch (err) { }
     }
   } else {
     // Already applied - clicking opens the link directly
