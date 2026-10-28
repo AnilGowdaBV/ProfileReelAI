@@ -52,21 +52,24 @@ export class ProfileScoringService {
     const skillFacts = facts.filter((f) => f.category === FactCategory.SKILLS);
     const certFacts = facts.filter((f) => f.category === FactCategory.CERTIFICATION);
 
+    // Detect Career Stage (FRESHER, JUNIOR, MID, SENIOR, STAFF)
+    const careerStage = this.detectCareerStage(experienceFacts, headlineFacts);
+
     // 1. Evaluate Experience & Projects (Max: 3.5)
     const { score: experienceScore, description: expDesc } =
-      this.evaluateExperience(experienceFacts, headlineFacts);
+      this.evaluateExperience(experienceFacts, headlineFacts, careerStage);
 
     // 2. Evaluate Technical & Skill Depth (Max: 2.5)
     const { score: skillsScore, description: skillsDesc } =
-      this.evaluateSkills(skillFacts, headlineFacts);
+      this.evaluateSkills(skillFacts, headlineFacts, careerStage);
 
     // 3. Evaluate Education & Credentials (Max: 2.0)
     const { score: educationScore, description: eduDesc } =
-      this.evaluateEducation(educationFacts, certFacts);
+      this.evaluateEducation(educationFacts, certFacts, careerStage);
 
     // 4. Evaluate LinkedIn Activeness & Professional Presence (Max: 2.0)
     const { score: activenessScore, description: activenessDesc } =
-      this.evaluateActiveness(facts, candidate);
+      this.evaluateActiveness(facts, candidate, careerStage);
 
     // Total Overall Score (0.0 - 10.0)
     const overallScore = Math.min(
@@ -77,19 +80,19 @@ export class ProfileScoringService {
       ),
     );
 
-    // Determine Tier on 10-point scale
+    // Determine Tier on 10-point scale with career-calibrated labels
     let tier = ScoreTier.DEVELOPING;
-    let tierLabel = 'Developing Profile';
+    let tierLabel = 'Foundational Talent (Early Career / Fresher)';
 
     if (overallScore >= 9.0) {
       tier = ScoreTier.EXCEPTIONAL;
-      tierLabel = 'Top 5% Talent (Exceptional)';
-    } else if (overallScore >= 7.5) {
+      tierLabel = 'Top 5% Talent (Staff / Principal Architect)';
+    } else if (overallScore >= 7.8) {
       tier = ScoreTier.STRONG;
-      tierLabel = 'Highly Qualified (Strong)';
+      tierLabel = 'High-Performing Professional (Senior / Lead)';
     } else if (overallScore >= 6.0) {
       tier = ScoreTier.PROFICIENT;
-      tierLabel = 'Solid Foundation (Proficient)';
+      tierLabel = 'Solid Foundation (Junior / Mid-Level)';
     }
 
     // Generate Recruiter Strengths, Gaps, and Target Roles
@@ -101,6 +104,7 @@ export class ProfileScoringService {
       educationFacts,
       certFacts,
       summaryFacts,
+      careerStage,
     );
 
     const growthAreas = this.generateGrowthAreas(
@@ -109,12 +113,14 @@ export class ProfileScoringService {
       educationFacts,
       certFacts,
       activenessScore,
+      careerStage,
     );
 
     const recommendedRoles = this.inferRecommendedRoles(
       headlineFacts,
       skillFacts,
       experienceFacts,
+      careerStage,
     );
 
     // Persist score to MySQL
@@ -209,10 +215,10 @@ export class ProfileScoringService {
 
     const candidate = await this.candidateRepo.findOne({ where: { id: candidateId } });
 
-    let tierLabel = 'Developing Profile';
-    if (existing.overallScore >= 9.0) tierLabel = 'Top 5% Talent (Exceptional)';
-    else if (existing.overallScore >= 7.5) tierLabel = 'Highly Qualified (Strong)';
-    else if (existing.overallScore >= 6.0) tierLabel = 'Solid Foundation (Proficient)';
+    let tierLabel = 'Foundational Talent (Early Career / Fresher)';
+    if (existing.overallScore >= 9.0) tierLabel = 'Top 5% Talent (Staff / Principal Architect)';
+    else if (existing.overallScore >= 7.8) tierLabel = 'High-Performing Professional (Senior / Lead)';
+    else if (existing.overallScore >= 6.0) tierLabel = 'Solid Foundation (Junior / Mid-Level)';
 
     return {
       id: existing.id,
@@ -225,27 +231,27 @@ export class ProfileScoringService {
         experience: {
           score: existing.experienceScore,
           max: 3.5,
-          description: 'Career stability and track record',
+          description: 'Career stability, track record, and verified seniority',
         },
         skills: {
           score: existing.skillsScore,
           max: 2.5,
-          description: 'Technical stack depth and breadth',
+          description: 'Technical stack depth and applied framework mastery',
         },
         education: {
           score: existing.educationScore,
           max: 2.0,
-          description: 'Degrees and professional credentials',
+          description: 'Degrees, academic credentials, and certifications',
         },
         activeness: {
           score: existing.impactScore,
           max: 2.0,
-          description: 'LinkedIn activity, network, and presence',
+          description: 'LinkedIn activity, industry reach, and network presence',
         },
         impact: {
           score: existing.impactScore,
           max: 2.0,
-          description: 'LinkedIn activity, network, and presence',
+          description: 'LinkedIn activity, industry reach, and network presence',
         },
       },
       keyStrengths: existing.keyStrengths,
@@ -255,76 +261,180 @@ export class ProfileScoringService {
     };
   }
 
+  // --- Career Stage Detection ---
+
+  /**
+   * Distinguishes Freshers / Interns from Juniors, Mid-Level, Senior, and Staff / Architects.
+   */
+  private detectCareerStage(
+    expFacts: CandidateFact[],
+    headlineFacts: CandidateFact[],
+  ): 'FRESHER' | 'JUNIOR' | 'MID' | 'SENIOR' | 'STAFF' {
+    const expTexts = expFacts.map((f) => f.factText.toLowerCase());
+    const headline = headlineFacts.map((f) => f.factText.toLowerCase()).join(' ');
+    const combined = [headline, ...expTexts].join(' ');
+
+    // 1. Staff / Principal / Architect / Executive
+    const staffKeywords = [
+      'staff',
+      'principal',
+      'architect',
+      'director',
+      'head of',
+      'vp ',
+      'vice president',
+      'chief ',
+      'founder',
+      'co-founder',
+      'cto',
+      'cio',
+      'fellow',
+    ];
+    if (staffKeywords.some((k) => combined.includes(k))) {
+      return 'STAFF';
+    }
+
+    // 2. Senior / Lead / Manager
+    const seniorKeywords = [
+      'senior',
+      'sr.',
+      'lead',
+      'tech lead',
+      'team lead',
+      'engineering manager',
+      'specialist',
+      'consultant',
+    ];
+    if (seniorKeywords.some((k) => combined.includes(k))) {
+      return 'SENIOR';
+    }
+
+    // 3. Fresher / Intern / Student Detection
+    const fresherKeywords = [
+      'intern',
+      'internship',
+      'trainee',
+      'student',
+      'fresher',
+      'apprentice',
+      'entry level',
+      'campus',
+      'graduate engineer trainee',
+      'get ',
+      'aspiring',
+      'seeking',
+      'batch of 202',
+      'undergraduate',
+      'b.tech student',
+      'btech student',
+      'mca student',
+      'college',
+    ];
+
+    const hasFresherHeadline = fresherKeywords.some((k) => headline.includes(k));
+    const allRolesAreInternOrTrainee =
+      expFacts.length > 0 &&
+      expFacts.every((f) => {
+        const text = f.factText.toLowerCase();
+        return fresherKeywords.some((k) => text.includes(k));
+      });
+
+    // If 0 roles, or all roles are internships/trainees, or 1 role and headline is fresher/student:
+    if (
+      expFacts.length === 0 ||
+      allRolesAreInternOrTrainee ||
+      (expFacts.length <= 1 && hasFresherHeadline)
+    ) {
+      return 'FRESHER';
+    }
+
+    // 4. Junior (1-2 years / 1-2 junior roles)
+    if (expFacts.length <= 2) {
+      return 'JUNIOR';
+    }
+
+    // 5. Mid-level (3+ verified commercial roles)
+    return 'MID';
+  }
+
   // --- Dimension Evaluators (Total 10.0) ---
 
   /**
    * Evaluates Experience & Projects (Max: 3.5 / 10)
+   * Calibrated by career stage so Freshers are graded honestly against industry benchmarks.
    */
   private evaluateExperience(
     expFacts: CandidateFact[],
     headlineFacts: CandidateFact[],
+    stage: 'FRESHER' | 'JUNIOR' | 'MID' | 'SENIOR' | 'STAFF',
   ): { score: number; description: string } {
-    let score = 0;
     const roleCount = expFacts.length;
 
-    if (roleCount === 0) {
-      return { score: 0.5, description: 'Early career or limited work history listed' };
+    if (stage === 'FRESHER') {
+      if (roleCount === 0) {
+        return {
+          score: 0.6,
+          description: 'Early career / student foundation (no commercial employment listed)',
+        };
+      } else if (roleCount === 1) {
+        return {
+          score: 1.1,
+          description: '1 verified internship / student training role',
+        };
+      } else {
+        return {
+          score: 1.4,
+          description: `${roleCount} verified internships / technical training roles`,
+        };
+      }
     }
 
-    // Base score for verifiable employment
-    score += 1.5;
-
-    // Additional points for multiple verified roles
-    if (roleCount === 1) score += 0.6;
-    else if (roleCount === 2) score += 1.0;
-    else score += 1.3;
-
-    // Seniority signals
-    const allText = [
-      ...expFacts.map((f) => f.factText),
-      ...headlineFacts.map((f) => f.factText),
-    ].join(' ').toLowerCase();
-
-    if (
-      allText.includes('staff') ||
-      allText.includes('principal') ||
-      allText.includes('architect') ||
-      allText.includes('lead') ||
-      allText.includes('head') ||
-      allText.includes('director') ||
-      allText.includes('vp') ||
-      allText.includes('founder')
-    ) {
-      score += 0.6;
-    } else if (allText.includes('senior')) {
-      score += 0.4;
+    if (stage === 'JUNIOR') {
+      const score = Math.min(2.0, Math.round((1.5 + (roleCount > 1 ? 0.3 : 0)) * 10) / 10);
+      return {
+        score,
+        description: `${roleCount} verified early-career professional role${roleCount > 1 ? 's' : ''}`,
+      };
     }
 
-    score = Math.min(3.5, Math.round(score * 10) / 10);
-    const desc = `${roleCount} verified role${roleCount > 1 ? 's' : ''} with career progression`;
-    return { score, description: desc };
+    if (stage === 'MID') {
+      const score = Math.min(2.8, Math.round((2.2 + Math.min(0.5, roleCount * 0.15)) * 10) / 10);
+      return {
+        score,
+        description: `${roleCount} verified mid-level roles with solid product delivery track record`,
+      };
+    }
+
+    if (stage === 'SENIOR') {
+      const score = Math.min(3.2, Math.round((2.8 + Math.min(0.4, roleCount * 0.1)) * 10) / 10);
+      return {
+        score,
+        description: `${roleCount} verified progressive roles with senior engineering leadership`,
+      };
+    }
+
+    // STAFF / ARCHITECT
+    const score = Math.min(3.5, Math.round((3.2 + Math.min(0.3, roleCount * 0.1)) * 10) / 10);
+    return {
+      score,
+      description: `${roleCount} verified roles in high-impact architecture, scalability & system design`,
+    };
   }
 
   /**
    * Evaluates Technical & Skill Depth (Max: 2.5 / 10)
+   * Calibrated by career stage: freshers' academic skills are weighted appropriately.
    */
   private evaluateSkills(
     skillFacts: CandidateFact[],
     headlineFacts: CandidateFact[],
+    stage: 'FRESHER' | 'JUNIOR' | 'MID' | 'SENIOR' | 'STAFF',
   ): { score: number; description: string } {
     const count = skillFacts.length;
-    let score = 0;
-
     if (count === 0) {
-      return { score: 0.5, description: 'Minimal skills tagged on profile' };
+      return { score: 0.5, description: 'Minimal technical skills tagged on profile' };
     }
 
-    if (count <= 3) score = 1.2;
-    else if (count <= 6) score = 1.6;
-    else if (count <= 10) score = 2.0;
-    else score = 2.2;
-
-    // Check for high-demand modern technologies
     const allSkills = [
       ...skillFacts.map((s) => s.factText.toLowerCase()),
       ...headlineFacts.map((h) => h.factText.toLowerCase()),
@@ -348,14 +458,43 @@ export class ProfileScoringService {
       'java',
       'golang',
     ];
-
     const matchCount = highDemandTerms.filter((term) => allSkills.includes(term)).length;
-    if (matchCount >= 2) {
-      score += 0.3;
+    const bonus = matchCount >= 2 ? 0.2 : 0;
+
+    if (stage === 'FRESHER') {
+      const raw = (count <= 2 ? 0.8 : count <= 5 ? 1.0 : 1.2) + bonus;
+      const score = Math.min(1.4, Math.round(raw * 10) / 10);
+      return {
+        score,
+        description: `${count} foundational programming & framework competencies`,
+      };
     }
 
-    score = Math.min(2.5, Math.round(score * 10) / 10);
-    return { score, description: `${count} verified technical & domain skills` };
+    if (stage === 'JUNIOR') {
+      const raw = (count <= 3 ? 1.2 : count <= 6 ? 1.4 : 1.6) + bonus;
+      const score = Math.min(1.8, Math.round(raw * 10) / 10);
+      return {
+        score,
+        description: `${count} verified applied technical stack skills`,
+      };
+    }
+
+    if (stage === 'MID') {
+      const raw = (count <= 5 ? 1.6 : count <= 10 ? 1.9 : 2.1) + bonus;
+      const score = Math.min(2.2, Math.round(raw * 10) / 10);
+      return {
+        score,
+        description: `${count} comprehensive full-stack and systems engineering skills`,
+      };
+    }
+
+    // SENIOR / STAFF
+    const raw = (count <= 5 ? 1.9 : count <= 10 ? 2.2 : 2.3) + bonus;
+    const score = Math.min(2.5, Math.round(raw * 10) / 10);
+    return {
+      score,
+      description: `${count} enterprise-grade production & architectural engineering skills`,
+    };
   }
 
   /**
@@ -364,8 +503,8 @@ export class ProfileScoringService {
   private evaluateEducation(
     eduFacts: CandidateFact[],
     certFacts: CandidateFact[],
+    stage: 'FRESHER' | 'JUNIOR' | 'MID' | 'SENIOR' | 'STAFF',
   ): { score: number; description: string } {
-    let score = 0;
     const eduCount = eduFacts.length;
     const certCount = certFacts.length;
 
@@ -373,29 +512,53 @@ export class ProfileScoringService {
       return { score: 0.5, description: 'Self-taught or alternative educational pathway' };
     }
 
-    if (eduCount > 0) {
-      score += 1.2;
+    if (stage === 'FRESHER') {
+      let score = 1.0;
+      if (eduCount > 1) score += 0.2;
+      if (certCount > 0) score += Math.min(0.2, certCount * 0.1);
+      score = Math.min(1.4, Math.round(score * 10) / 10);
+      return {
+        score,
+        description: `${eduCount} academic qualification${eduCount > 1 ? 's' : ''} + ${certCount} course certificate${certCount !== 1 ? 's' : ''}`,
+      };
+    }
 
+    if (stage === 'JUNIOR' || stage === 'MID') {
+      let score = 1.1;
       const eduText = eduFacts.map((e) => e.factText.toLowerCase()).join(' ');
       if (
         eduText.includes('master') ||
         eduText.includes('m.s.') ||
         eduText.includes('mba') ||
-        eduText.includes('ph.d') ||
-        eduText.includes('doctorate')
+        eduText.includes('ph.d')
       ) {
-        score += 0.4;
+        score += 0.3;
       }
+      if (certCount > 0) score += Math.min(0.3, certCount * 0.15);
+      score = Math.min(1.6, Math.round(score * 10) / 10);
+      return {
+        score,
+        description: `${eduCount} formal qualification${eduCount > 1 ? 's' : ''} + ${certCount} certification${certCount !== 1 ? 's' : ''}`,
+      };
     }
 
-    // Certification bonus
-    if (certCount > 0) {
-      score += Math.min(0.4, certCount * 0.2);
+    // SENIOR / STAFF
+    let score = 1.3;
+    const eduText = eduFacts.map((e) => e.factText.toLowerCase()).join(' ');
+    if (
+      eduText.includes('master') ||
+      eduText.includes('m.s.') ||
+      eduText.includes('ph.d') ||
+      eduText.includes('doctorate')
+    ) {
+      score += 0.4;
     }
-
+    if (certCount > 0) score += Math.min(0.4, certCount * 0.2);
     score = Math.min(2.0, Math.round(score * 10) / 10);
-    const desc = `${eduCount} formal qualification${eduCount > 1 ? 's' : ''} + ${certCount} certification${certCount !== 1 ? 's' : ''}`;
-    return { score, description: desc };
+    return {
+      score,
+      description: `${eduCount} formal qualification${eduCount > 1 ? 's' : ''} + ${certCount} professional certification${certCount !== 1 ? 's' : ''}`,
+    };
   }
 
   /**
@@ -404,47 +567,59 @@ export class ProfileScoringService {
   private evaluateActiveness(
     facts: CandidateFact[],
     candidate: Candidate,
+    stage: 'FRESHER' | 'JUNIOR' | 'MID' | 'SENIOR' | 'STAFF',
   ): { score: number; description: string } {
-    let score = 0.4; // Base baseline for public active account
+    let score = 0.4; // Base baseline
     const allSummaryText = facts
       .filter((f) => f.category === FactCategory.SUMMARY)
       .map((f) => f.factText)
       .join(' ');
 
-    // 1. LinkedIn Posts Activity
     const postMatch = allSummaryText.match(/(\d+)\s+verified posts published/i);
     let postCount = 0;
     if (postMatch) {
       postCount = parseInt(postMatch[1], 10);
-      if (postCount >= 10) score += 0.8;
-      else if (postCount >= 5) score += 0.6;
-      else if (postCount >= 1) score += 0.4;
+      if (postCount >= 10) score += 0.5;
+      else if (postCount >= 3) score += 0.3;
+      else if (postCount >= 1) score += 0.2;
     }
 
-    // 2. LinkedIn Network & Connections
     const connMatch = allSummaryText.match(/(\d+)\+?\s*connections/i);
     let connCount = 0;
     if (connMatch) {
       connCount = parseInt(connMatch[1], 10);
-      if (connCount >= 500) score += 0.5;
-      else if (connCount >= 200) score += 0.4;
-      else if (connCount >= 50) score += 0.2;
-    } else if (allSummaryText.includes('Active network') || allSummaryText.includes('LinkedIn Network')) {
+      if (connCount >= 500) score += 0.3;
+      else if (connCount >= 100) score += 0.2;
+    } else if (allSummaryText.includes('connections') || allSummaryText.includes('network')) {
+      score += 0.1;
+    }
+
+    if (candidate.profilePictureUrl) {
       score += 0.2;
     }
 
-    // 3. Profile picture & completeness
-    if (candidate.profilePictureUrl) {
-      score += 0.3;
+    if (stage === 'FRESHER') {
+      score = Math.min(1.0, Math.round(score * 10) / 10);
+      return {
+        score,
+        description: `Early-career presence with ${connCount > 0 ? `${connCount}+ connections` : 'verified profile engagement'}`,
+      };
     }
 
-    score = Math.min(2.0, Math.round(score * 10) / 10);
-    const desc =
-      postCount > 0
-        ? `${postCount} posts published & verified network engagement`
-        : `Active profile with ${connCount > 0 ? `${connCount}+ connections` : 'verified LinkedIn presence'}`;
+    if (stage === 'JUNIOR' || stage === 'MID') {
+      score = Math.min(1.5, Math.round(score * 10) / 10);
+      return {
+        score,
+        description: `${postCount > 0 ? `${postCount} posts published & ` : ''}active industry network (${connCount > 0 ? `${connCount}+` : 'verified'} connections)`,
+      };
+    }
 
-    return { score, description: desc };
+    // SENIOR / STAFF
+    score = Math.min(2.0, Math.round((score + 0.3) * 10) / 10);
+    return {
+      score,
+      description: `Established industry presence with ${connCount > 0 ? `${connCount}+ connections` : 'executive reach'} & thought leadership`,
+    };
   }
 
   // --- Recruiter Insights Generation ---
@@ -457,8 +632,28 @@ export class ProfileScoringService {
     eduFacts: CandidateFact[],
     certFacts: CandidateFact[],
     summaryFacts: CandidateFact[],
+    stage: 'FRESHER' | 'JUNIOR' | 'MID' | 'SENIOR' | 'STAFF',
   ): string[] {
     const strengths: string[] = [];
+
+    if (stage === 'FRESHER') {
+      strengths.push('High learning agility with solid foundational computer science fundamentals');
+      if (skillFacts.length > 0) {
+        const topSkills = skillFacts.slice(0, 3).map((s) => s.factText).join(', ');
+        strengths.push(`Trained in modern languages & frameworks including ${topSkills}`);
+      }
+      if (expFacts.length > 0) {
+        strengths.push(
+          `Hands-on exposure through ${expFacts.length} verified internship${expFacts.length > 1 ? 's' : ''} / project role${expFacts.length > 1 ? 's' : ''}`,
+        );
+      }
+      if (eduFacts.length > 0) {
+        strengths.push(
+          `Solid academic foundation from ${eduFacts[0].factText.split(' from ')[1] || 'recognized institution'}`,
+        );
+      }
+      return strengths.slice(0, 4);
+    }
 
     if (headlineFacts.length > 0) {
       strengths.push(`Clearly articulated positioning: "${headlineFacts[0].factText}"`);
@@ -476,7 +671,9 @@ export class ProfileScoringService {
     }
 
     if (eduFacts.length > 0) {
-      strengths.push(`Solid academic foundation from ${eduFacts[0].factText.split(' from ')[1] || 'recognized institution'}`);
+      strengths.push(
+        `Solid academic foundation from ${eduFacts[0].factText.split(' from ')[1] || 'recognized institution'}`,
+      );
     }
 
     if (certFacts.length > 0) {
@@ -497,8 +694,22 @@ export class ProfileScoringService {
     eduFacts: CandidateFact[],
     certFacts: CandidateFact[],
     activenessScore: number,
+    stage: 'FRESHER' | 'JUNIOR' | 'MID' | 'SENIOR' | 'STAFF',
   ): string[] {
     const growth: string[] = [];
+
+    if (stage === 'FRESHER') {
+      growth.push(
+        'Gain commercial production experience through entry-level software engineering roles or open-source contributions',
+      );
+      growth.push(
+        'Build and host end-to-end full-stack projects showcasing real database operations, authentication, and live APIs',
+      );
+      growth.push(
+        'Deepen system design fundamentals (data modeling, RESTful APIs, caching, and CI/CD pipelines)',
+      );
+      return growth.slice(0, 3);
+    }
 
     if (activenessScore < 1.2) {
       growth.push(
@@ -519,7 +730,9 @@ export class ProfileScoringService {
     }
 
     if (growth.length === 0) {
-      growth.push('Maintain profile momentum by highlighting recent open-source or strategic leadership initiatives');
+      growth.push(
+        'Maintain profile momentum by highlighting recent open-source or strategic leadership initiatives',
+      );
     }
 
     return growth.slice(0, 3);
@@ -529,6 +742,7 @@ export class ProfileScoringService {
     headlineFacts: CandidateFact[],
     skillFacts: CandidateFact[],
     expFacts: CandidateFact[],
+    stage: 'FRESHER' | 'JUNIOR' | 'MID' | 'SENIOR' | 'STAFF',
   ): string[] {
     const text = [
       ...headlineFacts.map((h) => h.factText),
@@ -538,24 +752,71 @@ export class ProfileScoringService {
 
     const roles: string[] = [];
 
+    if (stage === 'FRESHER') {
+      if (text.includes('react') || text.includes('frontend') || text.includes('web') || text.includes('html')) {
+        roles.push('Associate Frontend Developer', 'Frontend Engineering Intern');
+      }
+      if (text.includes('node') || text.includes('python') || text.includes('backend') || text.includes('java') || text.includes('sql')) {
+        roles.push('Junior Backend Developer', 'Software Engineer Trainee');
+      }
+      if (text.includes('ai') || text.includes('ml') || text.includes('data') || text.includes('python')) {
+        roles.push('Junior AI / Data Associate', 'Machine Learning Intern');
+      }
+      if (roles.length === 0) {
+        roles.push('Junior Software Engineer', 'Graduate Engineer Trainee (GET)');
+      }
+      return Array.from(new Set(roles)).slice(0, 4);
+    }
+
+    if (stage === 'JUNIOR') {
+      if (text.includes('react') || text.includes('frontend')) {
+        roles.push('Frontend Engineer', 'Junior Full-Stack Developer');
+      }
+      if (text.includes('node') || text.includes('backend') || text.includes('python')) {
+        roles.push('Backend Engineer', 'Software Developer');
+      }
+      if (roles.length === 0) {
+        roles.push('Software Engineer', 'Full-Stack Developer');
+      }
+      return Array.from(new Set(roles)).slice(0, 4);
+    }
+
+    // MID, SENIOR, STAFF
+    if (stage === 'MID') {
+      if (text.includes('full-stack') || (text.includes('react') && text.includes('node'))) {
+        roles.push('Full-Stack Engineer');
+      }
+      if (text.includes('nestjs') || text.includes('backend') || text.includes('microservice')) {
+        roles.push('Backend Software Engineer');
+      }
+      if (text.includes('cloud') || text.includes('devops') || text.includes('docker') || text.includes('aws')) {
+        roles.push('Cloud & DevOps Engineer');
+      }
+      if (roles.length === 0) {
+        roles.push('Software Engineer', 'Full-Stack Developer');
+      }
+      return Array.from(new Set(roles)).slice(0, 4);
+    }
+
+    // SENIOR & STAFF
     if (text.includes('full-stack') || (text.includes('react') && text.includes('node'))) {
-      roles.push('Senior Full-Stack Engineer');
+      roles.push(stage === 'STAFF' ? 'Staff Full-Stack Architect' : 'Senior Full-Stack Engineer');
     }
     if (text.includes('nestjs') || text.includes('backend') || text.includes('microservice') || text.includes('distributed')) {
-      roles.push('Backend Systems Architect');
+      roles.push(stage === 'STAFF' ? 'Principal Backend Architect' : 'Senior Backend Systems Engineer');
     }
     if (text.includes('cloud') || text.includes('devops') || text.includes('kubernetes') || text.includes('docker') || text.includes('aws')) {
-      roles.push('Cloud & Platform Engineer');
+      roles.push(stage === 'STAFF' ? 'Principal Cloud Architect' : 'Senior Platform & Cloud Engineer');
     }
-    if (text.includes('ai') || text.includes('ml') || text.includes('nlp') || text.includes('transformer') || text.includes('python')) {
-      roles.push('AI Systems Engineer');
+    if (text.includes('ai') || text.includes('ml') || text.includes('nlp') || text.includes('python')) {
+      roles.push(stage === 'STAFF' ? 'Principal AI Systems Architect' : 'Senior AI Systems Engineer');
     }
     if (text.includes('product') || text.includes('lead') || text.includes('manager')) {
-      roles.push('Technical Lead / Engineering Manager');
+      roles.push(stage === 'STAFF' ? 'Director of Engineering' : 'Technical Lead / Engineering Manager');
     }
 
     if (roles.length === 0) {
-      roles.push('Software Engineer', 'Full-Stack Developer');
+      roles.push(stage === 'STAFF' ? 'Staff Software Architect' : 'Senior Software Engineer');
     }
 
     return Array.from(new Set(roles)).slice(0, 4);
