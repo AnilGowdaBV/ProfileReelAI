@@ -73,6 +73,7 @@ export class PaymentsService {
       const order = await this.razorpay.orders.create({
         amount: amountInPaise,
         currency,
+        payment_capture: 1,
         receipt: `rcpt_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         notes: {
           product: 'ProfileReel AI Pro',
