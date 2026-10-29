@@ -147,19 +147,6 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             <span>Pay ₹100 with Razorpay Gateway</span>
           </button>
 
-          {/* Quick Demo Unlock (Free testing) */}
-          <button
-            type="button"
-            onClick={() => {
-              onUnlockPro();
-              onClose();
-            }}
-            className="w-full py-2.5 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>⚡ Instant Demo Unlock (Skip Payment for Review)</span>
-          </button>
-
           {/* Reset to Free Tier */}
           {isPro && (
             <button
