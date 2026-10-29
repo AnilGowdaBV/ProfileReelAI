@@ -275,15 +275,15 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
   return (
     <section id="career-hub" className="scroll-mt-24 space-y-6">
       {/* Header with 3 Tabs */}
-      <div className="glass-panel p-2 rounded-2xl flex flex-wrap items-center justify-between gap-3 border border-white/10">
-        <div className="flex items-center gap-1.5 p-1 bg-charcoal-900/80 rounded-xl border border-white/5">
+      <div className="glass-panel p-2 rounded-2xl flex flex-wrap items-center justify-between gap-3 border border-slate-200 dark:border-white/10">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-charcoal-900/80 rounded-xl border border-slate-200 dark:border-white/5">
           <button
             type="button"
             onClick={() => setActiveTab('roles')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'roles'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-brand-600 dark:bg-brand-500 text-white shadow-lg shadow-brand-500/25'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
             }`}
           >
             <Briefcase className="w-3.5 h-3.5" />
@@ -293,10 +293,10 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('courses')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'courses'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-brand-600 dark:bg-brand-500 text-white shadow-lg shadow-brand-500/25'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5" />
@@ -306,10 +306,10 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('interviews')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'interviews'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-brand-600 dark:bg-brand-500 text-white shadow-lg shadow-brand-500/25'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
             }`}
           >
             <Mic className="w-3.5 h-3.5" />
@@ -320,16 +320,16 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
         {/* Live Pro Badge / Trigger */}
         <div className="flex items-center gap-3 px-3">
           {isPro ? (
-            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+            <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 shadow-sm">
               <CheckCircle className="w-3.5 h-3.5" />
               <span>PRO ACTIVE • ALL UNLOCKED</span>
             </span>
           ) : (
             <button
               onClick={onOpenSubscribeModal}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-brand-500/20 hover:from-amber-500/30 hover:to-brand-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-brand-500/20 hover:from-amber-500/30 hover:to-brand-500/30 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
               <span>Unlock 45+ Pro Features</span>
             </button>
           )}
@@ -339,12 +339,12 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
       {/* TAB 1: 45+ ROLES */}
       {activeTab === 'roles' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1">
             <span>
               Showing {isPro ? LIVE_ROLES.length : 3} of {LIVE_ROLES.length} Live Opportunities
             </span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               Verified Real-Time Opportunities
             </span>
           </div>
@@ -353,12 +353,12 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
             {(isPro ? LIVE_ROLES : LIVE_ROLES.slice(0, 3)).map((job) => (
               <div
                 key={job.id}
-                className="glass-panel p-5 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-all flex flex-col justify-between group"
+                className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-brand-500/40 dark:hover:border-brand-500/30 transition-all flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-charcoal-900 border border-white/10 flex items-center justify-center p-1.5 overflow-hidden flex-shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 flex items-center justify-center p-1.5 overflow-hidden flex-shrink-0">
                         <img
                           src={job.logo}
                           alt={job.company}
@@ -370,16 +370,16 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                         />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-white group-hover:text-brand-300 transition-colors">
+                        <h4 className="text-sm font-bold text-slate-900 group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-300 transition-colors">
                           {job.title}
                         </h4>
-                        <div className="text-xs text-slate-400 font-medium">{job.company}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">{job.company}</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[11px] text-slate-400 mb-3">
-                    <MapPin className="w-3 h-3 text-slate-500" />
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mb-3">
+                    <MapPin className="w-3 h-3 text-slate-400 dark:text-slate-500" />
                     <span>{job.location}</span>
                   </div>
 
@@ -387,7 +387,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                     {job.skills.map((skill, idx) => (
                       <span
                         key={idx}
-                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-white/[0.04] text-slate-300 border border-white/5"
+                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/5"
                       >
                         {skill}
                       </span>
@@ -401,13 +401,13 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                   disabled={appliedJobs[job.id]}
                   className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     appliedJobs[job.id]
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
-                      : 'bg-brand-500/10 hover:bg-brand-500 text-brand-300 hover:text-white border border-brand-500/20 cursor-pointer shadow-sm'
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 cursor-default'
+                      : 'bg-brand-500/10 hover:bg-brand-600 hover:text-white text-brand-700 dark:text-brand-300 dark:hover:bg-brand-500 border border-brand-500/20 cursor-pointer shadow-sm'
                   }`}
                 >
                   {appliedJobs[job.id] ? (
                     <>
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>✓ Applied</span>
                     </>
                   ) : (
@@ -423,17 +423,17 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
 
           {/* Locked Pro Teaser Card */}
           {!isPro && (
-            <div className="relative rounded-2xl p-6 overflow-hidden bg-gradient-to-r from-charcoal-900 via-charcoal-950 to-charcoal-900 border border-amber-500/30 shadow-xl shadow-amber-500/5">
+            <div className="relative rounded-2xl p-6 overflow-hidden bg-gradient-to-r from-amber-500/5 via-slate-100 to-amber-500/5 dark:from-charcoal-900 dark:via-charcoal-950 dark:to-charcoal-900 border border-amber-500/30 shadow-xl shadow-amber-500/5">
               <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4 text-center sm:text-left">
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-brand-500 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/20">
                     <Lock className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="text-base font-bold text-white mb-1">
+                    <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
                       Unlock 45+ More Verified Roles
                     </h4>
-                    <p className="text-xs text-slate-400 max-w-lg">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 max-w-lg">
                       Explore exclusive high-paying opportunities directly matching your exact candidate profile in real-time.
                     </p>
                   </div>
@@ -460,19 +460,19 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
             {(isPro ? COURSES : COURSES.slice(0, 2)).map((course) => (
               <div
                 key={course.id}
-                className="glass-panel p-5 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-all flex flex-col justify-between"
+                className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-brand-500/40 dark:hover:border-brand-500/30 transition-all flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="text-2xl">{course.logo}</div>
                     <div>
-                      <h4 className="text-sm font-bold text-white">{course.title}</h4>
-                      <div className="text-xs text-slate-400">{course.provider}</div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{course.title}</h4>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">{course.provider}</div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 text-[11px] text-slate-400 mb-3">
-                    <span className="text-amber-400 font-semibold">{course.rating}</span>
+                  <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 mb-3">
+                    <span className="text-amber-500 dark:text-amber-400 font-semibold">{course.rating}</span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" /> {course.duration}
@@ -483,7 +483,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                     {course.skills.map((skill, idx) => (
                       <span
                         key={idx}
-                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-brand-500/10 text-brand-300 border border-brand-500/20"
+                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-brand-500/10 text-brand-700 dark:text-brand-300 border border-brand-500/20"
                       >
                         {skill}
                       </span>
@@ -495,7 +495,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                   href={course.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="py-2 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-500 text-brand-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                  className="py-2 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-600 hover:text-white text-brand-700 dark:text-brand-300 dark:hover:bg-brand-500 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
                 >
                   <span>Enroll in Specialization</span>
                   <ExternalLink className="w-3 h-3" />
@@ -505,18 +505,18 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
           </div>
 
           {!isPro && (
-            <div className="rounded-2xl p-6 bg-gradient-to-r from-charcoal-900 to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="rounded-2xl p-6 bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-charcoal-900 dark:to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <h4 className="text-base font-bold text-white mb-1">
+                <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
                   Unlock Full Curriculum &amp; Certifications
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Access 20+ specialized architect tracks from Google, Meta &amp; DeepLearning.AI.
                 </p>
               </div>
               <button
                 onClick={onOpenSubscribeModal}
-                className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs shadow-lg shadow-brand-500/25 flex items-center gap-2 cursor-pointer flex-shrink-0"
+                className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 dark:bg-brand-500 dark:hover:bg-brand-400 text-white font-bold text-xs shadow-lg shadow-brand-500/25 flex items-center gap-2 cursor-pointer flex-shrink-0"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>Unlock with Pro</span>
@@ -536,30 +536,30 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
               return (
                 <div
                   key={panelist.id}
-                  className="glass-panel p-5 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-all flex flex-col justify-between"
+                  className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-brand-500/40 dark:hover:border-brand-500/30 transition-all flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-brand-500 to-purple-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-md">
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-brand-600 to-purple-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-md">
                         {panelist.avatar}
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <h4 className="text-sm font-bold text-white">{panelist.name}</h4>
-                          <span className="text-emerald-400 text-xs">✓</span>
-                          <span className="text-amber-400 text-[11px] font-semibold">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">{panelist.name}</h4>
+                          <span className="text-emerald-500 text-xs">✓</span>
+                          <span className="text-amber-500 dark:text-amber-400 text-[11px] font-semibold">
                             {panelist.rating}
                           </span>
                         </div>
-                        <div className="text-xs text-slate-400">{panelist.role}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">{panelist.role}</div>
                       </div>
                     </div>
 
-                    <div className="space-y-1 text-[11px] text-slate-400 mb-4">
+                    <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400 mb-4">
                       <div>🎯 {panelist.domain}</div>
                       <div className="flex items-center gap-1 text-slate-500">
-                        <Calendar className="w-3 h-3 text-brand-400" />
-                        <span className="text-slate-300">Available: {panelist.slots}</span>
+                        <Calendar className="w-3 h-3 text-brand-500 dark:text-brand-400" />
+                        <span className="text-slate-700 dark:text-slate-300">Available: {panelist.slots}</span>
                       </div>
                     </div>
                   </div>
@@ -569,8 +569,8 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                     onClick={() => handleToggleBooking(panelist.id)}
                     className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       isBooked
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-white/5 hover:bg-brand-500 text-slate-200 hover:text-white'
+                        ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                        : 'bg-slate-100 hover:bg-brand-600 hover:text-white text-slate-700 dark:bg-white/5 dark:hover:bg-brand-500 dark:text-slate-200 dark:hover:text-white border border-slate-200 dark:border-transparent'
                     }`}
                   >
                     {isBooked ? (
@@ -591,18 +591,18 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
           </div>
 
           {!isPro && (
-            <div className="rounded-2xl p-6 bg-gradient-to-r from-charcoal-900 to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="rounded-2xl p-6 bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-charcoal-900 dark:to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <h4 className="text-base font-bold text-white mb-1">
+                <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
                   Unlock Full FAANG Interview Panel
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Schedule priority 1-on-1 mock technical and behavioral rounds with 15+ Staff Engineers and Directors.
                 </p>
               </div>
               <button
                 onClick={onOpenSubscribeModal}
-                className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs shadow-lg shadow-brand-500/25 flex items-center gap-2 cursor-pointer flex-shrink-0"
+                className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 dark:bg-brand-500 dark:hover:bg-brand-400 text-white font-bold text-xs shadow-lg shadow-brand-500/25 flex items-center gap-2 cursor-pointer flex-shrink-0"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>Unlock with Pro</span>
@@ -616,26 +616,26 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
       {/* DIRECT IN-APP JOB APPLICATION MODAL                        */}
       {/* ========================================================== */}
       {applyingJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-950/85 backdrop-blur-md animate-fade-in">
-          <div className="glass-panel w-full max-w-lg rounded-2xl border border-brand-500/30 shadow-2xl shadow-black p-6 relative max-h-[90vh] overflow-y-auto space-y-5 bg-gradient-to-b from-charcoal-900 to-charcoal-950">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-charcoal-950/85 backdrop-blur-md animate-fade-in">
+          <div className="glass-panel w-full max-w-lg rounded-2xl border border-slate-200 dark:border-brand-500/30 shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto space-y-5 bg-white dark:bg-gradient-to-b dark:from-charcoal-900 dark:to-charcoal-950">
             {/* Close Button */}
             <button
               type="button"
               onClick={handleCloseApplyModal}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center border border-white/10 transition-all cursor-pointer"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-200 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-400 dark:hover:text-white dark:border-white/10 flex items-center justify-center transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
             {/* Header */}
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-brand-500/10 border border-brand-500/20 text-[10px] font-bold text-brand-300 uppercase tracking-wider mb-2">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-brand-500/10 border border-brand-500/20 text-[10px] font-bold text-brand-700 dark:text-brand-300 uppercase tracking-wider mb-2">
                 <span>⚡</span> PROFILE REEL AI TALENT DIRECT
               </div>
-              <h3 className="text-lg font-bold text-white">Apply for Job Opportunity</h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Applying for <strong className="text-brand-300">{applyingJob.title}</strong> at{' '}
-                <span className="text-slate-200 font-semibold">{applyingJob.company}</span>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Apply for Job Opportunity</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                Applying for <strong className="text-brand-600 dark:text-brand-300">{applyingJob.title}</strong> at{' '}
+                <span className="text-slate-800 dark:text-slate-200 font-semibold">{applyingJob.company}</span>
               </p>
             </div>
 
@@ -643,8 +643,8 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
             <form onSubmit={handleSubmitApplication} className="space-y-4">
               {/* Full Name */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Full Name <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Full Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -652,14 +652,14 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                   value={formFullName}
                   onChange={(e) => setFormFullName(e.target.value)}
                   placeholder="e.g. Rahul Sharma"
-                  className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-charcoal-900/90 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-charcoal-900 transition-all"
                 />
               </div>
 
               {/* LinkedIn Profile */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  LinkedIn Profile URL <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  LinkedIn Profile URL <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="url"
@@ -667,15 +667,15 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                   value={formLinkedinUrl}
                   onChange={(e) => setFormLinkedinUrl(e.target.value)}
                   placeholder="https://www.linkedin.com/in/username"
-                  className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-charcoal-900/90 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-charcoal-900 transition-all"
                 />
               </div>
 
               {/* Email & Phone Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Email Address <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Email Address <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="email"
@@ -683,12 +683,12 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
                     placeholder="you@domain.com"
-                    className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-charcoal-900/90 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-charcoal-900 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Phone Number <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Phone Number <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="tel"
@@ -696,7 +696,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                     value={formPhone}
                     onChange={(e) => setFormPhone(e.target.value)}
                     placeholder="+91 98765 43210"
-                    className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-charcoal-900/90 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-charcoal-900 transition-all"
                   />
                 </div>
               </div>
@@ -704,7 +704,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
               {/* Salaries Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Current Salary / CTC
                   </label>
                   <input
@@ -712,11 +712,11 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                     value={formCurrentSalary}
                     onChange={(e) => setFormCurrentSalary(e.target.value)}
                     placeholder="e.g. ₹12 LPA"
-                    className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-charcoal-900/90 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-charcoal-900 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Expected Salary / CTC
                   </label>
                   <input
@@ -724,15 +724,15 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                     value={formExpectedSalary}
                     onChange={(e) => setFormExpectedSalary(e.target.value)}
                     placeholder="e.g. ₹18 LPA"
-                    className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-charcoal-900/90 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-charcoal-900 transition-all"
                   />
                 </div>
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Current Location <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Current Location <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -740,14 +740,14 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                   value={formLocation}
                   onChange={(e) => setFormLocation(e.target.value)}
                   placeholder="e.g. Bangalore, India"
-                  className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-charcoal-900/90 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-charcoal-900 transition-all"
                 />
               </div>
 
               {/* Resume Upload */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Attach Resume (PDF / DOCX) <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Attach Resume (PDF / DOCX) <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative border-2 border-dashed border-brand-500/30 rounded-xl p-4 text-center hover:bg-brand-500/5 hover:border-brand-500 transition-all cursor-pointer">
                   <input
@@ -758,10 +758,10 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <div className="flex flex-col items-center justify-center gap-1.5 pointer-events-none">
-                    <Upload className="w-5 h-5 text-brand-400" />
-                    <span className="text-xs text-slate-300 font-medium">
+                    <Upload className="w-5 h-5 text-brand-500 dark:text-brand-400" />
+                    <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">
                       {resumeFile ? (
-                        <span className="text-brand-300 font-semibold">📎 {resumeFile.name}</span>
+                        <span className="text-brand-600 dark:text-brand-300 font-semibold">📎 {resumeFile.name}</span>
                       ) : (
                         'Click to upload or drag resume file (PDF, DOCX)'
                       )}

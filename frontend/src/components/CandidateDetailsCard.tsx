@@ -168,10 +168,10 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
     <div className="space-y-6">
       {/* Header Profile Card */}
       <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-white/5">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-accent p-0.5 shadow-xl shadow-brand-500/20 flex-shrink-0">
-              <div className="w-full h-full bg-charcoal-900 rounded-[14px] flex items-center justify-center overflow-hidden">
+              <div className="w-full h-full bg-slate-100 dark:bg-charcoal-900 rounded-[14px] flex items-center justify-center overflow-hidden">
                 {candidate.profilePictureUrl ? (
                   <img
                     src={candidate.profilePictureUrl}
@@ -179,14 +179,14 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                     className="w-full h-full object-cover rounded-[14px]"
                   />
                 ) : (
-                  <User className="w-7 h-7 text-brand-300" />
+                  <User className="w-7 h-7 text-brand-500 dark:text-brand-300" />
                 )}
               </div>
             </div>
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-xl font-bold text-white">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                   {candidate.displayName || 'Candidate Profile'}
                 </h3>
                 <StatusBadge status={candidate.retrievalStatus} />
@@ -198,19 +198,19 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                   href={candidate.normalizedProfileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors"
+                  className="text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 flex items-center gap-1 transition-colors"
                 >
                   <span>{candidate.normalizedProfileUrl}</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
 
                 {candidate.facts?.find((f) => f.factText.startsWith('LinkedIn Network:')) && (
-                  <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-300 font-medium">
+                  <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-700 dark:text-blue-300 font-medium">
                     {candidate.facts.find((f) => f.factText.startsWith('LinkedIn Network:'))?.factText.replace('LinkedIn Network:', '').trim()}
                   </span>
                 )}
                 {candidate.facts?.find((f) => f.factText.startsWith('LinkedIn Engagement:')) && (
-                  <span className="px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-300 font-medium">
+                  <span className="px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-700 dark:text-purple-300 font-medium">
                     {candidate.facts.find((f) => f.factText.startsWith('LinkedIn Engagement:'))?.factText.replace('LinkedIn Engagement:', '').trim()}
                   </span>
                 )}
@@ -246,7 +246,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-2.5 rounded-xl bg-charcoal-800 hover:bg-charcoal-700 text-slate-300 hover:text-white border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 dark:bg-charcoal-800 dark:hover:bg-charcoal-700 dark:text-slate-300 dark:hover:text-white dark:border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Clear and search another candidate profile"
               >
                 <X className="w-3.5 h-3.5" />
@@ -259,21 +259,21 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
         {/* Pipeline Stage Indicators */}
         <div className="mt-5 pt-1">
           <div className="flex items-center justify-between text-xs mb-2">
-            <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-brand-400" />
+            <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
               Pipeline Progress
             </span>
-            <span className="text-slate-400 text-[11px]">
+            <span className="text-slate-500 dark:text-slate-400 text-[11px]">
               {video ? 'Video Reel Ready & Verified' : isSuccess ? 'Facts verified – Ready for Video Reel' : candidate.retrievalStatus}
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
             <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
               <div className="text-[11px]">
-                <p className="font-semibold text-white">1. URL Validated</p>
-                <p className="text-emerald-400 text-[10px]">Syntax & safety verified</p>
+                <p className="font-semibold text-slate-900 dark:text-white">1. URL Validated</p>
+                <p className="text-emerald-600 dark:text-emerald-400 text-[10px]">Syntax &amp; safety verified</p>
               </div>
             </div>
 
@@ -283,25 +283,25 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                   ? 'bg-emerald-500/10 border-emerald-500/30'
                   : isUnavailable
                   ? 'bg-amber-500/10 border-amber-500/30'
-                  : 'bg-charcoal-850 border-white/5'
+                  : 'bg-slate-100 dark:bg-charcoal-850 border-slate-200 dark:border-white/5'
               }`}
             >
               {isSuccess ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
               ) : isUnavailable ? (
-                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" />
               ) : (
                 <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
               )}
               <div className="text-[11px]">
-                <p className="font-semibold text-white">2. Profile Ingestion</p>
+                <p className="font-semibold text-slate-900 dark:text-white">2. Profile Ingestion</p>
                 <p
                   className={`text-[10px] ${
                     isSuccess
-                      ? 'text-emerald-400'
+                      ? 'text-emerald-600 dark:text-emerald-400'
                       : isUnavailable
-                      ? 'text-amber-400'
-                      : 'text-slate-400'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-slate-500 dark:text-slate-400'
                   }`}
                 >
                   {isSuccess
@@ -317,17 +317,17 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
               className={`p-2.5 rounded-lg border flex items-center gap-2 ${
                 isSuccess
                   ? 'bg-emerald-500/10 border-emerald-500/30'
-                  : 'bg-charcoal-850/50 border-white/5 opacity-60'
+                  : 'bg-slate-100/60 dark:bg-charcoal-850/50 border-slate-200 dark:border-white/5 opacity-60'
               }`}
             >
               <CheckCircle2
                 className={`w-4 h-4 flex-shrink-0 ${
-                  isSuccess ? 'text-emerald-400' : 'text-slate-500'
+                  isSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
                 }`}
               />
               <div className="text-[11px]">
-                <p className="font-semibold text-white">3. Fact Normalization</p>
-                <p className="text-[10px] text-slate-400">
+                <p className="font-semibold text-slate-900 dark:text-white">3. Fact Normalization</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
                   {isSuccess ? `${candidate.facts.length} facts extracted` : 'Pending'}
                 </p>
               </div>
@@ -339,17 +339,17 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                   ? 'bg-emerald-500/10 border-emerald-500/30'
                   : isLoadingScore
                   ? 'bg-brand-500/20 border-brand-500/40 animate-pulse'
-                  : 'bg-charcoal-850/50 border-white/5 opacity-80'
+                  : 'bg-slate-100/80 dark:bg-charcoal-850/50 border-slate-200 dark:border-white/5 opacity-80'
               }`}
             >
               <Award
                 className={`w-4 h-4 flex-shrink-0 ${
-                  score ? 'text-emerald-400' : 'text-brand-400'
+                  score ? 'text-emerald-600 dark:text-emerald-400' : 'text-brand-600 dark:text-brand-400'
                 }`}
               />
               <div className="text-[11px]">
-                <p className="font-semibold text-slate-200">4. Profile Score</p>
-                <p className="text-[10px] text-slate-400">
+                <p className="font-semibold text-slate-900 dark:text-slate-200">4. Profile Score</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
                   {score
                     ? `Score: ${score.overallScore}/10 (${score.tier})`
                     : isLoadingScore
@@ -422,28 +422,28 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
           <div className="lg:col-span-2 space-y-6">
             {/* Headline & Summary */}
             <div className="glass-panel rounded-2xl p-6">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-brand-400" />
-                Professional Summary & Position
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                Professional Summary &amp; Position
               </h4>
 
               {factsByCategory.headline.length > 0 && (
-                <div className="mb-4 p-3.5 rounded-xl bg-charcoal-900/80 border border-white/5">
-                  <span className="text-[10px] uppercase font-bold text-brand-400 block mb-1">
+                <div className="mb-4 p-3.5 rounded-xl bg-slate-50 dark:bg-charcoal-900/80 border border-slate-200 dark:border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-brand-600 dark:text-brand-400 block mb-1">
                     Verified Headline
                   </span>
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     {factsByCategory.headline[0].factText}
                   </p>
                 </div>
               )}
 
               {factsByCategory.summary.length > 0 && (
-                <div className="p-3.5 rounded-xl bg-charcoal-900/80 border border-white/5">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-charcoal-900/80 border border-slate-200 dark:border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block mb-1">
                     Source Summary
                   </span>
-                  <p className="text-sm text-slate-300 leading-relaxed">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                     {factsByCategory.summary[0].factText}
                   </p>
                 </div>
@@ -452,8 +452,8 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
 
             {/* Career Timeline / Experiences */}
             <div className="glass-panel rounded-2xl p-6">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-brand-400" />
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                 Verified Career Milestones ({factsByCategory.experience.length})
               </h4>
 
@@ -461,13 +461,13 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                 {factsByCategory.experience.map((exp, idx) => (
                   <div
                     key={exp.id || idx}
-                    className="p-4 rounded-xl bg-charcoal-900/70 border border-white/5 hover:border-brand-500/20 transition-colors"
+                    className="p-4 rounded-xl bg-slate-50 dark:bg-charcoal-900/70 border border-slate-200 dark:border-white/5 hover:border-brand-500/30 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-slate-100">
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                         {exp.factText}
                       </p>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex-shrink-0">
                         VERIFIED
                       </span>
                     </div>
@@ -481,8 +481,8 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
           <div className="space-y-6">
             {/* Skills */}
             <div className="glass-panel rounded-2xl p-6">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-brand-400" />
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                 Verified Skills ({factsByCategory.skills.length})
               </h4>
 
@@ -490,7 +490,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                 {factsByCategory.skills.map((skill, idx) => (
                   <span
                     key={skill.id || idx}
-                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-500/10 text-brand-300 border border-brand-500/20"
+                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-500/10 text-brand-700 dark:text-brand-300 border border-brand-500/20"
                   >
                     {skill.factText}
                   </span>
@@ -500,8 +500,8 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
 
             {/* Education */}
             <div className="glass-panel rounded-2xl p-6">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-brand-400" />
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                 Education ({factsByCategory.education.length})
               </h4>
 
@@ -509,7 +509,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                 {factsByCategory.education.map((edu, idx) => (
                   <div
                     key={edu.id || idx}
-                    className="p-3 rounded-xl bg-charcoal-900/70 border border-white/5 text-xs text-slate-200"
+                    className="p-3 rounded-xl bg-slate-50 dark:bg-charcoal-900/70 border border-slate-200 dark:border-white/5 text-xs text-slate-700 dark:text-slate-200"
                   >
                     {edu.factText}
                   </div>
@@ -520,8 +520,8 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
             {/* Certifications */}
             {factsByCategory.certification.length > 0 && (
               <div className="glass-panel rounded-2xl p-6">
-                <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-brand-400" />
+                <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                   Certifications ({factsByCategory.certification.length})
                 </h4>
 
@@ -529,7 +529,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                   {factsByCategory.certification.map((cert, idx) => (
                     <div
                       key={cert.id || idx}
-                      className="p-3 rounded-xl bg-charcoal-900/70 border border-white/5 text-xs text-slate-200"
+                      className="p-3 rounded-xl bg-slate-50 dark:bg-charcoal-900/70 border border-slate-200 dark:border-white/5 text-xs text-slate-700 dark:text-slate-200"
                     >
                       {cert.factText}
                     </div>

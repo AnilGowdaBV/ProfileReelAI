@@ -25,7 +25,6 @@ interface CandidateSubmissionCardProps {
   errorMessage?: string | null;
 }
 
-
 export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = ({
   onSubmit,
   isLoading,
@@ -71,20 +70,14 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateUrl(url)) return;
 
-    const hasEnrichment =
-      displayName.trim() ||
-      headline.trim() ||
-      profileText.trim() ||
-      pdlApiKey.trim();
-
-    if (!hasEnrichment) {
-      await onSubmit(url.trim());
+    if (!showEnrichment) {
+      onSubmit(url.trim());
     } else {
-      await onSubmit({
+      onSubmit({
         profileUrl: url.trim(),
         displayName: displayName.trim() || undefined,
         headline: headline.trim() || undefined,
@@ -95,17 +88,17 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
   };
 
   return (
-    <div className="glass-panel-elevated rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+    <div className="glass-panel-elevated rounded-2xl p-6 sm:p-8 relative overflow-hidden transition-all duration-200">
       {/* Ambient background glow */}
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-600/10 dark:bg-brand-600/15 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-2">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
               Transform Candidate Profile
             </h2>
-            <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
               Enter any LinkedIn candidate URL. The AI validates authorized data access, extracts accurate
               career facts, and renders a 720p narrated video reel.
             </p>
@@ -114,10 +107,10 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
           <button
             type="button"
             onClick={() => setShowEnrichment(!showEnrichment)}
-            className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
               showEnrichment
-                ? 'bg-brand-500/20 border-brand-500/40 text-brand-300'
-                : 'bg-charcoal-900 border-white/10 text-slate-300 hover:text-white hover:border-white/20'
+                ? 'bg-brand-500/15 border-brand-500/30 text-brand-700 dark:text-brand-300'
+                : 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-700 dark:bg-charcoal-900 dark:border-white/10 dark:text-slate-300 dark:hover:text-white dark:hover:border-white/20'
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -129,7 +122,7 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="w-5 h-5 text-slate-400" />
+              <Search className="w-5 h-5 text-slate-400 dark:text-slate-500" />
             </div>
 
             <input
@@ -141,10 +134,10 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
                 if (validationError) validateUrl(e.target.value);
               }}
               placeholder="Paste LinkedIn URL: https://www.linkedin.com/in/dhruva-h-40a5a9353/"
-              className={`w-full pl-11 pr-36 py-3.5 bg-charcoal-900/90 rounded-xl border text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+              className={`w-full pl-11 pr-36 py-3.5 bg-slate-50/80 dark:bg-charcoal-900/90 rounded-xl border text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:bg-white dark:focus:bg-charcoal-900 transition-all ${
                 validationError || errorMessage
                   ? 'border-rose-500/60 focus:ring-rose-500/30'
-                  : 'border-white/10 focus:border-brand-500 focus:ring-brand-500/20'
+                  : 'border-slate-200 dark:border-white/10 focus:border-brand-500 focus:ring-brand-500/20'
               }`}
               disabled={isLoading}
             />
@@ -154,7 +147,7 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
                 type="submit"
                 id="submit-candidate-button"
                 disabled={isLoading || !url.trim()}
-                className="h-full px-5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-accent hover:from-brand-500 hover:to-brand-accent/90 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-brand-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="h-full px-5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-accent hover:from-brand-500 hover:to-brand-accent/90 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-brand-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 {isLoading ? (
                   <>
@@ -173,13 +166,13 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
 
           {/* Expandable Live Enrichment & Direct Details Panel */}
           {showEnrichment && (
-            <div className="p-4 sm:p-5 rounded-xl bg-charcoal-900/95 border border-brand-500/30 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="flex items-center gap-2 text-xs font-semibold text-brand-300">
-                  <SlidersHorizontal className="w-4 h-4 text-brand-400" />
-                  <span>Direct Data & Live Enrichment Controls</span>
+            <div className="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-charcoal-900/95 border border-slate-200 dark:border-brand-500/30 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-brand-700 dark:text-brand-300">
+                  <SlidersHorizontal className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                  <span>Direct Data &amp; Live Enrichment Controls</span>
                 </div>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
                   Zero Hallucination Guaranteed
                 </span>
               </div>
@@ -187,8 +180,8 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* People Data Labs API Key */}
                 <div>
-                  <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                     <span>People Data Labs (PDL) API Key</span>
                   </label>
                   <input
@@ -196,9 +189,9 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
                     value={pdlApiKey}
                     onChange={(e) => setPdlApiKey(e.target.value)}
                     placeholder="Enter PDL API key for live LinkedIn enrichment"
-                    className="w-full px-3 py-2 bg-charcoal-950 rounded-lg border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-charcoal-950 rounded-lg border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                     Enables authorized real-time enrichment via People Data Labs Person Enrichment API.
                   </p>
                 </div>
@@ -206,8 +199,8 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
                 {/* Candidate Name & Headline Overrides */}
                 <div className="space-y-2">
                   <div>
-                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
-                      <User className="w-3.5 h-3.5 text-brand-400" />
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      <User className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
                       <span>Candidate Full Name</span>
                     </label>
                     <input
@@ -215,21 +208,21 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="e.g. Dhruva H"
-                      className="w-full px-3 py-1.5 bg-charcoal-950 rounded-lg border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-charcoal-950 rounded-lg border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500"
                     />
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
-                      <FileText className="w-3.5 h-3.5 text-purple-400" />
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      <FileText className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                       <span>Candidate Headline / Current Title</span>
                     </label>
                     <input
                       type="text"
                       value={headline}
                       onChange={(e) => setHeadline(e.target.value)}
-                      placeholder="e.g. Full-Stack Engineer | React & Cloud Architectures"
-                      className="w-full px-3 py-1.5 bg-charcoal-950 rounded-lg border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                      placeholder="e.g. Full-Stack Engineer | React &amp; Cloud Architectures"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-charcoal-950 rounded-lg border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500"
                     />
                   </div>
                 </div>
@@ -237,12 +230,12 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
 
               {/* Direct Profile Text Parser (Paste from LinkedIn/Resume) */}
               <div>
-                <label className="flex items-center justify-between text-xs font-medium text-slate-300 mb-1.5">
+                <label className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                   <span className="flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-brand-400" />
+                    <FileText className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
                     <span>Paste Candidate Profile Text / About / Experience (From LinkedIn tab)</span>
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
                     AI parses sections into structured facts
                   </span>
                 </label>
@@ -251,7 +244,7 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
                   value={profileText}
                   onChange={(e) => setProfileText(e.target.value)}
                   placeholder="Paste experience, education, skills, or about text directly from candidate's profile..."
-                  className="w-full p-3 bg-charcoal-950 rounded-lg border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
+                  className="w-full p-3 bg-white dark:bg-charcoal-950 rounded-lg border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 font-mono"
                 />
               </div>
             </div>
@@ -259,7 +252,7 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
 
           {/* Validation or API Error banner */}
           {(validationError || errorMessage) && (
-            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs animate-in fade-in">
+            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs animate-in fade-in">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">Notice</p>
@@ -269,13 +262,12 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
           )}
 
           {/* Compliance & Privacy Note */}
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
             <span>
               Zero scraping compliance: We only access authorized data feeds and direct input. No passwords or session cookies are ever requested or stored.
             </span>
           </div>
-
 
         </form>
       </div>
