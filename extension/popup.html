@@ -480,20 +480,13 @@
         <p class="sub-modal-subtitle">Tracked directly in your <strong>Razorpay Dashboard</strong> with automated instant unlock</p>
       </div>
 
-      <!-- Plan Switcher Tabs (Monthly ₹1 vs Annual ₹2) -->
-      <div class="sub-plans-container rzp-plan-tabs">
-        <div class="sub-plan-card rzp-tab-card active" id="plan-card-monthly" data-plan="monthly">
-          <div class="plan-badge">Testing Mode</div>
-          <div class="plan-name">Pro Monthly</div>
-          <div class="plan-price">₹1 <span class="period">/ month</span></div>
-          <div class="plan-trial">Razorpay Checkout (₹1)</div>
-        </div>
-
-        <div class="sub-plan-card rzp-tab-card" id="plan-card-annual" data-plan="annual">
-          <div class="plan-badge save-badge">Test Annual</div>
-          <div class="plan-name">Pro Annual</div>
-          <div class="plan-price">₹2 <span class="period">/ year</span></div>
-          <div class="plan-trial">Razorpay Checkout (₹2)</div>
+      <!-- Single Plan: Pro Monthly ₹100 / month -->
+      <div class="sub-plans-container rzp-plan-tabs single-plan" style="grid-template-columns: 1fr;">
+        <div class="sub-plan-card rzp-tab-card active" id="plan-card-monthly" data-plan="monthly" style="width: 100%; text-align: center; border-color: rgba(59, 130, 246, 0.6); background: rgba(59, 130, 246, 0.15);">
+          <div class="plan-badge">Official Plan</div>
+          <div class="plan-name">ProfileReel AI Pro</div>
+          <div class="plan-price">₹100 <span class="period">/ month</span></div>
+          <div class="plan-trial">Instant Access • Non-Refundable</div>
         </div>
       </div>
 
@@ -543,7 +536,7 @@
         <!-- Main Razorpay CTA Button -->
         <button id="btn-activate-trial" class="btn-sub-cta btn-rzp-cta">
           <span class="cta-glow"></span>
-          <span class="cta-text" id="cta-button-text">💳 Pay ₹1 with Razorpay Gateway</span>
+          <span class="cta-text" id="cta-button-text">💳 Pay ₹100 with Razorpay Gateway</span>
         </button>
 
         <!-- Instant Demo Unlock (For Quick Testing/Demos without paying) -->
@@ -558,7 +551,7 @@
       </div>
 
       <div class="sub-guarantee">
-        🔒 Official Razorpay Merchant • 256-Bit SSL Encrypted • Direct Bank Settlement
+        🔒 Official Razorpay Merchant • Flat ₹100/mo • Strict No-Refund Policy
       </div>
     </div>
   </div>

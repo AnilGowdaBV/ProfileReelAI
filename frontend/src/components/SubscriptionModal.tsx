@@ -17,18 +17,17 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   onUnlockPro,
   onResetFree,
 }) => {
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isOpen) return null;
 
   const handleRazorpayCheckout = () => {
     setIsProcessing(true);
-    // Open the hosted Razorpay checkout page from the backend
-    const checkoutUrl = `${API_BASE}/payments/checkout?plan=${selectedPlan}`;
+    // Open the hosted Razorpay checkout page from the backend for ₹100 monthly plan
+    const checkoutUrl = `${API_BASE}/payments/checkout?plan=monthly&amount=100`;
     window.open(checkoutUrl, '_blank', 'width=520,height=720');
 
-    // Simulate completion check or allow instant demo unlock
+    // Reset processing state
     setTimeout(() => {
       setIsProcessing(false);
     }, 2000);
@@ -41,7 +40,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           title="Close"
         >
           <X className="w-5 h-5" />
@@ -58,62 +57,27 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             Unlock ProfileReel AI Pro
           </h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Tracked directly in your <strong className="text-slate-200">Razorpay Dashboard</strong> with automated instant unlock.
+            Single transparent monthly subscription tracked directly in your <strong className="text-slate-200">Razorpay Dashboard</strong>.
           </p>
         </div>
 
-        {/* Plan Switcher Cards */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {/* Monthly */}
-          <button
-            type="button"
-            onClick={() => setSelectedPlan('monthly')}
-            className={`relative p-4 rounded-xl text-left border transition-all ${
-              selectedPlan === 'monthly'
-                ? 'bg-brand-500/15 border-brand-500 shadow-lg shadow-brand-500/20'
-                : 'bg-white/[0.03] border-white/10 hover:border-white/20'
-            }`}
-          >
-            <div className="text-[10px] uppercase font-bold tracking-wider text-brand-400 mb-1">
-              Popular Plan
-            </div>
-            <div className="text-sm font-bold text-white mb-1">Pro Monthly</div>
-            <div className="text-xl font-extrabold text-white">
-              ₹1 <span className="text-xs font-normal text-slate-400">/ mo</span>
-            </div>
-            <div className="text-[10px] text-slate-400 mt-1">
-              (Live: ₹999/mo)
-            </div>
-          </button>
-
-          {/* Annual */}
-          <button
-            type="button"
-            onClick={() => setSelectedPlan('annual')}
-            className={`relative p-4 rounded-xl text-left border transition-all ${
-              selectedPlan === 'annual'
-                ? 'bg-brand-500/15 border-brand-500 shadow-lg shadow-brand-500/20'
-                : 'bg-white/[0.03] border-white/10 hover:border-white/20'
-            }`}
-          >
-            <span className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full bg-emerald-500 text-[9px] font-bold text-white uppercase tracking-wider">
-              Save 33%
-            </span>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-purple-400 mb-1">
-              Best Value
-            </div>
-            <div className="text-sm font-bold text-white mb-1">Pro Annual</div>
-            <div className="text-xl font-extrabold text-white">
-              ₹2 <span className="text-xs font-normal text-slate-400">/ yr</span>
-            </div>
-            <div className="text-[10px] text-slate-400 mt-1">
-              (Live: ₹7,999/yr)
-            </div>
-          </button>
+        {/* Single Subscription Plan Card: ₹100 / month */}
+        <div className="p-5 rounded-2xl bg-gradient-to-br from-brand-500/15 via-charcoal-850 to-charcoal-900 border border-brand-500/50 shadow-xl shadow-brand-500/15 text-center mb-6">
+          <div className="text-[10px] uppercase font-extrabold tracking-wider text-brand-400 mb-1">
+            Official Subscription Plan
+          </div>
+          <div className="text-base font-bold text-white mb-1">ProfileReel AI Pro</div>
+          <div className="text-3xl font-extrabold text-white flex items-center justify-center gap-1">
+            <span>₹100</span>
+            <span className="text-sm font-normal text-slate-400">/ month</span>
+          </div>
+          <div className="text-[11px] text-slate-300 mt-1">
+            Instant Access • 30 Days Pro Membership
+          </div>
         </div>
 
         {/* Benefits Checklist */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 mb-6 space-y-2.5 text-xs">
+        <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 mb-5 space-y-2.5 text-xs">
           <div className="flex items-start gap-2.5">
             <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5">
               <Check className="w-2.5 h-2.5" />
@@ -146,7 +110,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <Check className="w-2.5 h-2.5" />
             </div>
             <span className="text-slate-300 leading-tight">
-              <strong className="text-white">Unlimited 10-Point Scoring:</strong> Dynamic AI video reels & recruiter dossier export
+              <strong className="text-white">Unlimited 10-Point Scoring:</strong> Dynamic AI video reels &amp; recruiter dossier export
             </span>
           </div>
         </div>
@@ -180,7 +144,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
             <Lock className="w-4 h-4" />
-            <span>Pay {selectedPlan === 'monthly' ? '₹1' : '₹2'} with Razorpay Gateway</span>
+            <span>Pay ₹100 with Razorpay Gateway</span>
           </button>
 
           {/* Quick Demo Unlock (Free testing) */}
@@ -212,10 +176,15 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           )}
         </div>
 
-        {/* Security Footer Guarantee */}
-        <div className="mt-5 text-center text-[10px] text-slate-500 flex items-center justify-center gap-1">
-          <Shield className="w-3 h-3 text-slate-400" />
-          <span>Official Razorpay Merchant • 256-Bit SSL Encrypted • Direct Bank Settlement</span>
+        {/* Security & Non-Refundable Policy Footer */}
+        <div className="mt-4 text-center space-y-1">
+          <div className="text-[10px] text-amber-400/90 font-medium">
+            Strict No-Refund &amp; No-Cancellation Policy once digital access is unlocked
+          </div>
+          <div className="text-[10px] text-slate-500 flex items-center justify-center gap-1">
+            <Shield className="w-3 h-3 text-slate-400" />
+            <span>Official Razorpay Merchant • 256-Bit SSL Encrypted • Direct Bank Settlement</span>
+          </div>
         </div>
       </div>
     </div>

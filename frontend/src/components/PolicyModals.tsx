@@ -102,19 +102,19 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ activePolicy, onClos
               <p>
                 <strong>Last Updated: October 2026</strong>
               </p>
-              <h4 className="text-sm font-bold text-white">1. Cancellation Policy</h4>
+              <h4 className="text-sm font-bold text-white">1. Strict No-Refund Policy</h4>
               <p>
-                You may cancel your ProfileReel AI Pro subscription at any time directly through your account dashboard or by contacting support at <span className="text-brand-300">support@profilereel.ai</span>. Upon cancellation, your Pro benefits remain active until the end of the current paid billing cycle.
+                All purchases, payments, and subscriptions on ProfileReel AI are <strong>final and non-refundable</strong>. Because ProfileReel AI provides instant, immediate digital access to AI-powered profile scoring, candidate video reel synthesis, FAANG mock interview booking, and verified Instahyre job matching upon payment confirmation, we do not offer refunds, prorated credits, or chargebacks once payment is completed.
               </p>
 
-              <h4 className="text-sm font-bold text-white">2. 7-Day Money-Back Guarantee</h4>
+              <h4 className="text-sm font-bold text-white">2. No Cancellation / No Partial Period Returns</h4>
               <p>
-                We take customer satisfaction seriously. If you are not completely satisfied with ProfileReel Pro, you are eligible for a <strong>100% full refund within 7 days</strong> of your initial subscription purchase.
+                Once a subscription is purchased for ₹100 / month, your membership remains active and unlocked for the entire 30-day period. Because access is delivered instantly in full, mid-period subscription cancellations or partial-term refunds are not provided.
               </p>
 
-              <h4 className="text-sm font-bold text-white">3. Refund Processing</h4>
+              <h4 className="text-sm font-bold text-white">3. Technical Support &amp; Delivery Inquiries</h4>
               <p>
-                Approved refunds are processed through Razorpay directly to the original payment method (Bank Account, UPI, or Credit/Debit Card) within <strong>5 to 7 business days</strong> as per standard banking settlement guidelines.
+                Users are encouraged to review the free tier features before upgrading. If you experience any technical difficulties accessing paid features after your payment is completed, please reach out immediately to our support team at <span className="text-brand-300">support@profilereel.ai</span> with your Razorpay payment ID, and our engineering team will ensure your access is verified and fully operational.
               </p>
             </>
           )}
@@ -159,20 +159,20 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ activePolicy, onClos
           {/* PRICING POLICY */}
           {activePolicy === 'pricing' && (
             <>
-              <h4 className="text-sm font-bold text-white">Transparent Subscription Structure</h4>
+              <h4 className="text-sm font-bold text-white">Flat ₹100 Monthly Subscription Structure</h4>
               <p>
-                ProfileReel AI offers transparent digital subscriptions for job seekers and career professionals:
+                ProfileReel AI offers one simple, transparent subscription model for job seekers and candidates:
               </p>
 
               <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
                 <li>
-                  <strong className="text-white">Pro Monthly Plan:</strong> ₹1 in Testing Mode (₹999 / month in Production). Billed once a month with auto-renewal until cancelled.
+                  <strong className="text-white">ProfileReel Pro:</strong> Flat rate of <strong>₹100 per month</strong>. Grants 30 days of full access to all 45+ verified Instahyre roles, priority FAANG mock interview booking, upskilling learning tracks, and unlimited AI video reels.
                 </li>
                 <li>
-                  <strong className="text-white">Pro Annual Plan:</strong> ₹2 in Testing Mode (₹7,999 / year in Production). Save 33% compared to monthly renewal.
+                  <strong className="text-white">No Hidden Fees:</strong> What you see is what you pay. No setup charges, surge pricing, or surprise billing.
                 </li>
                 <li>
-                  <strong className="text-white">Currency:</strong> All payments are processed securely in Indian Rupees (INR) via Razorpay.
+                  <strong className="text-white">Currency &amp; Processing:</strong> All payments are securely processed in Indian Rupees (INR) through the Razorpay Payment Gateway.
                 </li>
               </ul>
             </>

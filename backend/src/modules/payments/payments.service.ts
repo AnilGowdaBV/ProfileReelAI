@@ -59,9 +59,8 @@ export class PaymentsService {
    * Create official Razorpay Order & hosted Payment Link
    */
   async createPaymentOrder(dto: CreatePaymentOrderDto) {
-    const isAnnual = dto.plan === SubscriptionPlan.ANNUAL;
-    const amountInRupees = isAnnual ? 2 : 1; // Testing Mode: ₹1 for Monthly, ₹2 for Annual
-    const amountInPaise = amountInRupees * 100;
+    const amountInRupees = 100; // Single subscription model: flat ₹100 / month
+    const amountInPaise = amountInRupees * 100; // 10000 paise
     const currency = 'INR';
 
     this.logger.log(
@@ -90,7 +89,7 @@ export class PaymentsService {
           amount: amountInPaise,
           currency,
           accept_partial: false,
-          description: `ProfileReel AI Pro (${isAnnual ? 'Annual' : 'Monthly'})`,
+          description: 'ProfileReel AI Pro Monthly Subscription (₹100/mo)',
           customer: {
             name: dto.customerName || 'ProfileReel Subscriber',
             email: dto.customerEmail || 'subscriber@profilereel.ai',
@@ -251,11 +250,10 @@ export class PaymentsService {
    * Generate Dynamic UPI URI & Base64 QR Code for direct Scan & Pay
    */
   async getUpiPaymentDetails(plan: string = 'monthly', candidateProfileUrl?: string) {
-    const isAnnual = plan === 'annual';
-    const amount = isAnnual ? 2 : 1; // Test amounts: ₹1 for monthly, ₹2 for annual
+    const amount = 100; // Flat ₹100
     const payeeUpi = this.configService.get<string>('UPI_ID') || 'anilgowdabv@okaxis';
     const payeeName = this.configService.get<string>('UPI_PAYEE_NAME') || 'ANIL BV';
-    const note = `ProfileReel AI Pro ${isAnnual ? 'Annual' : 'Monthly'}`;
+    const note = 'ProfileReel AI Pro (₹100/mo)';
     const transactionRef = `PR_${Date.now().toString(36).toUpperCase()}`;
 
     // Standard NPCI UPI URI Specification
@@ -283,7 +281,7 @@ export class PaymentsService {
       currency: 'INR',
       payeeUpi,
       payeeName,
-      plan: isAnnual ? 'annual' : 'monthly',
+      plan: 'monthly',
       transactionRef,
       note,
     };
@@ -299,8 +297,7 @@ export class PaymentsService {
     transactionRef?: string;
   }) {
     const plan = dto.plan || 'monthly';
-    const isAnnual = plan === 'annual';
-    const durationDays = isAnnual ? 365 : 30;
+    const durationDays = 30;
     const now = Date.now();
     const expiresAt = now + durationDays * 24 * 60 * 60 * 1000;
     const paymentId = dto.utrNumber ? `UPI_UTR_${dto.utrNumber}` : `UPI_${dto.transactionRef || Date.now()}`;
@@ -308,8 +305,8 @@ export class PaymentsService {
     const record: SubscriptionRecord = {
       paymentId,
       orderId: dto.transactionRef || `ORDER_${Date.now()}`,
-      plan,
-      amount: isAnnual ? 2 : 1,
+      plan: 'monthly',
+      amount: 100,
       currency: 'INR',
       candidateProfileUrl: dto.candidateProfileUrl,
       status: 'active',

@@ -27,8 +27,7 @@ export class PaymentsController {
       keyId: this.paymentsService.getPublicKey(),
       currency: 'INR',
       plans: {
-        monthly: { amount: 1, currency: 'INR', name: 'ProfileReel AI Pro Monthly (Test Mode - ₹1)' },
-        annual: { amount: 2, currency: 'INR', name: 'ProfileReel AI Pro Annual (Test Mode - ₹2)' },
+        monthly: { amount: 100, currency: 'INR', name: 'ProfileReel AI Pro Monthly (₹100/mo)' },
       },
     };
   }
@@ -87,9 +86,8 @@ export class PaymentsController {
     @Query('candidateProfileUrl') candidateProfileUrl: string,
     @Res() res: Response,
   ) {
-    const isAnnual = plan === 'annual';
-    const numAmount = isAnnual ? 2 : 1;
-    const amountInPaise = numAmount * 100;
+    const numAmount = 100;
+    const amountInPaise = 10000;
     const keyId = this.paymentsService.getPublicKey();
 
     res.setHeader('Content-Type', 'text/html');
@@ -153,15 +151,15 @@ export class PaymentsController {
         <div class="card" id="main-card">
           <div class="badge">🔒 OFFICIAL RAZORPAY GATEWAY</div>
           <h1>ProfileReel AI Pro</h1>
-          <p>Pay securely via <strong>Razorpay</strong>. All test payments appear in your Razorpay Dashboard.</p>
+          <p>Pay securely via <strong>Razorpay</strong>. Instant Pro activation upon confirmation.</p>
           <div class="amount-box">
             <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">TOTAL AMOUNT DUE</div>
-            <div class="amount-val">₹${numAmount}</div>
-            <div class="order-ref">Order: ${orderId} • Test Mode</div>
+            <div class="amount-val">₹100</div>
+            <div class="order-ref">Order: ${orderId} • Monthly Pro Subscription</div>
           </div>
           <div style="background: rgba(37, 99, 235, 0.15); border: 1px dashed rgba(59, 130, 246, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 18px; font-size: 11.5px; color: #93c5fd; text-align: left; line-height: 1.4;">
-            💡 <strong>How to test in Test Mode:</strong><br>
-            Click the button below → Select <strong>Card</strong> (enter <code>4111 1111 1111 1111</code>) or <strong>Netbanking</strong> → Click the green <strong>"Success"</strong> button to simulate payment!
+            💡 <strong>Payment Instructions:</strong><br>
+            Click the button below to pay ₹100 via UPI QR, Google Pay, PhonePe, Cards, or Netbanking. Subscriptions are non-refundable once activated.
           </div>
           <button class="btn-pay" id="rzp-button">💳 Open Razorpay Checkout</button>
           <div class="footer-note">Tracked directly in your Razorpay Dashboard</div>
@@ -173,7 +171,7 @@ export class PaymentsController {
             amount: ${amountInPaise},
             currency: "INR",
             name: "ProfileReel AI",
-            description: "ProfileReel AI Pro (${isAnnual ? 'Annual' : 'Monthly'})",
+            description: "ProfileReel AI Pro Monthly (₹100/mo)",
             order_id: "${orderId}",
             prefill: {
               name: "Subscriber",

@@ -1549,9 +1549,7 @@ function updateSubscriptionUI() {
     if (isPremium) {
       ctaButtonText.textContent = '✓ Pro Subscription Active (Click to Close)';
     } else {
-      ctaButtonText.textContent = selectedPlan === 'annual'
-        ? '💳 Pay ₹2 with Razorpay Gateway'
-        : '💳 Pay ₹1 with Razorpay Gateway';
+      ctaButtonText.textContent = '💳 Pay ₹100 with Razorpay Gateway';
     }
   }
 }
@@ -1592,24 +1590,8 @@ function initSubscriptionHandlers() {
     });
   }
 
-  // Monthly vs. Annual Plan Selector
-  if (planCardMonthly && planCardAnnual) {
-    planCardMonthly.addEventListener('click', () => {
-      selectedPlan = 'monthly';
-      planCardMonthly.classList.add('active');
-      planCardAnnual.classList.remove('active');
-      chrome.storage.local.set({ selectedPlan });
-      updateSubscriptionUI();
-    });
-
-    planCardAnnual.addEventListener('click', () => {
-      selectedPlan = 'annual';
-      planCardAnnual.classList.add('active');
-      planCardMonthly.classList.remove('active');
-      chrome.storage.local.set({ selectedPlan });
-      updateSubscriptionUI();
-    });
-  }
+  // Plan selector default
+  selectedPlan = 'monthly';
 
   // Core Pro Activation Helper
   async function activateProSubscription() {
@@ -1654,7 +1636,7 @@ function initSubscriptionHandlers() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            plan: selectedPlan,
+            plan: 'monthly',
             customerName: cachedCandidate?.displayName || 'Subscriber',
             candidateProfileUrl: cachedCandidate?.submittedProfileUrl || '',
           }),
@@ -1675,12 +1657,10 @@ function initSubscriptionHandlers() {
 
           if (paymentPendingBox) paymentPendingBox.classList.remove('hidden');
           if (pendingStatusTitle) pendingStatusTitle.textContent = 'Razorpay Checkout Window Opened! ⚡';
-          if (pendingStatusDesc) pendingStatusDesc.textContent = `Order ${data.orderId || ''} (₹${selectedPlan === 'annual' ? '2' : '1'}). Complete payment via UPI QR or Cards in Razorpay.`;
+          if (pendingStatusDesc) pendingStatusDesc.textContent = `Order ${data.orderId || ''} (₹100). Complete payment via UPI QR or Cards in Razorpay.`;
 
           if (ctaButtonText) {
-            ctaButtonText.textContent = selectedPlan === 'annual'
-              ? '💳 Pay ₹2 with Razorpay Gateway'
-              : '💳 Pay ₹1 with Razorpay Gateway';
+            ctaButtonText.textContent = '💳 Pay ₹100 with Razorpay Gateway';
           }
 
           // Automated polling to detect Razorpay confirmation in real-time
