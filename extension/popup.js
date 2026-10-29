@@ -1,4 +1,5 @@
-const DEFAULT_API_URL = 'https://profilereel-ai-backend.onrender.com/api';
+const DEFAULT_API_URL = 'http://localhost:3000/api';
+const FALLBACK_API_URL = 'https://profilereel-ai-backend.onrender.com/api';
 
 // Elements
 const inputProfileUrl = document.getElementById('input-profile-url');
@@ -171,6 +172,20 @@ let generatedScript = '';
 // Helpers
 async function getApiBase() {
   const { apiUrl } = await chrome.storage.local.get('apiUrl');
+
+  // If apiUrl was explicitly set and is reachable, use it
+  if (apiUrl && !apiUrl.includes('onrender.com')) {
+    return apiUrl.replace(/\/$/, '');
+  }
+
+  // Auto-detect local backend if running (fast check)
+  try {
+    const ping = await fetch('http://localhost:3000/api/health', { signal: AbortSignal.timeout(600) });
+    if (ping.ok) {
+      return 'http://localhost:3000/api';
+    }
+  } catch (e) {}
+
   return (apiUrl || DEFAULT_API_URL).replace(/\/$/, '');
 }
 
@@ -1326,11 +1341,42 @@ if (formJobApply) {
       };
 
       const apiBase = await getApiBase();
-      const res = await fetch(`${apiBase}/jobs/apply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      let res;
+      try {
+        res = await fetch(`${apiBase}/jobs/apply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch (networkErr) {
+        // Fallback to local server if remote fails
+        if (!apiBase.includes('localhost:3000')) {
+          res = await fetch('http://localhost:3000/api/jobs/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          throw networkErr;
+        }
+      }
+
+      // If remote returned 413 or 404, fallback to local backend on port 3000
+      if ((!res || res.status === 413 || res.status === 404 || !res.ok) && !apiBase.includes('localhost:3000')) {
+        try {
+          const localFallback = await fetch('http://localhost:3000/api/jobs/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (localFallback.ok) {
+            res = localFallback;
+            chrome.storage.local.set({ apiUrl: 'http://localhost:3000/api' });
+          }
+        } catch (localErr) {
+          console.warn('Local fallback error:', localErr);
+        }
+      }
 
       if (!res.ok) {
         if (res.status === 413) {
