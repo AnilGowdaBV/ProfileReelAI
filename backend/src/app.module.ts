@@ -10,6 +10,7 @@ import { ScriptGenerationModule } from './modules/script-generation/script-gener
 import { VideoGenerationModule } from './modules/video-generation/video-generation.module';
 import { ProfileScoringModule } from './modules/profile-scoring/profile-scoring.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     }),
     DatabaseModule,
     HealthModule,
+    StorageModule,
     AuthModule,
     CandidatesModule,
     ProfileRetrievalModule,

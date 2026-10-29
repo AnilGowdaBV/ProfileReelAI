@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1159.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@nestjs/cli": "^10.4.9",
     "@nestjs/common": "^10.4.15",

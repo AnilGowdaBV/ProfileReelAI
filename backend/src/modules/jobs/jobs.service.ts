@@ -8,6 +8,7 @@ import {
 } from './entities/generation-job.entity';
 import { JobApplication } from './entities/job-application.entity';
 import { CreateJobApplicationDto } from './dto/create-job-application.dto';
+import { R2StorageService } from '../storage/r2-storage.service';
 
 @Injectable()
 export class JobsService {
@@ -18,6 +19,7 @@ export class JobsService {
     private readonly jobRepo: Repository<GenerationJob>,
     @InjectRepository(JobApplication)
     private readonly applicationRepo: Repository<JobApplication>,
+    private readonly r2Storage: R2StorageService,
   ) {}
 
   async createJob(candidateId: string): Promise<GenerationJob> {
@@ -59,6 +61,11 @@ export class JobsService {
   }
 
   async applyForJob(dto: CreateJobApplicationDto): Promise<JobApplication> {
+    let resumeUrl: string | null = null;
+    if (dto.resumeData && dto.resumeFileName) {
+      resumeUrl = await this.r2Storage.uploadResume(dto.resumeFileName, dto.resumeData);
+    }
+
     const application = this.applicationRepo.create({
       jobId: dto.jobId,
       jobTitle: dto.jobTitle,
@@ -98,7 +105,7 @@ export class JobsService {
             expectedSalary: saved.expectedSalary,
             location: saved.location,
             resumeFileName: saved.resumeFileName,
-            resumeBase64: saved.resumeData || '',
+            resumeUrl: resumeUrl || '',
             status: 'Applied',
           }),
         });
@@ -155,7 +162,6 @@ export class JobsService {
             expectedSalary: app.expectedSalary || '',
             location: app.location || '',
             resumeFileName: app.resumeFileName || '',
-            resumeBase64: app.resumeData || '',
             status: 'Applied',
           }),
         });
