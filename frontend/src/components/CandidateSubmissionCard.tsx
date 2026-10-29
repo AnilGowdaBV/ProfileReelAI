@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ShieldCheck,
   AlertCircle,
-  Info,
   SlidersHorizontal,
   KeyRound,
   FileText,
@@ -26,44 +25,6 @@ interface CandidateSubmissionCardProps {
   errorMessage?: string | null;
 }
 
-const PRESET_FIXTURES = [
-  {
-    name: 'Anil BV (Verified Profile)',
-    role: 'Software Engineer @ Thinkify Labs',
-    url: 'https://www.linkedin.com/in/anil-bv-2704a8351/',
-    badge: 'Live Profile',
-  },
-  {
-    name: 'Alex Chen',
-    role: 'Staff Full-Stack Architect',
-    url: 'https://www.linkedin.com/in/alex-chen-senior-fullstack',
-    badge: 'Verified Fixture',
-  },
-  {
-    name: 'Sarah Jenkins',
-    role: 'VP of Product & AI',
-    url: 'https://www.linkedin.com/in/sarah-jenkins-product-lead',
-    badge: 'Verified Fixture',
-  },
-  {
-    name: 'Marcus Vance',
-    role: 'Lead Cloud & DevOps',
-    url: 'https://www.linkedin.com/in/marcus-vance-cloud-devops',
-    badge: 'Verified Fixture',
-  },
-  {
-    name: 'Priya Sharma',
-    role: 'Principal AI Researcher',
-    url: 'https://www.linkedin.com/in/priya-sharma-data-scientist',
-    badge: 'Verified Fixture',
-  },
-  {
-    name: 'Private Profile',
-    role: 'Strict Privacy Test Case',
-    url: 'https://www.linkedin.com/in/private-profile',
-    badge: 'Edge Case Fixture',
-  },
-];
 
 export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = ({
   onSubmit,
@@ -131,11 +92,6 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
         pdlApiKey: pdlApiKey.trim() || undefined,
       });
     }
-  };
-
-  const handleSelectPreset = (presetUrl: string) => {
-    setUrl(presetUrl);
-    setValidationError(null);
   };
 
   return (
@@ -320,34 +276,7 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
             </span>
           </div>
 
-          {/* Preset Demo Fixtures */}
-          <div className="pt-4 border-t border-white/5">
-            <div className="flex items-center gap-2 mb-3">
-              <Info className="w-3.5 h-3.5 text-brand-400" />
-              <span className="text-xs font-semibold text-slate-300">
-                Quick-test with verified Phase 1 fixtures:
-              </span>
-            </div>
 
-            <div className="flex flex-wrap gap-2">
-              {PRESET_FIXTURES.map((fixture) => (
-                <button
-                  key={fixture.url}
-                  type="button"
-                  onClick={() => handleSelectPreset(fixture.url)}
-                  disabled={isLoading}
-                  className="px-3 py-1.5 rounded-lg bg-charcoal-850 hover:bg-charcoal-800 border border-white/5 hover:border-brand-500/40 text-left transition-all group"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-slate-200 group-hover:text-brand-300">
-                      {fixture.name}
-                    </span>
-                    <span className="text-[10px] text-slate-400">({fixture.role})</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
         </form>
       </div>
     </div>
