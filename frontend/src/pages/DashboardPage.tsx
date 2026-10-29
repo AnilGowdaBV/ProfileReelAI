@@ -5,7 +5,6 @@ import {
   CandidateSubmissionPayload,
 } from '../components/CandidateSubmissionCard';
 import { CandidateDetailsCard } from '../components/CandidateDetailsCard';
-import { CandidateList } from '../components/CandidateList';
 import { CareerHubSection } from '../components/CareerHubSection';
 import { PricingSection } from '../components/PricingSection';
 import { SubscriptionModal } from '../components/SubscriptionModal';
@@ -167,22 +166,13 @@ export const DashboardPage: React.FC = () => {
           errorMessage={errorMessage}
         />
 
-        {/* Active Candidate Details & Analyzed History */}
-        <div className="grid grid-cols-1 gap-8">
-          {selectedCandidate && (
-            <CandidateDetailsCard
-              candidate={selectedCandidate}
-              isProcessing={isLoading}
-            />
-          )}
-
-          <CandidateList
-            candidates={candidates}
-            selectedId={selectedCandidate?.id}
-            onSelect={(candidate) => setSelectedCandidate(candidate)}
-            isLoading={isInitialLoading}
+        {/* Active Candidate Details & Intelligence */}
+        {selectedCandidate && (
+          <CandidateDetailsCard
+            candidate={selectedCandidate}
+            isProcessing={isLoading}
           />
-        </div>
+        )}
 
         {/* Career Hub Section (45+ Roles, Preferred Courses, Mock Interview Panel) */}
         <CareerHubSection

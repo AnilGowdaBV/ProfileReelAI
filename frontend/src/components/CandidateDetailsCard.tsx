@@ -347,27 +347,34 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
         </div>
       </div>
 
-      {/* Candidate Profile Score & Recruiter Intelligence Card */}
+      {/* Candidate Profile Score & Compact AI Video Reel */}
       {isSuccess && (
-        <CandidateScoreCard
-          score={score}
-          isLoading={isLoadingScore}
-          onRefreshScore={handleRefreshScore}
-          candidateName={candidate.displayName}
-        />
-      )}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Main Column: 10-Point Score Board & Recruiter Intelligence */}
+          <div className="lg:col-span-7 space-y-6">
+            <CandidateScoreCard
+              score={score}
+              isLoading={isLoadingScore}
+              onRefreshScore={handleRefreshScore}
+              candidateName={candidate.displayName}
+            />
+          </div>
 
-      {/* Video reel player commented out per user request - focusing on scoring board */}
-      {/* {video && video.status === 'READY' && (
-        <VideoReelPlayer
-          videoId={video.id}
-          candidateName={candidate.displayName || 'Candidate'}
-          script={video.script}
-          durationSeconds={video.durationSeconds}
-          onRegenerate={handleGenerateVideo}
-          isGenerating={isGeneratingVideo}
-        />
-      )} */}
+          {/* Side Column: AI Video Reel (Small / Compact Size) */}
+          <div className="lg:col-span-5">
+            <VideoReelPlayer
+              videoId={video?.id}
+              candidateName={candidate.displayName || 'Candidate'}
+              script={video?.script}
+              durationSeconds={video?.durationSeconds}
+              onGenerate={handleGenerateVideo}
+              isGenerating={isGeneratingVideo}
+              generationStage={generationStage}
+              error={videoError}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Case 1: Data Unavailable Notice */}
       {isUnavailable && (
