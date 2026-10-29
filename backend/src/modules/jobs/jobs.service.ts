@@ -168,6 +168,7 @@ export class JobsService {
             expectedSalary: app.expectedSalary || '',
             location: app.location || '',
             resumeFileName: app.resumeFileName || '',
+            resumeUrl: app.resumeUrl || '',
             status: 'Applied',
           }),
         });

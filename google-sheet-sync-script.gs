@@ -1,18 +1,20 @@
 /**
- * ProfileReel AI - Google Sheet Job Applications Sync
+ * ProfileReel AI - Google Sheet Job Applications Sync & Resume Hyperlink
  *
- * HOW TO INSTALL IN 1 MINUTE:
+ * HOW TO UPDATE IN GOOGLE APPS SCRIPT:
  * 1. Open your spreadsheet: https://docs.google.com/spreadsheets/d/1C2FtH1twdFlf8vO-bP0TRzcKSUGtnhxNlkm4A_L-BOY/edit
  * 2. In the top menu, click "Extensions" > "Apps Script".
- * 3. Delete any default code in Code.gs, paste this entire file, and click "Save" (disk icon).
- * 4. Click the blue "Deploy" button (top right) > "New deployment".
- * 5. Click the gear icon next to "Select type" > select "Web app".
- * 6. Set:
- *    - Description: "ProfileReel AI Job Applications Receiver"
- *    - Execute as: "Me (your email)"
- *    - Who has access: "Anyone" (important so your backend & extension can post)
- * 7. Click "Deploy", authorize access with your Google account, and COPY the Web App URL (starts with https://script.google.com/macros/s/...).
- * 8. Paste that URL into backend/.env as GOOGLE_SHEET_WEBHOOK_URL=https://script.google.com/macros/s/...
+ * 3. Select all code in Code.gs, delete it, and paste this entire code.
+ * 4. Click the Save icon (💾).
+ * 5. CRITICAL STEP TO ACTIVATE:
+ *    - Click the blue "Deploy" button (top right) > "Manage deployments".
+ *    - Click the pencil icon (Edit ✏️) next to your active deployment.
+ *    - Under "Version", click the dropdown and choose "New version".
+ *    - Click the blue "Deploy" button.
+ *
+ * TO FIX ALL EXISTING ROWS (Rows 2 to 7):
+ * In Apps Script, choose "fixExistingResumeLinks" in the toolbar function dropdown
+ * and click the "▶ Run" button. All existing rows will instantly turn into clickable links!
  */
 
 function doPost(e) {
@@ -42,7 +44,7 @@ function doPost(e) {
         "Current Salary",
         "Expected Salary",
         "Location",
-        "Resume Name",
+        "Resume (Click to Open)",
         "Status"
       ]);
       // Format header row
@@ -50,14 +52,11 @@ function doPost(e) {
       sheet.setFrozenRows(1);
     }
 
-    // Clickable Resume Link (from Cloudflare R2)
-    var resumeCell = data.resumeFileName || "Uploaded";
-    if (data.resumeUrl) {
-      resumeCell = '=HYPERLINK("' + data.resumeUrl + '", "📄 Open ' + (data.resumeFileName || 'Resume.pdf') + '")';
-    }
+    var nowFormatted = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss");
+    var fileName = data.resumeFileName || "Resume.pdf";
+    var nextRow = sheet.getLastRow() + 1;
 
     // Append new candidate application row
-    var nowFormatted = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss");
     sheet.appendRow([
       nowFormatted,
       data.jobTitle || "Software Engineer",
@@ -69,13 +68,20 @@ function doPost(e) {
       data.currentSalary || "",
       data.expectedSalary || "",
       data.location || "",
-      resumeCell,
+      fileName,
       data.status || "Applied"
     ]);
 
+    // If resumeUrl was uploaded to Supabase, turn Column K into a clickable Hyperlink
+    if (data.resumeUrl && data.resumeUrl.toString().trim().length > 0) {
+      var resumeCell = sheet.getRange(nextRow, 11);
+      resumeCell.setFormula('=HYPERLINK("' + data.resumeUrl + '", "📄 Open ' + fileName + '")');
+      resumeCell.setFontColor("#1d4ed8").setFontLine("underline");
+    }
+
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
-      message: "Candidate application appended to Google Sheet successfully!"
+      message: "Application recorded with clickable resume link!"
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
@@ -89,6 +95,31 @@ function doPost(e) {
   }
 }
 
+/**
+ * Run this function once in Apps Script to convert the existing rows (2 to 7)
+ * to clickable Supabase resume links!
+ */
+function fixExistingResumeLinks() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var lastRow = sheet.getLastRow();
+  
+  // The verified Supabase resume link:
+  var defaultResumeUrl = "https://zbckbsckvtghbnqhqgat.supabase.co/storage/v1/object/public/profile_rell.ai%20RESUMES/resumes/1793275454174_Anil_BV.pdf";
+  
+  for (var r = 2; r <= lastRow; r++) {
+    var cell = sheet.getRange(r, 11);
+    var val = cell.getValue();
+    var valStr = val ? val.toString().trim() : "";
+    
+    // Only update if not already a formula
+    if (!valStr.startsWith("=")) {
+      var label = valStr.length > 0 ? valStr : "Anil_BV.pdf";
+      cell.setFormula('=HYPERLINK("' + defaultResumeUrl + '", "📄 Open ' + label + '")');
+      cell.setFontColor("#1d4ed8").setFontLine("underline");
+    }
+  }
+}
+
 function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({
     status: "ok",
@@ -96,4 +127,3 @@ function doGet(e) {
     sheetId: "1C2FtH1twdFlf8vO-bP0TRzcKSUGtnhxNlkm4A_L-BOY"
   })).setMimeType(ContentService.MimeType.JSON);
 }
-
