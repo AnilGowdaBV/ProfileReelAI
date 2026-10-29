@@ -25,16 +25,19 @@ import {
   Video,
   Loader2,
   Play,
+  X,
 } from 'lucide-react';
 
 interface CandidateDetailsCardProps {
   candidate: Candidate;
   isProcessing?: boolean;
+  onClose?: () => void;
 }
 
 export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
   candidate,
   isProcessing = false,
+  onClose,
 }) => {
   const [video, setVideo] = useState<VideoMetadata | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
@@ -215,9 +218,9 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
             </div>
           </div>
 
-          {/* Action Button: Profile Score */}
-          {isSuccess && (
-            <div className="flex items-center">
+          {/* Action Buttons: Profile Score & Clear */}
+          <div className="flex items-center gap-2">
+            {isSuccess && (
               <button
                 type="button"
                 id="refresh-profile-score-button"
@@ -237,8 +240,20 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                   </>
                 )}
               </button>
-            </div>
-          )}
+            )}
+
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3.5 py-2.5 rounded-xl bg-charcoal-800 hover:bg-charcoal-700 text-slate-300 hover:text-white border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Clear and search another candidate profile"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Clear Profile</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Pipeline Stage Indicators */}

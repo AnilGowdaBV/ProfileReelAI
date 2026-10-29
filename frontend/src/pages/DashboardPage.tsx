@@ -43,9 +43,7 @@ export const DashboardPage: React.FC = () => {
         if (healthData) setHealth(healthData);
         if (candidatesData) {
           setCandidates(candidatesData);
-          if (candidatesData.length > 0) {
-            setSelectedCandidate(candidatesData[0]);
-          }
+          // Do not auto-select candidates on initial load so fresh page/refresh starts clean
         }
       } catch (err) {
         console.error('Failed to load initial data:', err);
@@ -171,6 +169,7 @@ export const DashboardPage: React.FC = () => {
           <CandidateDetailsCard
             candidate={selectedCandidate}
             isProcessing={isLoading}
+            onClose={() => setSelectedCandidate(null)}
           />
         )}
 
