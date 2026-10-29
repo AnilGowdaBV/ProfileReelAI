@@ -19,17 +19,24 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { api } from '../services/api';
+import { CandidateScore } from '../types/candidate';
 
 interface CareerHubSectionProps {
   isPro: boolean;
   onOpenSubscribeModal: () => void;
   candidateSkills?: string[];
+  candidateName?: string;
+  candidateLinkedinUrl?: string;
+  candidateScore?: CandidateScore | null;
 }
 
 export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
   isPro,
   onOpenSubscribeModal,
   candidateSkills = [],
+  candidateName,
+  candidateLinkedinUrl,
+  candidateScore,
 }) => {
   const [activeTab, setActiveTab] = useState<'roles' | 'courses' | 'interviews'>('roles');
   const [bookedInterviews, setBookedInterviews] = useState<Record<string, boolean>>({});
@@ -51,6 +58,12 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
   const handleOpenApplyModal = (job: any) => {
     setApplyingJob(job);
     setSubmitStatus(null);
+    if (!formFullName && candidateName) {
+      setFormFullName(candidateName);
+    }
+    if (!formLinkedinUrl && candidateLinkedinUrl) {
+      setFormLinkedinUrl(candidateLinkedinUrl);
+    }
     if (!formLocation && job.location && job.location !== 'Work From Home (Remote)') {
       setFormLocation(job.location.split(',')[0].trim());
     }
@@ -274,6 +287,34 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
 
   return (
     <section id="career-hub" className="scroll-mt-24 space-y-6">
+      {/* Unlocked via 10-Point Profile Scoring Banner */}
+      {candidateScore && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-brand-500/10 via-indigo-500/10 to-purple-500/10 border border-brand-500/20">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-brand-500/15 text-brand-600 dark:text-brand-400">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2">
+                <span>Matched Career Opportunities Unlocked</span>
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-brand-500/20 text-brand-700 dark:text-brand-300">
+                  Profile Score: {candidateScore.overallScore}/10 ({candidateScore.tier})
+                </span>
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                Curated opportunities tailored to {candidateName || 'candidate'} based on 10-point verified career intelligence.
+              </p>
+            </div>
+          </div>
+          {isPro && (
+            <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto flex-shrink-0">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              Pro Active (45+ Roles)
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Header with 3 Tabs */}
       <div className="glass-panel p-2 rounded-2xl flex flex-wrap items-center justify-between gap-3 border border-slate-200 dark:border-white/10">
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-charcoal-900/80 rounded-xl border border-slate-200 dark:border-white/5">
@@ -423,7 +464,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
 
           {/* Locked Pro Teaser Card */}
           {!isPro && (
-            <div className="relative rounded-2xl p-6 overflow-hidden bg-gradient-to-r from-amber-500/5 via-slate-100 to-amber-500/5 dark:from-charcoal-900 dark:via-charcoal-950 dark:to-charcoal-900 border border-amber-500/30 shadow-xl shadow-amber-500/5">
+            <div className="relative rounded-2xl p-6 overflow-hidden bg-gradient-to-r from-amber-500/10 via-white to-amber-500/10 dark:from-charcoal-900 dark:via-charcoal-950 dark:to-charcoal-900 border border-amber-500/40 shadow-xl shadow-amber-500/5">
               <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4 text-center sm:text-left">
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-brand-500 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/20">

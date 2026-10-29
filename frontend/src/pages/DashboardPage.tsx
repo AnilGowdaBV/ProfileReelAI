@@ -10,7 +10,7 @@ import { PricingSection } from '../components/PricingSection';
 import { SubscriptionModal } from '../components/SubscriptionModal';
 import { PolicyModals, PolicyType } from '../components/PolicyModals';
 import { Footer } from '../components/Footer';
-import { Candidate, HealthStatus } from '../types/candidate';
+import { Candidate, HealthStatus, CandidateScore } from '../types/candidate';
 import { api, ApiError } from '../services/api';
 import { Sparkles, Database, ShieldCheck, Zap } from 'lucide-react';
 
@@ -18,6 +18,7 @@ export const DashboardPage: React.FC = () => {
   const [health, setHealth] = useState<HealthStatus | undefined>(undefined);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [candidateScore, setCandidateScore] = useState<CandidateScore | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export const DashboardPage: React.FC = () => {
   ) => {
     setIsLoading(true);
     setErrorMessage(null);
+    setCandidateScore(null);
 
     try {
       const response = await api.submitCandidate(payload);
@@ -87,12 +89,18 @@ export const DashboardPage: React.FC = () => {
     .map((f) => f.factText);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-charcoal-950 flex flex-col text-slate-800 dark:text-slate-100 selection:bg-brand-500 selection:text-white transition-colors duration-200">
+    <div className="min-h-screen bg-transparent dark:bg-charcoal-950 relative overflow-x-hidden flex flex-col text-slate-800 dark:text-slate-100 selection:bg-brand-500 selection:text-white transition-colors duration-200">
+      {/* Smooth Ambient Light Accents for Light Mode */}
+      <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-indigo-100/60 via-purple-50/30 to-transparent dark:hidden pointer-events-none -z-10" />
+      <div className="absolute -top-32 right-1/4 w-[550px] h-[550px] bg-brand-500/10 rounded-full blur-3xl dark:hidden pointer-events-none -z-10" />
+      <div className="absolute top-96 -left-32 w-[500px] h-[500px] bg-purple-500/8 rounded-full blur-3xl dark:hidden pointer-events-none -z-10" />
+
       {/* Top Navbar */}
       <Navbar
         health={health}
         isPro={isPro}
         onOpenSubscribeModal={() => setIsSubModalOpen(true)}
+        hasScore={Boolean(selectedCandidate && candidateScore)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
@@ -169,16 +177,25 @@ export const DashboardPage: React.FC = () => {
           <CandidateDetailsCard
             candidate={selectedCandidate}
             isProcessing={isLoading}
-            onClose={() => setSelectedCandidate(null)}
+            onClose={() => {
+              setSelectedCandidate(null);
+              setCandidateScore(null);
+            }}
+            onScoreCalculated={(score) => setCandidateScore(score)}
           />
         )}
 
-        {/* Career Hub Section (45+ Roles, Preferred Courses, Mock Interview Panel) */}
-        <CareerHubSection
-          isPro={isPro}
-          onOpenSubscribeModal={() => setIsSubModalOpen(true)}
-          candidateSkills={candidateSkills}
-        />
+        {/* Career Hub Section: Only appears after candidate evaluation & scoring is completed */}
+        {selectedCandidate && candidateScore && (
+          <CareerHubSection
+            isPro={isPro}
+            onOpenSubscribeModal={() => setIsSubModalOpen(true)}
+            candidateSkills={candidateSkills}
+            candidateName={selectedCandidate.displayName}
+            candidateLinkedinUrl={selectedCandidate.normalizedProfileUrl}
+            candidateScore={candidateScore}
+          />
+        )}
 
         {/* Transparent Razorpay Pricing & Subscription Section */}
         <PricingSection

@@ -32,12 +32,14 @@ interface CandidateDetailsCardProps {
   candidate: Candidate;
   isProcessing?: boolean;
   onClose?: () => void;
+  onScoreCalculated?: (score: CandidateScore | null) => void;
 }
 
 export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
   candidate,
   isProcessing = false,
   onClose,
+  onScoreCalculated,
 }) => {
   const [video, setVideo] = useState<VideoMetadata | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
@@ -56,14 +58,19 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
         setIsLoadingScore(true);
         try {
           const scoreData = await api.getCandidateScore(candidate.id);
-          if (isMounted) setScore(scoreData);
+          if (isMounted) {
+            setScore(scoreData);
+            onScoreCalculated?.(scoreData);
+          }
         } catch (err) {
           console.error('Failed to load candidate score:', err);
+          if (isMounted) onScoreCalculated?.(null);
         } finally {
           if (isMounted) setIsLoadingScore(false);
         }
       } else {
         setScore(null);
+        onScoreCalculated?.(null);
       }
     }
     loadScore();
@@ -78,6 +85,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
     try {
       const scoreData = await api.calculateCandidateScore(candidate.id);
       setScore(scoreData);
+      onScoreCalculated?.(scoreData);
     } catch (err) {
       console.error('Failed to calculate candidate score:', err);
     } finally {

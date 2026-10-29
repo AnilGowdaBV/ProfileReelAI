@@ -88,14 +88,15 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
   };
 
   return (
-    <div className="glass-panel-elevated rounded-2xl p-6 sm:p-8 relative overflow-hidden transition-all duration-200">
+    <div className="glass-panel-elevated rounded-3xl p-6 sm:p-8 relative overflow-hidden transition-all duration-200 border-2 border-brand-500/20">
       {/* Ambient background glow */}
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-brand-600/10 dark:bg-brand-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-80 h-80 bg-brand-500/10 dark:bg-brand-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-purple-500/8 dark:bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">
               Transform Candidate Profile
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
@@ -107,10 +108,10 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
           <button
             type="button"
             onClick={() => setShowEnrichment(!showEnrichment)}
-            className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-xs ${
               showEnrichment
-                ? 'bg-brand-500/15 border-brand-500/30 text-brand-700 dark:text-brand-300'
-                : 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-700 dark:bg-charcoal-900 dark:border-white/10 dark:text-slate-300 dark:hover:text-white dark:hover:border-white/20'
+                ? 'bg-brand-500/15 border-brand-500/40 text-brand-700 dark:text-brand-300'
+                : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 dark:bg-charcoal-900 dark:border-white/10 dark:text-slate-300 dark:hover:text-white'
             }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -122,7 +123,7 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+              <Search className="w-5 h-5 text-brand-600 dark:text-brand-400" />
             </div>
 
             <input
@@ -134,10 +135,10 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
                 if (validationError) validateUrl(e.target.value);
               }}
               placeholder="Paste LinkedIn URL: https://www.linkedin.com/in/dhruva-h-40a5a9353/"
-              className={`w-full pl-11 pr-36 py-3.5 bg-slate-50/80 dark:bg-charcoal-900/90 rounded-xl border text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:bg-white dark:focus:bg-charcoal-900 transition-all ${
+              className={`w-full pl-11 pr-36 py-3.5 bg-slate-50/90 dark:bg-charcoal-900/90 rounded-2xl border-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-4 focus:bg-white dark:focus:bg-charcoal-900 transition-all ${
                 validationError || errorMessage
-                  ? 'border-rose-500/60 focus:ring-rose-500/30'
-                  : 'border-slate-200 dark:border-white/10 focus:border-brand-500 focus:ring-brand-500/20'
+                  ? 'border-rose-500/60 focus:ring-rose-500/20'
+                  : 'border-slate-200 hover:border-slate-300 dark:border-white/10 focus:border-brand-500 focus:ring-brand-500/15 shadow-inner'
               }`}
               disabled={isLoading}
             />
@@ -147,7 +148,7 @@ export const CandidateSubmissionCard: React.FC<CandidateSubmissionCardProps> = (
                 type="submit"
                 id="submit-candidate-button"
                 disabled={isLoading || !url.trim()}
-                className="h-full px-5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-accent hover:from-brand-500 hover:to-brand-accent/90 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-brand-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="h-full px-5 sm:px-6 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-brand-accent hover:from-brand-500 hover:to-purple-500 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-brand-500/25 hover:shadow-brand-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
                 {isLoading ? (
                   <>

@@ -75,38 +75,38 @@ export const CandidateScoreCard: React.FC<CandidateScoreCardProps> = ({
     switch (tier) {
       case 'EXCEPTIONAL':
         return {
-          textColor: 'text-emerald-400',
-          bgColor: 'bg-emerald-500/10',
+          textColor: 'text-emerald-700 dark:text-emerald-400',
+          bgColor: 'bg-emerald-500/10 dark:bg-emerald-500/15',
           borderColor: 'border-emerald-500/30',
-          strokeColor: '#34d399',
+          strokeColor: '#059669',
           gradientId: 'grad-exceptional',
           badgeText: 'Top 5% Candidate',
         };
       case 'STRONG':
         return {
-          textColor: 'text-cyan-400',
-          bgColor: 'bg-cyan-500/10',
+          textColor: 'text-cyan-700 dark:text-cyan-400',
+          bgColor: 'bg-cyan-500/10 dark:bg-cyan-500/15',
           borderColor: 'border-cyan-500/30',
-          strokeColor: '#22d3ee',
+          strokeColor: '#0891b2',
           gradientId: 'grad-strong',
           badgeText: 'Highly Qualified',
         };
       case 'PROFICIENT':
         return {
-          textColor: 'text-amber-400',
-          bgColor: 'bg-amber-500/10',
+          textColor: 'text-amber-700 dark:text-amber-400',
+          bgColor: 'bg-amber-500/10 dark:bg-amber-500/15',
           borderColor: 'border-amber-500/30',
-          strokeColor: '#fbbf24',
+          strokeColor: '#d97706',
           gradientId: 'grad-proficient',
           badgeText: 'Solid Foundation',
         };
       case 'DEVELOPING':
       default:
         return {
-          textColor: 'text-slate-400',
-          bgColor: 'bg-slate-500/10',
+          textColor: 'text-slate-700 dark:text-slate-400',
+          bgColor: 'bg-slate-500/10 dark:bg-slate-500/15',
           borderColor: 'border-slate-500/30',
-          strokeColor: '#94a3b8',
+          strokeColor: '#64748b',
           gradientId: 'grad-developing',
           badgeText: 'Developing Profile',
         };
