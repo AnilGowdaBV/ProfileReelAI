@@ -1,0 +1,513 @@
+import React, { useState } from 'react';
+import {
+  Briefcase,
+  GraduationCap,
+  Mic,
+  Sparkles,
+  ExternalLink,
+  Lock,
+  CheckCircle,
+  Star,
+  Clock,
+  Building,
+  RefreshCw,
+  MapPin,
+  Calendar,
+} from 'lucide-react';
+
+interface CareerHubSectionProps {
+  isPro: boolean;
+  onOpenSubscribeModal: () => void;
+  candidateSkills?: string[];
+}
+
+export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
+  isPro,
+  onOpenSubscribeModal,
+  candidateSkills = [],
+}) => {
+  const [activeTab, setActiveTab] = useState<'roles' | 'courses' | 'interviews'>('roles');
+  const [bookedInterviews, setBookedInterviews] = useState<Record<string, boolean>>({});
+
+  // Sample Live Instahyre roles matching backend data
+  const LIVE_ROLES = [
+    {
+      id: 'job-1',
+      title: 'SDE 4 - Frontend Architecture',
+      company: 'Google',
+      location: 'Bangalore, India',
+      logo: 'https://logo.clearbit.com/google.com',
+      skills: ['React', 'TypeScript', 'Web Performance', 'Micro-frontends'],
+      url: 'https://www.instahyre.com',
+    },
+    {
+      id: 'job-2',
+      title: 'Senior Java / Distributed Backend Developer',
+      company: 'Zimperium',
+      location: 'Work From Home (Remote)',
+      logo: 'https://logo.clearbit.com/zimperium.com',
+      skills: ['Java', 'Spring Boot', 'Kubernetes', 'Cybersecurity'],
+      url: 'https://www.instahyre.com',
+    },
+    {
+      id: 'job-3',
+      title: 'SDE II - Fullstack Systems Engineer',
+      company: 'Khatabook',
+      location: 'Bangalore, India',
+      logo: 'https://logo.clearbit.com/khatabook.com',
+      skills: ['Node.js', 'React', 'PostgreSQL', 'High Concurrency'],
+      url: 'https://www.instahyre.com',
+    },
+    {
+      id: 'job-4',
+      title: 'Lead Platform & Cloud Architect',
+      company: 'Swiggy',
+      location: 'Bangalore / Hybrid',
+      logo: 'https://logo.clearbit.com/swiggy.com',
+      skills: ['AWS', 'Go', 'Distributed Caching', 'Event Streaming'],
+      url: 'https://www.instahyre.com',
+    },
+    {
+      id: 'job-5',
+      title: 'AI Systems & Agentic Engineer',
+      company: 'Freshworks',
+      location: 'Chennai / Remote',
+      logo: 'https://logo.clearbit.com/freshworks.com',
+      skills: ['Python', 'LangChain', 'FastAPI', 'Vector Databases'],
+      url: 'https://www.instahyre.com',
+    },
+    {
+      id: 'job-6',
+      title: 'Senior Mobile Engineer (React Native)',
+      company: 'CRED',
+      location: 'Bangalore, India',
+      logo: 'https://logo.clearbit.com/cred.club',
+      skills: ['React Native', 'iOS', 'Android', 'Design Systems'],
+      url: 'https://www.instahyre.com',
+    },
+  ];
+
+  // Preferred Courses
+  const COURSES = [
+    {
+      id: 'c-1',
+      title: 'Advanced System Design & Scalable Microservices',
+      provider: 'Meta • Coursera',
+      rating: '4.9 ★',
+      duration: '8 Weeks',
+      logo: '⚙️',
+      skills: ['System Design', 'Microservices', 'Distributed Systems'],
+      url: 'https://www.coursera.org/learn/system-design',
+    },
+    {
+      id: 'c-2',
+      title: 'Generative AI & Agentic Architectures in Production',
+      provider: 'DeepLearning.AI',
+      rating: '4.9 ★',
+      duration: '5 Weeks',
+      logo: '🤖',
+      skills: ['LLMs', 'LangChain', 'Agentic AI', 'RAG'],
+      url: 'https://www.deeplearning.ai/courses/generative-ai-with-llms/',
+    },
+    {
+      id: 'c-3',
+      title: 'Cloud-Native Kubernetes & DevOps Engineering',
+      provider: 'Google Cloud Training',
+      rating: '4.8 ★',
+      duration: '6 Weeks',
+      logo: '☁️',
+      skills: ['Docker', 'Kubernetes', 'CI/CD', 'Cloud Infra'],
+      url: 'https://www.coursera.org/specializations/google-cloud-devops',
+    },
+    {
+      id: 'c-4',
+      title: 'Full-Stack Modern Cloud Architecture & React/Node',
+      provider: 'IBM Skills Network',
+      rating: '4.8 ★',
+      duration: '7 Weeks',
+      logo: '⚡',
+      skills: ['React', 'Node.js', 'Next.js', 'REST APIs'],
+      url: 'https://www.coursera.org/professional-certificates/ibm-full-stack-cloud-developer',
+    },
+  ];
+
+  // Expert Panelists
+  const INTERVIEW_PANEL = [
+    {
+      id: 'p-1',
+      name: 'Arjun Sethi',
+      avatar: 'AS',
+      role: 'Staff Software Engineer at Google (ex-Uber)',
+      domain: 'System Design & Distributed Backend',
+      experience: '11+ yrs exp • 180+ Interviews',
+      rating: '4.9 ★',
+      slots: 'Tomorrow, 5:00 PM',
+    },
+    {
+      id: 'p-2',
+      name: 'Priya Narang',
+      avatar: 'PN',
+      role: 'Lead AI Architect at Microsoft AI',
+      domain: 'GenAI, LLMs & Machine Learning Systems',
+      experience: '9+ yrs exp • 140+ Interviews',
+      rating: '5.0 ★',
+      slots: 'Today, 7:00 PM',
+    },
+    {
+      id: 'p-3',
+      name: 'Rohan Mehta',
+      avatar: 'RM',
+      role: 'Director of Engineering at Swiggy (ex-Amazon)',
+      domain: 'Full-Stack Architecture & Leadership Round',
+      experience: '14+ yrs exp • 250+ Interviews',
+      rating: '4.9 ★',
+      slots: 'Thursday, 4:00 PM',
+    },
+    {
+      id: 'p-4',
+      name: 'Sneha Roy',
+      avatar: 'SR',
+      role: 'Engineering Manager at Netflix',
+      domain: 'High-Concurrency Streaming & Distributed Data',
+      experience: '10+ yrs exp • 160+ Interviews',
+      rating: '4.9 ★',
+      slots: 'Monday, 6:30 PM',
+    },
+  ];
+
+  const handleToggleBooking = (id: string) => {
+    setBookedInterviews((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  return (
+    <section id="career-hub" className="scroll-mt-24 space-y-6">
+      {/* Header with 3 Tabs */}
+      <div className="glass-panel p-2 rounded-2xl flex flex-wrap items-center justify-between gap-3 border border-white/10">
+        <div className="flex items-center gap-1.5 p-1 bg-charcoal-900/80 rounded-xl border border-white/5">
+          <button
+            type="button"
+            onClick={() => setActiveTab('roles')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'roles'
+                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Briefcase className="w-3.5 h-3.5" />
+            <span>⚡ 45+ Verified Roles</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('courses')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'courses'
+                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>📚 Preferred Courses</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('interviews')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'interviews'
+                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Mic className="w-3.5 h-3.5" />
+            <span>🎙️ 1-on-1 Interview Panel</span>
+          </button>
+        </div>
+
+        {/* Live Pro Badge / Trigger */}
+        <div className="flex items-center gap-3 px-3">
+          {isPro ? (
+            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>PRO ACTIVE • ALL UNLOCKED</span>
+            </span>
+          ) : (
+            <button
+              onClick={onOpenSubscribeModal}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-brand-500/20 hover:from-amber-500/30 hover:to-brand-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Unlock 45+ Pro Features</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* TAB 1: 45+ ROLES */}
+      {activeTab === 'roles' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+            <span>
+              Showing {isPro ? LIVE_ROLES.length : 3} of {LIVE_ROLES.length} Live Opportunities
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Instahyre Verified Real-Time
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(isPro ? LIVE_ROLES : LIVE_ROLES.slice(0, 3)).map((job) => (
+              <div
+                key={job.id}
+                className="glass-panel p-5 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-all flex flex-col justify-between group"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-charcoal-900 border border-white/10 flex items-center justify-center p-1.5 overflow-hidden flex-shrink-0">
+                        <img
+                          src={job.logo}
+                          alt={job.company}
+                          className="w-full h-full object-contain"
+                          onError={(e: any) => {
+                            e.target.style.display = 'none';
+                            e.target.parentNode.textContent = job.company[0];
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white group-hover:text-brand-300 transition-colors">
+                          {job.title}
+                        </h4>
+                        <div className="text-xs text-slate-400 font-medium">{job.company}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400 mb-3">
+                    <MapPin className="w-3 h-3 text-slate-500" />
+                    <span>{job.location}</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {job.skills.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-white/[0.04] text-slate-300 border border-white/5"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <a
+                  href={job.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-brand-500 hover:text-white text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <span>Apply on Instahyre</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            ))}
+          </div>
+
+          {/* Locked Pro Teaser Card */}
+          {!isPro && (
+            <div className="relative rounded-2xl p-6 overflow-hidden bg-gradient-to-r from-charcoal-900 via-charcoal-950 to-charcoal-900 border border-amber-500/30 shadow-xl shadow-amber-500/5">
+              <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4 text-center sm:text-left">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-brand-500 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-amber-500/20">
+                    <Lock className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-white mb-1">
+                      Unlock 45+ More Verified Roles
+                    </h4>
+                    <p className="text-xs text-slate-400 max-w-lg">
+                      Explore exclusive high-paying opportunities directly matching your exact candidate profile, verified by Instahyre.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onOpenSubscribeModal}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-brand-500 hover:from-amber-400 hover:to-brand-400 text-white font-bold text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-all flex-shrink-0 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Unlock with Pro</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: PREFERRED COURSES */}
+      {activeTab === 'courses' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(isPro ? COURSES : COURSES.slice(0, 2)).map((course) => (
+              <div
+                key={course.id}
+                className="glass-panel p-5 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="text-2xl">{course.logo}</div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">{course.title}</h4>
+                      <div className="text-xs text-slate-400">{course.provider}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-[11px] text-slate-400 mb-3">
+                    <span className="text-amber-400 font-semibold">{course.rating}</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {course.duration}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {course.skills.map((skill, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-brand-500/10 text-brand-300 border border-brand-500/20"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <a
+                  href={course.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-500 text-brand-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <span>Enroll in Specialization</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            ))}
+          </div>
+
+          {!isPro && (
+            <div className="rounded-2xl p-6 bg-gradient-to-r from-charcoal-900 to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <h4 className="text-base font-bold text-white mb-1">
+                  Unlock Full Curriculum &amp; Certifications
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Access 20+ specialized architect tracks from Google, Meta &amp; DeepLearning.AI.
+                </p>
+              </div>
+              <button
+                onClick={onOpenSubscribeModal}
+                className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs shadow-lg shadow-brand-500/25 flex items-center gap-2 cursor-pointer flex-shrink-0"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Unlock with Pro</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: 1-ON-1 INTERVIEW PANEL */}
+      {activeTab === 'interviews' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(isPro ? INTERVIEW_PANEL : INTERVIEW_PANEL.slice(0, 2)).map((panelist) => {
+              const isBooked = !!bookedInterviews[panelist.id];
+
+              return (
+                <div
+                  key={panelist.id}
+                  className="glass-panel p-5 rounded-2xl border border-white/5 hover:border-brand-500/30 transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-brand-500 to-purple-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-md">
+                        {panelist.avatar}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-sm font-bold text-white">{panelist.name}</h4>
+                          <span className="text-emerald-400 text-xs">✓</span>
+                          <span className="text-amber-400 text-[11px] font-semibold">
+                            {panelist.rating}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400">{panelist.role}</div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 text-[11px] text-slate-400 mb-4">
+                      <div>🎯 {panelist.domain}</div>
+                      <div className="flex items-center gap-1 text-slate-500">
+                        <Calendar className="w-3 h-3 text-brand-400" />
+                        <span className="text-slate-300">Available: {panelist.slots}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleBooking(panelist.id)}
+                    className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      isBooked
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-white/5 hover:bg-brand-500 text-slate-200 hover:text-white'
+                    }`}
+                  >
+                    {isBooked ? (
+                      <>
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>✓ Interview Slot Requested</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-3.5 h-3.5" />
+                        <span>Request 1-on-1 Interview</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {!isPro && (
+            <div className="rounded-2xl p-6 bg-gradient-to-r from-charcoal-900 to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <h4 className="text-base font-bold text-white mb-1">
+                  Unlock Full FAANG Interview Panel
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Schedule priority 1-on-1 mock technical and behavioral rounds with 15+ Staff Engineers and Directors.
+                </p>
+              </div>
+              <button
+                onClick={onOpenSubscribeModal}
+                className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-white font-bold text-xs shadow-lg shadow-brand-500/25 flex items-center gap-2 cursor-pointer flex-shrink-0"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Unlock with Pro</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+};

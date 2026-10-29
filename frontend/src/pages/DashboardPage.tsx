@@ -6,9 +6,14 @@ import {
 } from '../components/CandidateSubmissionCard';
 import { CandidateDetailsCard } from '../components/CandidateDetailsCard';
 import { CandidateList } from '../components/CandidateList';
+import { CareerHubSection } from '../components/CareerHubSection';
+import { PricingSection } from '../components/PricingSection';
+import { SubscriptionModal } from '../components/SubscriptionModal';
+import { PolicyModals, PolicyType } from '../components/PolicyModals';
+import { Footer } from '../components/Footer';
 import { Candidate, HealthStatus } from '../types/candidate';
 import { api, ApiError } from '../services/api';
-import { Sparkles, Database, ShieldCheck, Video } from 'lucide-react';
+import { Sparkles, Database, ShieldCheck, Zap } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const [health, setHealth] = useState<HealthStatus | undefined>(undefined);
@@ -17,6 +22,15 @@ export const DashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Pro Subscription State
+  const [isPro, setIsPro] = useState<boolean>(() => {
+    return localStorage.getItem('profilereel_pro_active') === 'true';
+  });
+  const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+
+  // Legal / Compliance Policy Modals
+  const [activePolicy, setActivePolicy] = useState<PolicyType>(null);
 
   // Load initial system health and existing candidates from backend/MySQL
   useEffect(() => {
@@ -72,16 +86,26 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-charcoal-950 flex flex-col">
-      <Navbar health={health} />
+  const candidateSkills = (selectedCandidate?.facts || [])
+    .filter((f) => f.category === 'skills')
+    .map((f) => f.factText);
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  return (
+    <div className="min-h-screen bg-charcoal-950 flex flex-col text-slate-100 selection:bg-brand-500 selection:text-white">
+      {/* Top Navbar */}
+      <Navbar
+        health={health}
+        isPro={isPro}
+        onOpenSubscribeModal={() => setIsSubModalOpen(true)}
+      />
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+        
         {/* Hero Banner */}
         <div className="text-center max-w-3xl mx-auto pt-2 pb-4">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-semibold mb-4">
             <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-            <span>AI-Powered Profile Scoring & Intelligence</span>
+            <span>AI-Powered Profile Scoring &amp; Live Career Opportunities</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
@@ -91,9 +115,9 @@ export const DashboardPage: React.FC = () => {
             </span>
           </h1>
 
-          <p className="text-base text-slate-400 leading-relaxed">
-            Validate candidate LinkedIn profiles, extract verified career facts from authorized sources,
-            and evaluate candidate readiness with a 100-point AI scoring board.
+          <p className="text-base text-slate-400 leading-relaxed max-w-2xl mx-auto">
+            Evaluate candidate LinkedIn profiles, extract verified career facts from authorized sources,
+            generate 10-point profile scores, and unlock 45+ live Instahyre roles with Razorpay Pro.
           </p>
         </div>
 
@@ -125,12 +149,12 @@ export const DashboardPage: React.FC = () => {
 
           <div className="glass-panel p-4 rounded-xl flex items-start gap-3">
             <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-400 flex-shrink-0">
-              <Sparkles className="w-5 h-5" />
+              <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white mb-0.5">100-Point Profile Scoring</h4>
+              <h4 className="text-sm font-bold text-white mb-0.5">45+ Live Instahyre Roles &amp; Scoring</h4>
               <p className="text-xs text-slate-400">
-                Multi-dimensional evaluation across experience trajectory, skill depth, education, and impact metrics.
+                10-point multi-dimensional scoring, real-time job matching, and 1-on-1 FAANG mock interviews.
               </p>
             </div>
           </div>
@@ -159,14 +183,44 @@ export const DashboardPage: React.FC = () => {
             isLoading={isInitialLoading}
           />
         </div>
+
+        {/* Career Hub Section (45+ Roles, Preferred Courses, Mock Interview Panel) */}
+        <CareerHubSection
+          isPro={isPro}
+          onOpenSubscribeModal={() => setIsSubModalOpen(true)}
+          candidateSkills={candidateSkills}
+        />
+
+        {/* Transparent Razorpay Pricing & Subscription Section */}
+        <PricingSection
+          onOpenSubscribeModal={() => setIsSubModalOpen(true)}
+          isPro={isPro}
+        />
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 bg-charcoal-950 py-6 mt-12 text-center text-xs text-slate-500">
-        <p>
-          ProfileReel AI &copy; 2026. Built with NestJS, MySQL 8.4, React, Vite, and TypeORM. Phase 1 Production Architecture.
-        </p>
-      </footer>
+      {/* Official Razorpay Pro Subscription Modal */}
+      <SubscriptionModal
+        isOpen={isSubModalOpen}
+        onClose={() => setIsSubModalOpen(false)}
+        isPro={isPro}
+        onUnlockPro={() => {
+          setIsPro(true);
+          localStorage.setItem('profilereel_pro_active', 'true');
+        }}
+        onResetFree={() => {
+          setIsPro(false);
+          localStorage.removeItem('profilereel_pro_active');
+        }}
+      />
+
+      {/* Mandatory RBI & Razorpay Legal Compliance Modals */}
+      <PolicyModals
+        activePolicy={activePolicy}
+        onClose={() => setActivePolicy(null)}
+      />
+
+      {/* Professional Footer */}
+      <Footer onOpenPolicy={(policy) => setActivePolicy(policy)} />
     </div>
   );
 };
