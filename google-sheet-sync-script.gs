@@ -42,12 +42,37 @@ function doPost(e) {
         "Current Salary",
         "Expected Salary",
         "Location",
-        "Resume Name",
+        "Resume (Click to Open)",
         "Status"
       ]);
       // Format header row
       sheet.getRange(1, 1, 1, 12).setBackground("#1e293b").setFontColor("#ffffff").setFontWeight("bold");
       sheet.setFrozenRows(1);
+    }
+
+    // Resume File Handling: Auto-save PDF to Google Drive & create direct clickable link
+    var resumeCell = data.resumeFileName || "None";
+    if (data.resumeBase64 && data.resumeBase64.length > 20) {
+      try {
+        var base64Clean = data.resumeBase64.replace(/^data:.*?;base64,/, '');
+        var decodedBytes = Utilities.base64Decode(base64Clean);
+        var mime = (data.resumeFileName && data.resumeFileName.toLowerCase().endsWith('.docx'))
+          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          : "application/pdf";
+        var fileName = data.resumeFileName || (data.fullName ? (data.fullName.replace(/\s+/g, '_') + '_Resume.pdf') : 'Candidate_Resume.pdf');
+        var blob = Utilities.newBlob(decodedBytes, mime, fileName);
+
+        // Find or create 'ProfileReel_Resumes' folder in Google Drive
+        var folders = DriveApp.getFoldersByName("ProfileReel_Resumes");
+        var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder("ProfileReel_Resumes");
+        var driveFile = folder.createFile(blob);
+        driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+        var resumeUrl = driveFile.getUrl();
+        resumeCell = '=HYPERLINK("' + resumeUrl + '", "📄 Open ' + fileName + '")';
+      } catch (driveErr) {
+        resumeCell = data.resumeFileName || "Uploaded";
+      }
     }
 
     // Append new candidate application row
@@ -63,7 +88,7 @@ function doPost(e) {
       data.currentSalary || "",
       data.expectedSalary || "",
       data.location || "",
-      data.resumeFileName || "Uploaded",
+      resumeCell,
       data.status || "Applied"
     ]);
 

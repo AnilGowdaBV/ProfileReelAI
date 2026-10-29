@@ -98,6 +98,7 @@ export class JobsService {
             expectedSalary: saved.expectedSalary,
             location: saved.location,
             resumeFileName: saved.resumeFileName,
+            resumeBase64: saved.resumeData || '',
             status: 'Applied',
           }),
         });
@@ -154,6 +155,7 @@ export class JobsService {
             expectedSalary: app.expectedSalary || '',
             location: app.location || '',
             resumeFileName: app.resumeFileName || '',
+            resumeBase64: app.resumeData || '',
             status: 'Applied',
           }),
         });
