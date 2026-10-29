@@ -7,7 +7,6 @@ import {
   CandidateScore,
 } from '../types/candidate';
 import { StatusBadge } from './StatusBadge';
-import { MockBadge } from './MockBadge';
 import { VideoReelPlayer } from './VideoReelPlayer';
 import { CandidateScoreCard } from './CandidateScoreCard';
 import { api } from '../services/api';
@@ -198,7 +197,6 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                   {candidate.displayName || 'Candidate Profile'}
                 </h3>
                 <StatusBadge status={candidate.retrievalStatus} />
-                <MockBadge />
               </div>
 
               <div className="flex flex-wrap items-center gap-2 mt-1">
