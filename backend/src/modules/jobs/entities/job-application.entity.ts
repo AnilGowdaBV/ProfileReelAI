@@ -43,7 +43,10 @@ export class JobApplication {
   @Column({ name: 'resume_file_name', length: 255, nullable: true })
   resumeFileName?: string;
 
-  @Column({ name: 'resume_data', type: 'longtext', nullable: true })
+  @Column({ name: 'resume_url', type: 'varchar', length: 1000, nullable: true })
+  resumeUrl?: string;
+
+  @Column({ name: 'resume_data', type: 'text', nullable: true })
   resumeData?: string;
 
   @Column({ name: 'status', length: 50, default: 'applied' })

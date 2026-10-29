@@ -12,8 +12,7 @@ export class SupabaseStorageService {
   }
 
   public initClient() {
-    const supabaseUrl =
-      process.env.SUPABASE_URL || 'https://zbckbsckvtghbnqhqgat.supabase.co';
+    const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
       process.env.SUPABASE_ANON_KEY ||
@@ -25,11 +24,11 @@ export class SupabaseStorageService {
     if (supabaseUrl && supabaseKey) {
       this.supabase = createClient(supabaseUrl, supabaseKey);
       this.logger.log(
-        `Supabase Storage initialized for bucket: ${this.bucketName} (${supabaseUrl})`,
+        `Supabase Storage initialized for bucket: ${this.bucketName}`,
       );
     } else {
       this.logger.warn(
-        'Supabase Storage pending API key in backend/.env (SUPABASE_KEY or SUPABASE_SERVICE_ROLE_KEY)',
+        'Supabase Storage pending credentials in environment (SUPABASE_URL and SUPABASE_KEY)',
       );
     }
   }
@@ -86,3 +85,4 @@ export class SupabaseStorageService {
     }
   }
 }
+

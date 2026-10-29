@@ -83,6 +83,7 @@ export class JobsService {
       expectedSalary: dto.expectedSalary || '',
       location: dto.location || '',
       resumeFileName: dto.resumeFileName || '',
+      resumeUrl: resumeUrl || '',
       resumeData: dto.resumeData || null,
       status: 'applied',
     });
