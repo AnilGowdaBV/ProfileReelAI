@@ -121,6 +121,31 @@ const teaserRoles = document.getElementById('teaser-roles');
 const teaserCourses = document.getElementById('teaser-courses');
 const teaserInterview = document.getElementById('teaser-interview');
 
+// Native Job Application Modal Elements
+const jobApplyModal = document.getElementById('job-apply-modal');
+const btnCloseApplyModal = document.getElementById('btn-close-apply-modal');
+const btnCancelApply = document.getElementById('btn-cancel-apply');
+const formJobApply = document.getElementById('form-job-apply');
+const applyModalJobTitle = document.getElementById('apply-modal-job-title');
+const applyModalCompany = document.getElementById('apply-modal-company');
+const applyJobId = document.getElementById('apply-job-id');
+const applyJobTitleHidden = document.getElementById('apply-job-title-hidden');
+const applyJobCompanyHidden = document.getElementById('apply-job-company-hidden');
+const applyName = document.getElementById('apply-name');
+const applyLinkedin = document.getElementById('apply-linkedin');
+const applyEmail = document.getElementById('apply-email');
+const applyPhone = document.getElementById('apply-phone');
+const applyCurrentSalary = document.getElementById('apply-current-salary');
+const applyExpectedSalary = document.getElementById('apply-expected-salary');
+const applyLocation = document.getElementById('apply-location');
+const applyResume = document.getElementById('apply-resume');
+const resumeFileName = document.getElementById('resume-file-name');
+const applyStatusMessage = document.getElementById('apply-status-message');
+const btnSubmitApply = document.getElementById('btn-submit-apply');
+
+let currentApplyingJob = null;
+let currentApplyingBtn = null;
+
 // Freemium State
 let isPremium = false;
 let selectedPlan = 'monthly'; // 'monthly' | 'annual'
@@ -1105,9 +1130,9 @@ async function loadInstahyreJobs(isRefresh = false) {
         <div class="job-company-initial" style="display:${job.companyLogo ? 'none' : 'flex'}">${escapeHtml(initial)}</div>
       </div>
       <div class="job-details">
-        <a href="${job.publicUrl}" target="_blank" class="job-title-link" title="View ${escapeHtml(job.title)}">
+        <div class="job-title-clickable" style="cursor: pointer; font-size: 12px; font-weight: 700; color: #fff;" title="Apply for ${escapeHtml(job.title)}">
           ${escapeHtml(job.title)}
-        </a>
+        </div>
         <div class="job-company-loc">
           <span class="job-comp">🏢 ${escapeHtml(job.companyName)}</span>
           <button class="company-linkedin-btn" data-url="${compLinkedIn}" title="Open ${escapeHtml(job.companyName)} LinkedIn Profile">
@@ -1120,7 +1145,7 @@ async function loadInstahyreJobs(isRefresh = false) {
         </div>
         ${skillChips ? `<div class="job-skills-row">${skillChips}</div>` : ''}
       </div>
-      <button class="btn-job-apply ${isApplied ? 'applied' : ''}" data-job-id="${job.id}" data-job-url="${job.publicUrl}" title="${isApplied ? 'Already Applied' : 'Apply Here'}">
+      <button class="btn-job-apply ${isApplied ? 'applied' : ''}" data-job-id="${job.id}" title="${isApplied ? 'Already Applied' : 'Apply Here'}">
         ${isApplied ? '✓ Applied' : 'Apply Here'}
       </button>
     `;
@@ -1142,12 +1167,23 @@ async function loadInstahyreJobs(isRefresh = false) {
       });
     }
 
-    // Apply button handler
+    // Apply button handler -> Opens Native In-App Form
     const applyBtn = card.querySelector('.btn-job-apply');
-    applyBtn.addEventListener('click', async (e) => {
+    const titleClickable = card.querySelector('.job-title-clickable');
+
+    const handleApplyIntent = (e) => {
       e.stopPropagation();
-      await handleApplyClick(job.id, job.publicUrl, applyBtn);
-    });
+      e.preventDefault();
+      if (applyBtn.classList.contains('applied')) {
+        return; // Already applied
+      }
+      openJobApplyModal(job, applyBtn);
+    };
+
+    applyBtn.addEventListener('click', handleApplyIntent);
+    if (titleClickable) {
+      titleClickable.addEventListener('click', handleApplyIntent);
+    }
 
     instahyreJobsList.appendChild(card);
   });
@@ -1156,34 +1192,159 @@ async function loadInstahyreJobs(isRefresh = false) {
   if (refreshIcon) refreshIcon.classList.remove('spinning');
 }
 
-async function handleApplyClick(jobId, jobUrl, btn) {
-  const key = `applied_instahyre_${jobId}`;
-  const data = await chrome.storage.local.get(key);
-  const alreadyApplied = !!data[key];
+// Open In-App Job Application Modal
+function openJobApplyModal(job, btnElement) {
+  if (!job || !jobApplyModal) return;
+  currentApplyingJob = job;
+  currentApplyingBtn = btnElement;
 
-  if (!alreadyApplied) {
-    // Mark as applied in storage
-    await chrome.storage.local.set({ [key]: true });
-    btn.classList.add('applied');
-    btn.textContent = '✓ Applied';
-    btn.title = 'Applied';
+  if (applyJobId) applyJobId.value = job.id;
+  if (applyJobTitleHidden) applyJobTitleHidden.value = job.title;
+  if (applyJobCompanyHidden) applyJobCompanyHidden.value = job.companyName;
+  if (applyModalJobTitle) applyModalJobTitle.textContent = job.title;
+  if (applyModalCompany) applyModalCompany.textContent = job.companyName;
 
-    // Open Instahyre job in background tab so application link opens
-    if (jobUrl) {
-      try {
-        if (chrome?.tabs?.create) {
-          chrome.tabs.create({ url: jobUrl, active: false });
-        } else {
-          window.open(jobUrl, '_blank');
-        }
-      } catch (err) { }
-    }
-  } else {
-    // Already applied - clicking opens the link directly
-    if (jobUrl) {
-      window.open(jobUrl, '_blank');
-    }
+  // Auto pre-fill fields from scanned profile if available
+  if (applyName && !applyName.value) {
+    applyName.value = cachedCandidate?.displayName || extractNameFromUrl(cachedCandidate?.submittedProfileUrl) || '';
   }
+  if (applyLinkedin && !applyLinkedin.value) {
+    applyLinkedin.value = cachedCandidate?.submittedProfileUrl || (inputLinkedinUrl ? inputLinkedinUrl.value : '') || '';
+  }
+  if (applyLocation && !applyLocation.value && job.location && job.location !== 'Remote') {
+    applyLocation.value = job.location.split(',')[0].trim();
+  }
+
+  // Reset status and controls
+  if (applyStatusMessage) {
+    applyStatusMessage.className = 'apply-status-box hidden';
+    applyStatusMessage.textContent = '';
+  }
+  if (btnSubmitApply) {
+    btnSubmitApply.disabled = false;
+    btnSubmitApply.innerHTML = '<span class="btn-text">🚀 Submit Application</span>';
+  }
+
+  jobApplyModal.classList.remove('hidden');
+}
+
+// Setup Event Listeners for Job Application Form
+if (applyResume) {
+  applyResume.addEventListener('change', () => {
+    if (applyResume.files && applyResume.files[0]) {
+      if (resumeFileName) {
+        resumeFileName.textContent = `📎 ${applyResume.files[0].name}`;
+      }
+    } else {
+      if (resumeFileName) {
+        resumeFileName.textContent = 'Click or drag resume file (PDF or DOCX)';
+      }
+    }
+  });
+}
+
+if (btnCloseApplyModal) {
+  btnCloseApplyModal.addEventListener('click', () => {
+    if (jobApplyModal) jobApplyModal.classList.add('hidden');
+  });
+}
+
+if (btnCancelApply) {
+  btnCancelApply.addEventListener('click', () => {
+    if (jobApplyModal) jobApplyModal.classList.add('hidden');
+  });
+}
+
+if (jobApplyModal) {
+  jobApplyModal.addEventListener('click', (e) => {
+    if (e.target === jobApplyModal) {
+      jobApplyModal.classList.add('hidden');
+    }
+  });
+}
+
+if (formJobApply) {
+  formJobApply.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (btnSubmitApply) {
+      btnSubmitApply.disabled = true;
+      btnSubmitApply.innerHTML = '<div class="mini-spinner"></div> <span>Submitting...</span>';
+    }
+    if (applyStatusMessage) {
+      applyStatusMessage.className = 'apply-status-box hidden';
+    }
+
+    try {
+      const file = applyResume?.files ? applyResume.files[0] : null;
+      let resumeData = null;
+      if (file) {
+        resumeData = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const payload = {
+        jobId: applyJobId?.value || 'job-custom',
+        jobTitle: applyJobTitleHidden?.value || 'Software Engineer',
+        companyName: applyJobCompanyHidden?.value || 'Company',
+        fullName: applyName?.value.trim() || '',
+        linkedinUrl: applyLinkedin?.value.trim() || '',
+        email: applyEmail?.value.trim() || '',
+        phone: applyPhone?.value.trim() || '',
+        currentSalary: applyCurrentSalary?.value.trim() || '',
+        expectedSalary: applyExpectedSalary?.value.trim() || '',
+        location: applyLocation?.value.trim() || '',
+        resumeFileName: file ? file.name : '',
+        resumeData: resumeData || '',
+      };
+
+      const apiBase = await getApiBase();
+      const res = await fetch(`${apiBase}/jobs/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || 'Failed to submit application to server.');
+      }
+
+      // Mark applied in chrome.storage.local
+      const key = `applied_instahyre_${payload.jobId}`;
+      await chrome.storage.local.set({ [key]: true });
+
+      // Update button on card
+      if (currentApplyingBtn) {
+        currentApplyingBtn.classList.add('applied');
+        currentApplyingBtn.textContent = '✓ Applied';
+        currentApplyingBtn.title = 'Applied';
+      }
+
+      if (applyStatusMessage) {
+        applyStatusMessage.className = 'apply-status-box success';
+        applyStatusMessage.textContent = '✓ Application submitted successfully! Recorded in database & talent sheet.';
+      }
+
+      setTimeout(() => {
+        if (jobApplyModal) jobApplyModal.classList.add('hidden');
+      }, 1500);
+
+    } catch (err) {
+      if (applyStatusMessage) {
+        applyStatusMessage.className = 'apply-status-box error';
+        applyStatusMessage.textContent = `Submission failed: ${err.message || 'Please check your connection and try again.'}`;
+      }
+      if (btnSubmitApply) {
+        btnSubmitApply.disabled = false;
+        btnSubmitApply.innerHTML = '<span class="btn-text">🚀 Retry Submission</span>';
+      }
+    }
+  });
 }
 
 // Refresh jobs listener

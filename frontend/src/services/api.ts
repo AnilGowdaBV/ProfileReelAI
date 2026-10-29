@@ -89,4 +89,23 @@ export const api = {
     request<CandidateScore>(`/candidates/${candidateId}/score`, {
       method: 'POST',
     }),
+
+  applyForJob: (data: {
+    jobId: string;
+    jobTitle: string;
+    companyName: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    linkedinUrl?: string;
+    currentSalary?: string;
+    expectedSalary?: string;
+    location?: string;
+    resumeFileName?: string;
+    resumeData?: string;
+  }) =>
+    request<{ success: boolean; message: string; application: any }>('/jobs/apply', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };

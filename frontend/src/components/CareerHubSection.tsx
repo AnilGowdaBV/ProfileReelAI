@@ -13,7 +13,12 @@ import {
   RefreshCw,
   MapPin,
   Calendar,
+  X,
+  FileText,
+  Upload,
+  AlertCircle,
 } from 'lucide-react';
+import { api } from '../services/api';
 
 interface CareerHubSectionProps {
   isPro: boolean;
@@ -28,6 +33,91 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'roles' | 'courses' | 'interviews'>('roles');
   const [bookedInterviews, setBookedInterviews] = useState<Record<string, boolean>>({});
+
+  // Direct Job Application State
+  const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({});
+  const [applyingJob, setApplyingJob] = useState<any | null>(null);
+  const [formFullName, setFormFullName] = useState('');
+  const [formLinkedinUrl, setFormLinkedinUrl] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formCurrentSalary, setFormCurrentSalary] = useState('');
+  const [formExpectedSalary, setFormExpectedSalary] = useState('');
+  const [formLocation, setFormLocation] = useState('');
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleOpenApplyModal = (job: any) => {
+    setApplyingJob(job);
+    setSubmitStatus(null);
+    if (!formLocation && job.location && job.location !== 'Work From Home (Remote)') {
+      setFormLocation(job.location.split(',')[0].trim());
+    }
+  };
+
+  const handleCloseApplyModal = () => {
+    setApplyingJob(null);
+    setSubmitStatus(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setResumeFile(e.target.files[0]);
+    }
+  };
+
+  const handleSubmitApplication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!applyingJob) return;
+
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      let resumeData: string | undefined = undefined;
+      if (resumeFile) {
+        resumeData = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => resolve(undefined);
+          reader.readAsDataURL(resumeFile);
+        });
+      }
+
+      await api.applyForJob({
+        jobId: applyingJob.id,
+        jobTitle: applyingJob.title,
+        companyName: applyingJob.company,
+        fullName: formFullName.trim(),
+        linkedinUrl: formLinkedinUrl.trim(),
+        email: formEmail.trim(),
+        phone: formPhone.trim(),
+        currentSalary: formCurrentSalary.trim(),
+        expectedSalary: formExpectedSalary.trim(),
+        location: formLocation.trim(),
+        resumeFileName: resumeFile?.name,
+        resumeData,
+      });
+
+      setAppliedJobs((prev) => ({ ...prev, [applyingJob.id]: true }));
+      setSubmitStatus({
+        type: 'success',
+        message: '✓ Application submitted successfully! Your profile has been sent to our hiring team.',
+      });
+
+      setTimeout(() => {
+        handleCloseApplyModal();
+      }, 1500);
+    } catch (err: any) {
+      setSubmitStatus({
+        type: 'error',
+        message: err.message || 'Failed to submit application. Please check your connection and try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Sample Live Instahyre roles matching backend data
   const LIVE_ROLES = [
@@ -305,15 +395,28 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                   </div>
                 </div>
 
-                <a
-                  href={job.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-brand-500 hover:text-white text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                <button
+                  type="button"
+                  onClick={() => handleOpenApplyModal(job)}
+                  disabled={appliedJobs[job.id]}
+                  className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                    appliedJobs[job.id]
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
+                      : 'bg-brand-500/10 hover:bg-brand-500 text-brand-300 hover:text-white border border-brand-500/20 cursor-pointer shadow-sm'
+                  }`}
                 >
-                  <span>Apply Here</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                  {appliedJobs[job.id] ? (
+                    <>
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>✓ Applied</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Apply Here</span>
+                      <Briefcase className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
               </div>
             ))}
           </div>
@@ -506,6 +609,212 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* DIRECT IN-APP JOB APPLICATION MODAL                        */}
+      {/* ========================================================== */}
+      {applyingJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-950/85 backdrop-blur-md animate-fade-in">
+          <div className="glass-panel w-full max-w-lg rounded-2xl border border-brand-500/30 shadow-2xl shadow-black p-6 relative max-h-[90vh] overflow-y-auto space-y-5 bg-gradient-to-b from-charcoal-900 to-charcoal-950">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={handleCloseApplyModal}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center border border-white/10 transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Header */}
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-brand-500/10 border border-brand-500/20 text-[10px] font-bold text-brand-300 uppercase tracking-wider mb-2">
+                <span>⚡</span> PROFILE REEL AI TALENT DIRECT
+              </div>
+              <h3 className="text-lg font-bold text-white">Apply for Job Opportunity</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Applying for <strong className="text-brand-300">{applyingJob.title}</strong> at{' '}
+                <span className="text-slate-200 font-semibold">{applyingJob.company}</span>
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmitApplication} className="space-y-4">
+              {/* Full Name */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Full Name <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formFullName}
+                  onChange={(e) => setFormFullName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                />
+              </div>
+
+              {/* LinkedIn Profile */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  LinkedIn Profile URL <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="url"
+                  required
+                  value={formLinkedinUrl}
+                  onChange={(e) => setFormLinkedinUrl(e.target.value)}
+                  placeholder="https://www.linkedin.com/in/username"
+                  className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                />
+              </div>
+
+              {/* Email & Phone Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Email Address <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    placeholder="you@domain.com"
+                    className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Phone Number <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Salaries Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Current Salary / CTC
+                  </label>
+                  <input
+                    type="text"
+                    value={formCurrentSalary}
+                    onChange={(e) => setFormCurrentSalary(e.target.value)}
+                    placeholder="e.g. ₹12 LPA"
+                    className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Expected Salary / CTC
+                  </label>
+                  <input
+                    type="text"
+                    value={formExpectedSalary}
+                    onChange={(e) => setFormExpectedSalary(e.target.value)}
+                    placeholder="e.g. ₹18 LPA"
+                    className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Current Location <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formLocation}
+                  onChange={(e) => setFormLocation(e.target.value)}
+                  placeholder="e.g. Bangalore, India"
+                  className="w-full px-3 py-2 rounded-xl bg-charcoal-900/90 border border-white/10 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-brand-500 transition-all"
+                />
+              </div>
+
+              {/* Resume Upload */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Attach Resume (PDF / DOCX) <span className="text-rose-400">*</span>
+                </label>
+                <div className="relative border-2 border-dashed border-brand-500/30 rounded-xl p-4 text-center hover:bg-brand-500/5 hover:border-brand-500 transition-all cursor-pointer">
+                  <input
+                    type="file"
+                    required
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="flex flex-col items-center justify-center gap-1.5 pointer-events-none">
+                    <Upload className="w-5 h-5 text-brand-400" />
+                    <span className="text-xs text-slate-300 font-medium">
+                      {resumeFile ? (
+                        <span className="text-brand-300 font-semibold">📎 {resumeFile.name}</span>
+                      ) : (
+                        'Click to upload or drag resume file (PDF, DOCX)'
+                      )}
+                    </span>
+                    <span className="text-[10px] text-slate-500">Max file size: 5MB</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Message */}
+              {submitStatus && (
+                <div
+                  className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                    submitStatus.type === 'success'
+                      ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                      : 'bg-rose-500/15 border border-rose-500/30 text-rose-400'
+                  }`}
+                >
+                  {submitStatus.type === 'success' ? (
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  )}
+                  <span>{submitStatus.message}</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseApplyModal}
+                  className="w-1/3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-all cursor-pointer border border-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-2/3 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 disabled:opacity-60 text-white text-xs font-bold transition-all shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <span>Submitting Application...</span>
+                  ) : (
+                    <>
+                      <span>Submit Application</span>
+                      <Briefcase className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </section>

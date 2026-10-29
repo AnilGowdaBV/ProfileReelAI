@@ -1,12 +1,36 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
 import { JobResponseDto } from './dto/job-response.dto';
+import { CreateJobApplicationDto } from './dto/create-job-application.dto';
 
 @ApiTags('Jobs')
 @Controller('jobs')
 export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
+
+  @Post('apply')
+  @ApiOperation({ summary: 'Submit a candidate job application and persist to DB & Google Sheet' })
+  async applyForJob(@Body() dto: CreateJobApplicationDto) {
+    const application = await this.jobsService.applyForJob(dto);
+    return {
+      success: true,
+      message: 'Application submitted successfully',
+      application,
+    };
+  }
+
+  @Get('applications')
+  @ApiOperation({ summary: 'Retrieve all submitted candidate job applications' })
+  async getAllApplications() {
+    return this.jobsService.getAllApplications();
+  }
+
+  @Get('applications/:id')
+  @ApiOperation({ summary: 'Retrieve specific job application details' })
+  async getApplicationById(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.jobsService.getApplicationById(id);
+  }
 
   @Get('instahyre/live')
   @ApiOperation({ summary: 'Retrieve top live jobs directly from Instahyre' })

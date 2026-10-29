@@ -551,6 +551,90 @@
     </div>
   </div>
 
+  <!-- ============================================== -->
+  <!-- NATIVE JOB APPLICATION MODAL (DIRECT HIRE)     -->
+  <!-- ============================================== -->
+  <div id="job-apply-modal" class="sub-modal-backdrop hidden">
+    <div class="sub-modal-card job-apply-card">
+      <button id="btn-close-apply-modal" class="modal-close-btn" title="Close">✕</button>
+
+      <div class="apply-modal-header">
+        <div class="apply-portal-tag">
+          <span class="portal-icon">⚡</span>
+          <span>PROFILE REEL AI TALENT DIRECT</span>
+        </div>
+        <h2 class="apply-modal-title">Apply for Job</h2>
+        <p class="apply-modal-subtitle">
+          <span id="apply-modal-job-title" class="apply-highlight-title">Software Engineer</span>
+          <span class="apply-highlight-comp">at <strong id="apply-modal-company">Tech Company</strong></span>
+        </p>
+      </div>
+
+      <form id="form-job-apply" class="job-apply-form">
+        <input type="hidden" id="apply-job-id" />
+        <input type="hidden" id="apply-job-title-hidden" />
+        <input type="hidden" id="apply-job-company-hidden" />
+
+        <div class="apply-field-group">
+          <label class="apply-label" for="apply-name">Full Name <span class="req">*</span></label>
+          <input type="text" id="apply-name" class="apply-input" placeholder="e.g. Rahul Sharma" required />
+        </div>
+
+        <div class="apply-field-group">
+          <label class="apply-label" for="apply-linkedin">LinkedIn Profile URL <span class="req">*</span></label>
+          <input type="url" id="apply-linkedin" class="apply-input" placeholder="https://www.linkedin.com/in/username" required />
+        </div>
+
+        <div class="apply-fields-grid">
+          <div class="apply-field-group">
+            <label class="apply-label" for="apply-email">Email Address <span class="req">*</span></label>
+            <input type="email" id="apply-email" class="apply-input" placeholder="you@domain.com" required />
+          </div>
+          <div class="apply-field-group">
+            <label class="apply-label" for="apply-phone">Phone Number <span class="req">*</span></label>
+            <input type="tel" id="apply-phone" class="apply-input" placeholder="+91 98765 43210" required />
+          </div>
+        </div>
+
+        <div class="apply-fields-grid">
+          <div class="apply-field-group">
+            <label class="apply-label" for="apply-current-salary">Current Salary</label>
+            <input type="text" id="apply-current-salary" class="apply-input" placeholder="e.g. ₹12 LPA" />
+          </div>
+          <div class="apply-field-group">
+            <label class="apply-label" for="apply-expected-salary">Expected Salary</label>
+            <input type="text" id="apply-expected-salary" class="apply-input" placeholder="e.g. ₹18 LPA" />
+          </div>
+        </div>
+
+        <div class="apply-field-group">
+          <label class="apply-label" for="apply-location">Current Location <span class="req">*</span></label>
+          <input type="text" id="apply-location" class="apply-input" placeholder="e.g. Bangalore, India" required />
+        </div>
+
+        <div class="apply-field-group">
+          <label class="apply-label" for="apply-resume">Attach Resume (PDF / DOCX) <span class="req">*</span></label>
+          <div class="apply-file-dropzone" id="resume-dropzone">
+            <input type="file" id="apply-resume" class="apply-file-input" accept=".pdf,.doc,.docx" required />
+            <div class="file-dropzone-content">
+              <span class="file-icon">📄</span>
+              <span class="file-label" id="resume-file-name">Click or drag resume file (PDF or DOCX)</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="apply-status-message" class="apply-status-box hidden"></div>
+
+        <div class="apply-actions-row">
+          <button type="button" id="btn-cancel-apply" class="btn-apply-secondary">Cancel</button>
+          <button type="submit" id="btn-submit-apply" class="btn-apply-primary">
+            <span class="btn-text">🚀 Submit Application</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
