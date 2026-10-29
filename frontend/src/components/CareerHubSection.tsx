@@ -255,7 +255,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
             </span>
             <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Instahyre Verified Real-Time
+              Verified Real-Time Opportunities
             </span>
           </div>
 
@@ -311,7 +311,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                   rel="noreferrer"
                   className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-brand-500 hover:text-white text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
                 >
-                  <span>Apply on Instahyre</span>
+                  <span>Apply Here</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -331,7 +331,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                       Unlock 45+ More Verified Roles
                     </h4>
                     <p className="text-xs text-slate-400 max-w-lg">
-                      Explore exclusive high-paying opportunities directly matching your exact candidate profile, verified by Instahyre.
+                      Explore exclusive high-paying opportunities directly matching your exact candidate profile in real-time.
                     </p>
                   </div>
                 </div>

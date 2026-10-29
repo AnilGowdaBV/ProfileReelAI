@@ -1120,8 +1120,8 @@ async function loadInstahyreJobs(isRefresh = false) {
         </div>
         ${skillChips ? `<div class="job-skills-row">${skillChips}</div>` : ''}
       </div>
-      <button class="btn-job-apply ${isApplied ? 'applied' : ''}" data-job-id="${job.id}" data-job-url="${job.publicUrl}" title="${isApplied ? 'Already Applied' : 'Apply'}">
-        ${isApplied ? '✓ Applied' : 'Apply'}
+      <button class="btn-job-apply ${isApplied ? 'applied' : ''}" data-job-id="${job.id}" data-job-url="${job.publicUrl}" title="${isApplied ? 'Already Applied' : 'Apply Here'}">
+        ${isApplied ? '✓ Applied' : 'Apply Here'}
       </button>
     `;
 

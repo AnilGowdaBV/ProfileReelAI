@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
 import {
@@ -97,7 +98,7 @@ export const DashboardPage: React.FC = () => {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-        
+
         {/* Hero Banner */}
         <div className="text-center max-w-3xl mx-auto pt-2 pb-4">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs font-semibold mb-4">
@@ -114,7 +115,7 @@ export const DashboardPage: React.FC = () => {
 
           <p className="text-base text-slate-400 leading-relaxed max-w-2xl mx-auto">
             Evaluate candidate LinkedIn profiles, extract verified career facts from authorized sources,
-            generate 10-point profile scores, and unlock 45+ live Instahyre roles with Razorpay Pro.
+            generate 10-point profile scores, and unlock 45+ live career roles with Razorpay Pro.
           </p>
         </div>
 
@@ -149,7 +150,7 @@ export const DashboardPage: React.FC = () => {
               <Zap className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white mb-0.5">45+ Live Instahyre Roles &amp; Scoring</h4>
+              <h4 className="text-sm font-bold text-white mb-0.5">45+ Live Career Roles &amp; Scoring</h4>
               <p className="text-xs text-slate-400">
                 10-point multi-dimensional scoring, real-time job matching, and 1-on-1 FAANG mock interviews.
               </p>

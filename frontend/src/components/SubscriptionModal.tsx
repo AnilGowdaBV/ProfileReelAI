@@ -83,7 +83,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <Check className="w-2.5 h-2.5" />
             </div>
             <span className="text-slate-300 leading-tight">
-              <strong className="text-white">45+ Live Instahyre Roles:</strong> Instant 1-click apply to top tech companies
+              <strong className="text-white">45+ Live Verified Roles:</strong> Instant 1-click apply to top tech companies
             </span>
           </div>
 

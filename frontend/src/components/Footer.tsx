@@ -27,7 +27,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPolicy }) => {
               </span>
             </div>
             <p className="text-slate-400 leading-relaxed text-[11px]">
-              AI-powered candidate screening and career elevation engine. Generating verified profile video reels, 10-point scoring, and live Instahyre opportunity matching.
+              AI-powered candidate screening and career elevation engine. Generating verified profile video reels, 10-point scoring, and live verified career opportunity matching.
             </p>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
               <Shield className="w-3.5 h-3.5 text-emerald-400" />
@@ -41,7 +41,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenPolicy }) => {
             <ul className="space-y-1.5 text-[11px]">
               <li>
                 <a href="#career-hub" className="hover:text-white transition-colors">
-                  ⚡ 45+ Verified Roles (Instahyre)
+                  ⚡ 45+ Verified Roles
                 </a>
               </li>
               <li>

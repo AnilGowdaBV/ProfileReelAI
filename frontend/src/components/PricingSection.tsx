@@ -24,7 +24,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           Flat ₹100 Monthly Subscription
         </h2>
         <p className="text-sm text-slate-400 max-w-xl mx-auto mb-10">
-          One single, transparent plan. Unlock all 45+ live Instahyre roles, priority 1-on-1 FAANG mock interview slots, tailored learning tracks, and unlimited AI video reels.
+          One single, transparent plan. Unlock all 45+ live career roles, priority 1-on-1 FAANG mock interview slots, tailored learning tracks, and unlimited AI video reels.
         </p>
 
         {/* Pricing Cards Grid */}
@@ -59,7 +59,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                 </div>
                 <div className="flex items-center gap-2.5 text-slate-500">
                   <span className="w-4 h-4 text-center">✕</span>
-                  <span>45+ Live Instahyre Direct Applications</span>
+                  <span>45+ Live Direct Job Applications</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-slate-500">
                   <span className="w-4 h-4 text-center">✕</span>
@@ -94,13 +94,13 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               </div>
               
               <p className="text-xs text-slate-300 mb-6">
-                Complete access to the entire Instahyre jobs catalog, FAANG mock interview slots, and expert upskilling tracks.
+                Complete access to the entire verified tech jobs catalog, FAANG mock interview slots, and expert upskilling tracks.
               </p>
 
               <div className="space-y-3 text-xs text-slate-200 border-t border-brand-500/20 pt-6 mb-8">
                 <div className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <span><strong className="text-white">45+ Live Instahyre Roles</strong> (1-click direct apply)</span>
+                  <span><strong className="text-white">45+ Live Verified Roles</strong> (1-click direct apply)</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />

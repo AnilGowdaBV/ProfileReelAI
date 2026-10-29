@@ -50,7 +50,7 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ activePolicy, onClos
 
               <h4 className="text-sm font-bold text-white">2. Nature of Service</h4>
               <p>
-                ProfileReel AI is a career intelligence and digital profile enhancement platform. The Service generates AI-narrated candidate profile videos, calculates 10-point profile scores based on publicly verifiable background information, and matches candidates to open job roles sourced via authorized partners including Instahyre.
+                ProfileReel AI is a career intelligence and digital profile enhancement platform. The Service generates AI-narrated candidate profile videos, calculates 10-point profile scores based on publicly verifiable background information, and matches candidates to open job roles sourced via authorized industry partners.
               </p>
 
               <h4 className="text-sm font-bold text-white">3. User Submissions & Authorized Ingestion</h4>
@@ -85,7 +85,7 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ activePolicy, onClos
               <ul className="list-disc pl-5 space-y-1 text-slate-400">
                 <li>To generate synthesized AI video introductions and career highlight reels.</li>
                 <li>To compute calibrated 10-point profile readiness scores.</li>
-                <li>To match candidate competencies against live open roles on Instahyre.</li>
+                <li>To match candidate competencies against live open career opportunities.</li>
                 <li>To verify and process payment transactions via our payment gateway partner, Razorpay.</li>
               </ul>
 
@@ -104,7 +104,7 @@ export const PolicyModals: React.FC<PolicyModalsProps> = ({ activePolicy, onClos
               </p>
               <h4 className="text-sm font-bold text-white">1. Strict No-Refund Policy</h4>
               <p>
-                All purchases, payments, and subscriptions on ProfileReel AI are <strong>final and non-refundable</strong>. Because ProfileReel AI provides instant, immediate digital access to AI-powered profile scoring, candidate video reel synthesis, FAANG mock interview booking, and verified Instahyre job matching upon payment confirmation, we do not offer refunds, prorated credits, or chargebacks once payment is completed.
+                All purchases, payments, and subscriptions on ProfileReel AI are <strong>final and non-refundable</strong>. Because ProfileReel AI provides instant, immediate digital access to AI-powered profile scoring, candidate video reel synthesis, FAANG mock interview booking, and verified career job matching upon payment confirmation, we do not offer refunds, prorated credits, or chargebacks once payment is completed.
               </p>
 
               <h4 className="text-sm font-bold text-white">2. No Cancellation / No Partial Period Returns</h4>
