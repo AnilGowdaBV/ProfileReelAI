@@ -52,3 +52,4 @@ export class JobApplication {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
+

@@ -1232,12 +1232,31 @@ function openJobApplyModal(job, btnElement) {
 if (applyResume) {
   applyResume.addEventListener('change', () => {
     if (applyResume.files && applyResume.files[0]) {
+      const file = applyResume.files[0];
+      const maxBytes = 5 * 1024 * 1024; // 5 MB
+
+      if (file.size > maxBytes) {
+        if (applyStatusMessage) {
+          applyStatusMessage.className = 'apply-status-box error';
+          applyStatusMessage.textContent = `File exceeds 5 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB). Please select a file up to 5 MB.`;
+        }
+        applyResume.value = '';
+        if (resumeFileName) {
+          resumeFileName.textContent = 'Click or drag resume file (PDF or DOCX, max 5 MB)';
+        }
+        return;
+      }
+
+      if (applyStatusMessage) {
+        applyStatusMessage.className = 'apply-status-box hidden';
+      }
       if (resumeFileName) {
-        resumeFileName.textContent = `📎 ${applyResume.files[0].name}`;
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        resumeFileName.textContent = `📎 ${file.name} (${sizeMb} MB)`;
       }
     } else {
       if (resumeFileName) {
-        resumeFileName.textContent = 'Click or drag resume file (PDF or DOCX)';
+        resumeFileName.textContent = 'Click or drag resume file (PDF or DOCX, max 5 MB)';
       }
     }
   });
@@ -1277,6 +1296,10 @@ if (formJobApply) {
 
     try {
       const file = applyResume?.files ? applyResume.files[0] : null;
+      if (file && file.size > 5 * 1024 * 1024) {
+        throw new Error(`Resume exceeds 5 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB). Please choose a file up to 5 MB.`);
+      }
+
       let resumeData = null;
       if (file) {
         resumeData = await new Promise((resolve) => {
@@ -1310,6 +1333,9 @@ if (formJobApply) {
       });
 
       if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error('Payload too large. Please ensure your resume file is within 5 MB.');
+        }
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.message || 'Failed to submit application to server.');
       }

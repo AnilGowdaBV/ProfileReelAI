@@ -43,3 +43,4 @@ createTable().catch((err) => {
   console.error('Error creating table:', err);
   process.exit(1);
 });
+
