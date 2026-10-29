@@ -20,6 +20,12 @@ export class JobsController {
     };
   }
 
+  @Post('sync-sheet')
+  @ApiOperation({ summary: 'Sync all database applications to Google Sheet' })
+  async syncToSheet(@Body('webhookUrl') webhookUrl?: string) {
+    return this.jobsService.syncAllToGoogleSheet(webhookUrl);
+  }
+
   @Get('applications')
   @ApiOperation({ summary: 'Retrieve all submitted candidate job applications' })
   async getAllApplications() {

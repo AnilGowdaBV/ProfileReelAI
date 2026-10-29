@@ -237,6 +237,7 @@ export class PaymentsService {
         expiresAt,
       };
 
+
       if (paymentId) this.activeSubscriptions.set(paymentId, record);
       if (candidateProfileUrl) this.activeSubscriptions.set(candidateProfileUrl, record);
 

@@ -123,4 +123,50 @@ export class JobsService {
     }
     return app;
   }
+
+  async syncAllToGoogleSheet(customWebhookUrl?: string): Promise<{ success: boolean; count: number; message: string }> {
+    const webhookUrl = customWebhookUrl || process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    if (!webhookUrl) {
+      return {
+        success: false,
+        count: 0,
+        message: 'Google Sheet Webhook URL not configured yet in backend/.env',
+      };
+    }
+
+    const apps = await this.applicationRepo.find({ order: { createdAt: 'ASC' } });
+    let pushed = 0;
+    for (const app of apps) {
+      try {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            timestamp: app.createdAt.toISOString(),
+            applicationId: app.id,
+            jobTitle: app.jobTitle,
+            companyName: app.companyName,
+            fullName: app.fullName,
+            email: app.email,
+            phone: app.phone,
+            linkedinUrl: app.linkedinUrl || '',
+            currentSalary: app.currentSalary || '',
+            expectedSalary: app.expectedSalary || '',
+            location: app.location || '',
+            resumeFileName: app.resumeFileName || '',
+            status: 'Applied',
+          }),
+        });
+        pushed++;
+      } catch (err: any) {
+        this.logger.warn(`Failed to push application ${app.id} to sheet: ${err.message}`);
+      }
+    }
+
+    return {
+      success: true,
+      count: pushed,
+      message: `Successfully synced ${pushed} application(s) to Google Sheet!`,
+    };
+  }
 }
