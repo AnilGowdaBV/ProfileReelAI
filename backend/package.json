@@ -30,6 +30,7 @@
     "@nestjs/schematics": "^10.2.3",
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/typeorm": "^10.0.2",
+    "@supabase/supabase-js": "^2.118.0",
     "@types/node": "^22.10.7",
     "@types/pg": "^8.23.1",
     "class-transformer": "^0.5.1",

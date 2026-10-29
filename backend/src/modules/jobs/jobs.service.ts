@@ -9,6 +9,7 @@ import {
 import { JobApplication } from './entities/job-application.entity';
 import { CreateJobApplicationDto } from './dto/create-job-application.dto';
 import { R2StorageService } from '../storage/r2-storage.service';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
 
 @Injectable()
 export class JobsService {
@@ -20,6 +21,7 @@ export class JobsService {
     @InjectRepository(JobApplication)
     private readonly applicationRepo: Repository<JobApplication>,
     private readonly r2Storage: R2StorageService,
+    private readonly supabaseStorage: SupabaseStorageService,
   ) {}
 
   async createJob(candidateId: string): Promise<GenerationJob> {
@@ -63,7 +65,10 @@ export class JobsService {
   async applyForJob(dto: CreateJobApplicationDto): Promise<JobApplication> {
     let resumeUrl: string | null = null;
     if (dto.resumeData && dto.resumeFileName) {
-      resumeUrl = await this.r2Storage.uploadResume(dto.resumeFileName, dto.resumeData);
+      resumeUrl = await this.supabaseStorage.uploadResume(dto.resumeFileName, dto.resumeData);
+      if (!resumeUrl) {
+        resumeUrl = await this.r2Storage.uploadResume(dto.resumeFileName, dto.resumeData);
+      }
     }
 
     const application = this.applicationRepo.create({
