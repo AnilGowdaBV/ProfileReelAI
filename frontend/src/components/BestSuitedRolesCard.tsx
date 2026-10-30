@@ -5,7 +5,6 @@ import {
   MapPin,
   CheckCircle,
   ExternalLink,
-  ArrowDown,
   Building,
   Upload,
   FileText,
@@ -15,7 +14,7 @@ import {
   Send,
 } from 'lucide-react';
 import { CandidateScore, CandidateFact } from '../types/candidate';
-import { LIVE_ROLES, JobRole, getBestMatchedRolesForCandidate } from '../data/rolesData';
+import { JobRole, getBestMatchedRolesForCandidate } from '../data/rolesData';
 import { api } from '../services/api';
 
 interface BestSuitedRolesCardProps {
@@ -34,10 +33,8 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
   candidateFacts = [],
 }) => {
   // Modal & Application State
-  const [modalMode, setModalMode] = useState<'express_interest' | 'direct_apply'>('express_interest');
   const [applyingJob, setApplyingJob] = useState<JobRole | null>(null);
   const [expressedInterestJobs, setExpressedInterestJobs] = useState<Record<string, boolean>>({});
-  const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({});
 
   // Form Fields
   const [formFullName, setFormFullName] = useState(candidateName || '');
@@ -54,27 +51,13 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
     message: string;
   } | null>(null);
 
-  // Recommended roles pill tags
-  const targetRoles: string[] =
-    score?.recommendedRoles && score.recommendedRoles.length > 0
-      ? score.recommendedRoles
-      : [
-          'Full-Stack Systems Engineer',
-          'SDE - Frontend Architecture',
-          'Distributed Backend Developer',
-        ];
-
-  // Section 1: Dynamically recommended target companies based on candidate profile rating & experience
+  // Dynamically recommended target companies based on candidate profile rating & experience
   const recommendedCompanies = useMemo(() => {
     return getBestMatchedRolesForCandidate(score, candidateFacts);
   }, [score, candidateFacts]);
 
-  // Section 2: Matched live career opportunities (Instahyre live jobs)
-  const liveOpportunities = LIVE_ROLES.slice(0, 3);
-
-  const handleOpenModal = (job: JobRole, mode: 'express_interest' | 'direct_apply') => {
+  const handleOpenModal = (job: JobRole) => {
     setApplyingJob(job);
-    setModalMode(mode);
     setSubmitStatus(null);
     if (!formFullName && candidateName) setFormFullName(candidateName);
     if (!formLinkedinUrl && candidateLinkedinUrl) setFormLinkedinUrl(candidateLinkedinUrl);
@@ -101,8 +84,6 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
     setIsSubmitting(true);
     setSubmitStatus(null);
 
-    const isExpress = modalMode === 'express_interest';
-
     try {
       let resumeData: string | undefined = undefined;
       if (resumeFile) {
@@ -116,7 +97,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
 
       await api.applyForJob({
         jobId: applyingJob.id,
-        jobTitle: applyingJob.title,
+        jobTitle: 'Expression of Interest',
         companyName: applyingJob.company,
         fullName: formFullName.trim(),
         linkedinUrl: formLinkedinUrl.trim(),
@@ -127,23 +108,15 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
         location: formLocation.trim(),
         resumeFileName: resumeFile?.name,
         resumeData,
-        applicationType: isExpress ? 'Express Interest' : 'Job Application',
-        sheetName: isExpress ? 'Sheet2' : 'Sheet1',
+        applicationType: 'Express Interest',
+        sheetName: 'Sheet2',
       });
 
-      if (isExpress) {
-        setExpressedInterestJobs((prev) => ({ ...prev, [applyingJob.id]: true }));
-        setSubmitStatus({
-          type: 'success',
-          message: '✓ Interest expressed successfully! Profile forwarded to hiring team and logged to Sheet 2.',
-        });
-      } else {
-        setAppliedJobs((prev) => ({ ...prev, [applyingJob.id]: true }));
-        setSubmitStatus({
-          type: 'success',
-          message: '✓ Application submitted successfully! Saved and logged to hiring sheet (Sheet 1).',
-        });
-      }
+      setExpressedInterestJobs((prev) => ({ ...prev, [applyingJob.id]: true }));
+      setSubmitStatus({
+        type: 'success',
+        message: '✓ Interest expressed successfully! Your profile has been forwarded to the hiring team.',
+      });
 
       setTimeout(() => {
         handleCloseModal();
@@ -191,27 +164,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
           </p>
         </div>
 
-        {/* AI Recommended Target Roles Badges */}
-        <div className="space-y-1.5">
-          <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
-            Top Recommended Profiles:
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {targetRoles.map((role, idx) => (
-              <span
-                key={idx}
-                className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 dark:bg-charcoal-900 text-brand-700 dark:text-brand-300 border border-brand-500/20 flex items-center gap-1.5 shadow-xs"
-              >
-                <Briefcase className="w-3 h-3 text-brand-600 dark:text-brand-400" />
-                <span>{role}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* ======================================================== */}
-        {/* SECTION 1: Candidate Best Suitable For (Express Interest) */}
-        {/* ======================================================== */}
+        {/* Recommended Target Companies (Express Interest) */}
         <div className="space-y-2.5 pt-1">
           <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
             <span className="flex items-center gap-1.5">
@@ -220,7 +173,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
             </span>
             <span className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-              Express Interest (Sheet 2)
+              Express Interest
             </span>
           </div>
 
@@ -243,11 +196,11 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                     />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
                       {job.company}
                     </h4>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate">
-                      {job.title}
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      {job.location}
                     </p>
                   </div>
                 </div>
@@ -260,7 +213,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                   )}
                   <button
                     type="button"
-                    onClick={() => handleOpenModal(job, 'express_interest')}
+                    onClick={() => handleOpenModal(job)}
                     disabled={expressedInterestJobs[job.id]}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       expressedInterestJobs[job.id]
@@ -275,87 +228,9 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
             ))}
           </div>
         </div>
-
-        {/* ======================================================== */}
-        {/* SECTION 2: Matched Live Opportunities (Direct Apply)     */}
-        {/* ======================================================== */}
-        <div className="space-y-2.5 pt-3 border-t border-slate-200/80 dark:border-white/5">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-            <span className="flex items-center gap-1.5">
-              <Briefcase className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Matched Live Opportunities</span>
-            </span>
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Direct Apply (Sheet 1)
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {liveOpportunities.map((job) => (
-              <div
-                key={job.id}
-                className="p-3 rounded-2xl bg-slate-50/90 dark:bg-charcoal-900/80 border border-slate-200 hover:border-brand-500/40 dark:border-white/5 transition-all flex items-center justify-between gap-3 shadow-xs hover:shadow-sm"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-white dark:bg-charcoal-950 border border-slate-200 dark:border-white/10 flex items-center justify-center p-1 overflow-hidden flex-shrink-0">
-                    <img
-                      src={job.logo}
-                      alt={job.company}
-                      className="w-full h-full object-contain"
-                      onError={(e: any) => {
-                        e.target.style.display = 'none';
-                        e.target.parentNode.textContent = job.company[0];
-                      }}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                      {job.title}
-                    </h4>
-                    <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400">
-                      <span className="font-medium text-slate-700 dark:text-slate-300">{job.company}</span>
-                      <span>•</span>
-                      <span className="truncate">{job.location.split(',')[0]}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {job.matchPercentage && (
-                    <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                      {job.matchPercentage}% Fit
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleOpenModal(job, 'direct_apply')}
-                    disabled={appliedJobs[job.id]}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      appliedJobs[job.id]
-                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
-                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs hover:shadow-md shadow-emerald-500/25'
-                    }`}
-                  >
-                    {appliedJobs[job.id] ? '✓ Applied' : 'Apply'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Career Hub Shortcut Link */}
-        <a
-          href="#career-hub"
-          className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-charcoal-900 dark:hover:bg-charcoal-850 border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 hover:text-brand-600 dark:text-slate-300 dark:hover:text-white flex items-center justify-center gap-2 transition-all shadow-xs"
-        >
-          <span>Explore 45+ Verified Roles in Career Hub</span>
-          <ArrowDown className="w-3.5 h-3.5" />
-        </a>
       </div>
 
-      {/* Shared Job Modal (Express Interest vs Direct Apply) */}
+      {/* Express Interest Modal */}
       {applyingJob && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="glass-panel-elevated max-w-lg w-full rounded-3xl p-6 sm:p-8 border-2 border-brand-500/30 shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -380,13 +255,13 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-                  {modalMode === 'express_interest' ? 'Priority Expression of Interest' : 'Direct Job Application'}
+                  Express Interest
                 </span>
                 <h3 className="text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
-                  {applyingJob.title}
+                  {applyingJob.company}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  {applyingJob.company} • {applyingJob.location} • {modalMode === 'express_interest' ? 'Routing to Sheet 2' : 'Routing to Sheet 1'}
+                  {applyingJob.location}
                 </p>
               </div>
             </div>
@@ -523,7 +398,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                       {resumeFile ? resumeFile.name : 'Click to upload resume (PDF recommended)'}
                     </span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                      Auto-synced with hiring team Google Sheet ({modalMode === 'express_interest' ? 'Sheet 2' : 'Sheet 1'})
+                      Auto-synced with hiring team Google Sheet
                     </span>
                   </label>
                 </div>
@@ -540,19 +415,15 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`px-6 py-2.5 rounded-xl text-white text-xs font-extrabold shadow-md disabled:opacity-50 flex items-center gap-2 cursor-pointer ${
-                    modalMode === 'express_interest'
-                      ? 'bg-gradient-to-r from-brand-600 to-brand-accent hover:from-brand-500 hover:to-brand-accent shadow-brand-500/25'
-                      : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/25'
-                  }`}
+                  className="px-6 py-2.5 rounded-xl text-white text-xs font-extrabold shadow-md disabled:opacity-50 flex items-center gap-2 cursor-pointer bg-gradient-to-r from-brand-600 to-brand-accent hover:from-brand-500 hover:to-brand-accent shadow-brand-500/25"
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{modalMode === 'express_interest' ? 'Submitting Interest...' : 'Submitting Application...'}</span>
+                      <span>Submitting Interest...</span>
                     </>
                   ) : (
-                    <span>{modalMode === 'express_interest' ? 'Submit Expression of Interest' : 'Submit Direct Application'}</span>
+                    <span>Submit Expression of Interest</span>
                   )}
                 </button>
               </div>
