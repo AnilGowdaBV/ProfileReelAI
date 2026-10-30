@@ -10,6 +10,10 @@ import { StatusBadge } from './StatusBadge';
 import { VideoReelPlayer } from './VideoReelPlayer';
 import { CandidateScoreCard } from './CandidateScoreCard';
 import { BestSuitedRolesCard } from './BestSuitedRolesCard';
+import {
+  WorkedAtCompaniesHeaderRow,
+  CompanyLogoBadge,
+} from './WorkedAtCompanies';
 import { api } from '../services/api';
 import {
   User,
@@ -264,6 +268,9 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
           </div>
         </div>
 
+        {/* Worked at Companies with Verified Brand Logos */}
+        {isSuccess && <WorkedAtCompaniesHeaderRow facts={candidate.facts} />}
+
         {/* Pipeline Stage Indicators - Commented per user request */}
         {/*
         <div className="mt-5 pt-1">
@@ -476,21 +483,35 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
               </h4>
 
               <div className="space-y-3">
-                {factsByCategory.experience.map((exp, idx) => (
-                  <div
-                    key={exp.id || idx}
-                    className="p-4 rounded-xl bg-slate-50 dark:bg-charcoal-900/70 border border-slate-200 dark:border-white/5 hover:border-brand-500/30 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                        {exp.factText}
-                      </p>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex-shrink-0">
-                        VERIFIED
-                      </span>
+                {factsByCategory.experience.map((exp, idx) => {
+                  const atMatch = exp.factText.match(/\bat\s+([^(:\n,]+)/i);
+                  const companyName = atMatch
+                    ? atMatch[1].replace(/\s+(from|during|since|in|tenure).*/i, '').replace(/\b(19|20)\d{2}\b.*/, '').trim()
+                    : '';
+
+                  return (
+                    <div
+                      key={exp.id || idx}
+                      className="p-4 rounded-xl bg-slate-50 dark:bg-charcoal-900/70 border border-slate-200 dark:border-white/5 hover:border-brand-500/30 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          {companyName && (
+                            <div className="mt-0.5 flex-shrink-0">
+                              <CompanyLogoBadge company={companyName} size="md" />
+                            </div>
+                          )}
+                          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 leading-relaxed">
+                            {exp.factText}
+                          </p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+                          VERIFIED
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
