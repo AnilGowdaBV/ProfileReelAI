@@ -52,7 +52,16 @@ export class VideoGenerationController {
     @Headers('range') range?: string,
   ) {
     const video = await this.videoService.getVideoById(id);
-    if (!video.videoStoragePath || !fs.existsSync(video.videoStoragePath)) {
+    if (!video.videoStoragePath) {
+      throw new NotFoundException('Video media file not found on storage');
+    }
+
+    // Direct redirect to cloud storage (Supabase CDN)
+    if (video.videoStoragePath.startsWith('http://') || video.videoStoragePath.startsWith('https://')) {
+      return res.redirect(video.videoStoragePath);
+    }
+
+    if (!fs.existsSync(video.videoStoragePath)) {
       throw new NotFoundException('Video media file not found on storage');
     }
 
@@ -118,7 +127,16 @@ export class VideoGenerationController {
     @Res() res: Response,
   ) {
     const video = await this.videoService.getVideoById(id);
-    if (!video.videoStoragePath || !fs.existsSync(video.videoStoragePath)) {
+    if (!video.videoStoragePath) {
+      throw new NotFoundException('Video media file not found on storage');
+    }
+
+    // Direct redirect to cloud storage (Supabase CDN)
+    if (video.videoStoragePath.startsWith('http://') || video.videoStoragePath.startsWith('https://')) {
+      return res.redirect(video.videoStoragePath);
+    }
+
+    if (!fs.existsSync(video.videoStoragePath)) {
       throw new NotFoundException('Video media file not found on storage');
     }
 

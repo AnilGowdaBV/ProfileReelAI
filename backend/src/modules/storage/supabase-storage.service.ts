@@ -84,5 +84,48 @@ export class SupabaseStorageService {
       return null;
     }
   }
+
+  async uploadVideo(
+    fileName: string,
+    buffer: Buffer,
+    contentType: string = 'video/mp4',
+  ): Promise<string | null> {
+    if (!this.supabase) {
+      this.initClient();
+      if (!this.supabase) {
+        this.logger.warn('Supabase client not initialized, skipping video upload');
+        return null;
+      }
+    }
+
+    try {
+      const timestamp = Date.now();
+      const sanitizedName = fileName.replace(/[^a-zA-Z0-9\._-]/g, '_');
+      const filePath = `videos/${timestamp}_${sanitizedName}`;
+
+      const { data, error } = await this.supabase.storage
+        .from(this.bucketName)
+        .upload(filePath, buffer, {
+          contentType,
+          upsert: true,
+        });
+
+      if (error) {
+        this.logger.error(`Supabase video upload error: ${error.message}`);
+        return null;
+      }
+
+      const { data: publicData } = this.supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl(filePath);
+
+      const publicUrl = publicData?.publicUrl || '';
+      this.logger.log(`Uploaded video reel to Supabase Storage: ${publicUrl}`);
+      return publicUrl;
+    } catch (err: any) {
+      this.logger.error(`Exception uploading video to Supabase: ${err.message}`);
+      return null;
+    }
+  }
 }
 

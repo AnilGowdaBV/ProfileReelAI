@@ -84,6 +84,7 @@ export const VideoReelPlayer: React.FC<VideoReelPlayerProps> = ({
           /* Video Player when ready */
           <video
             key={videoId}
+            src={streamUrl}
             controls
             playsInline
             preload="metadata"

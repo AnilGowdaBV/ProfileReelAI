@@ -13,6 +13,7 @@ import { Candidate, RetrievalStatus } from '../candidates/entities/candidate.ent
 import { JobsService } from '../jobs/jobs.service';
 import { JobStage, JobStatus } from '../jobs/entities/generation-job.entity';
 import { ScriptGenerationService } from '../script-generation/script-generation.service';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
 import { TextToSpeechService } from './services/text-to-speech.service';
 import { VideoCompositionService } from './services/video-composition.service';
 
@@ -41,6 +42,7 @@ export class VideoGenerationService {
     private readonly scriptService: ScriptGenerationService,
     private readonly ttsService: TextToSpeechService,
     private readonly compositionService: VideoCompositionService,
+    private readonly supabaseStorage: SupabaseStorageService,
   ) {}
 
   /**
@@ -134,8 +136,26 @@ export class VideoGenerationService {
         ttsResult.durationSeconds,
       );
 
+      // Upload to Supabase Storage for persistent cloud CDN hosting (survives Render restarts)
+      let finalStoragePath = compositionResult.videoPath;
+      try {
+        if (fs.existsSync(compositionResult.videoPath)) {
+          const videoBuf = fs.readFileSync(compositionResult.videoPath);
+          const cloudUrl = await this.supabaseStorage.uploadVideo(
+            `reel_${candidate.id}_${video.id}.mp4`,
+            videoBuf,
+          );
+          if (cloudUrl) {
+            finalStoragePath = cloudUrl;
+            this.logger.log(`Video reel uploaded to Supabase Storage: ${cloudUrl}`);
+          }
+        }
+      } catch (uploadErr: any) {
+        this.logger.warn(`Could not upload video to Supabase Storage: ${uploadErr.message}`);
+      }
+
       // 6. Update Video Record
-      video.videoStoragePath = compositionResult.videoPath;
+      video.videoStoragePath = finalStoragePath;
       video.durationSeconds = compositionResult.durationSeconds;
       video.status = VideoStatus.READY;
       await this.videoRepo.save(video);
@@ -187,10 +207,20 @@ export class VideoGenerationService {
 
   async getLatestVideoForCandidate(candidateId: string): Promise<GeneratedVideo | null> {
     const videos = await this.videoRepo.find({
-      where: { candidateId },
+      where: { candidateId, status: VideoStatus.READY },
       order: { createdAt: 'DESC' },
-      take: 1,
+      take: 5,
     });
-    return videos.length > 0 ? videos[0] : null;
+    for (const v of videos) {
+      if (v.videoStoragePath) {
+        if (v.videoStoragePath.startsWith('http://') || v.videoStoragePath.startsWith('https://')) {
+          return v;
+        }
+        if (fs.existsSync(v.videoStoragePath)) {
+          return v;
+        }
+      }
+    }
+    return null;
   }
 }
