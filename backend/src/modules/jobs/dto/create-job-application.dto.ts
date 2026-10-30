@@ -61,5 +61,15 @@ export class CreateJobApplicationDto {
   @IsOptional()
   @IsString()
   resumeData?: string;
+
+  @ApiPropertyOptional({ description: 'Application Category (Job Application or Express Interest)' })
+  @IsOptional()
+  @IsString()
+  applicationType?: string;
+
+  @ApiPropertyOptional({ description: 'Specific sheet name or tab (Sheet1 or Sheet2)' })
+  @IsOptional()
+  @IsString()
+  sheetName?: string;
 }
 

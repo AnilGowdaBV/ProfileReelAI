@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Briefcase,
   Sparkles,
@@ -12,9 +12,10 @@ import {
   X,
   Loader2,
   AlertCircle,
+  Send,
 } from 'lucide-react';
-import { CandidateScore } from '../types/candidate';
-import { LIVE_ROLES, JobRole } from '../data/rolesData';
+import { CandidateScore, CandidateFact } from '../types/candidate';
+import { LIVE_ROLES, JobRole, getBestMatchedRolesForCandidate } from '../data/rolesData';
 import { api } from '../services/api';
 
 interface BestSuitedRolesCardProps {
@@ -22,6 +23,7 @@ interface BestSuitedRolesCardProps {
   candidateLinkedinUrl?: string;
   score?: CandidateScore | null;
   candidateSkills?: string[];
+  candidateFacts?: CandidateFact[];
 }
 
 export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
@@ -29,10 +31,15 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
   candidateLinkedinUrl,
   score,
   candidateSkills = [],
+  candidateFacts = [],
 }) => {
-  // Direct Job Application State
-  const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({});
+  // Modal & Application State
+  const [modalMode, setModalMode] = useState<'express_interest' | 'direct_apply'>('express_interest');
   const [applyingJob, setApplyingJob] = useState<JobRole | null>(null);
+  const [expressedInterestJobs, setExpressedInterestJobs] = useState<Record<string, boolean>>({});
+  const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({});
+
+  // Form Fields
   const [formFullName, setFormFullName] = useState(candidateName || '');
   const [formLinkedinUrl, setFormLinkedinUrl] = useState(candidateLinkedinUrl || '');
   const [formEmail, setFormEmail] = useState('');
@@ -47,7 +54,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
     message: string;
   } | null>(null);
 
-  // Derive target recommended roles from score or default tech roles
+  // Recommended roles pill tags
   const targetRoles: string[] =
     score?.recommendedRoles && score.recommendedRoles.length > 0
       ? score.recommendedRoles
@@ -57,11 +64,17 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
           'Distributed Backend Developer',
         ];
 
-  // Top 3 best matched live opportunities
-  const topMatchedRoles = LIVE_ROLES.slice(0, 3);
+  // Section 1: Dynamically recommended target companies based on candidate profile rating & experience
+  const recommendedCompanies = useMemo(() => {
+    return getBestMatchedRolesForCandidate(score, candidateFacts);
+  }, [score, candidateFacts]);
 
-  const handleOpenApplyModal = (job: JobRole) => {
+  // Section 2: Matched live career opportunities (Instahyre live jobs)
+  const liveOpportunities = LIVE_ROLES.slice(0, 3);
+
+  const handleOpenModal = (job: JobRole, mode: 'express_interest' | 'direct_apply') => {
     setApplyingJob(job);
+    setModalMode(mode);
     setSubmitStatus(null);
     if (!formFullName && candidateName) setFormFullName(candidateName);
     if (!formLinkedinUrl && candidateLinkedinUrl) setFormLinkedinUrl(candidateLinkedinUrl);
@@ -70,7 +83,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
     }
   };
 
-  const handleCloseApplyModal = () => {
+  const handleCloseModal = () => {
     setApplyingJob(null);
     setSubmitStatus(null);
   };
@@ -87,6 +100,8 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
 
     setIsSubmitting(true);
     setSubmitStatus(null);
+
+    const isExpress = modalMode === 'express_interest';
 
     try {
       let resumeData: string | undefined = undefined;
@@ -112,30 +127,42 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
         location: formLocation.trim(),
         resumeFileName: resumeFile?.name,
         resumeData,
+        applicationType: isExpress ? 'Express Interest' : 'Job Application',
+        sheetName: isExpress ? 'Sheet2' : 'Sheet1',
       });
 
-      setAppliedJobs((prev) => ({ ...prev, [applyingJob.id]: true }));
-      setSubmitStatus({
-        type: 'success',
-        message: '✓ Application submitted successfully! Saved to MySQL and logged to hiring sheet.',
-      });
+      if (isExpress) {
+        setExpressedInterestJobs((prev) => ({ ...prev, [applyingJob.id]: true }));
+        setSubmitStatus({
+          type: 'success',
+          message: '✓ Interest expressed successfully! Profile forwarded to hiring team and logged to Sheet 2.',
+        });
+      } else {
+        setAppliedJobs((prev) => ({ ...prev, [applyingJob.id]: true }));
+        setSubmitStatus({
+          type: 'success',
+          message: '✓ Application submitted successfully! Saved and logged to hiring sheet (Sheet 1).',
+        });
+      }
 
       setTimeout(() => {
-        handleCloseApplyModal();
-      }, 1500);
+        handleCloseModal();
+      }, 1600);
     } catch (err: any) {
       setSubmitStatus({
         type: 'error',
-        message: err.message || 'Failed to submit application. Please check connection and try again.',
+        message: err.message || 'Failed to submit. Please check your network connection and try again.',
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const isHighRating = (score?.overallScore ?? 0) >= 8.0 || score?.tier === 'EXCEPTIONAL';
+
   return (
     <>
-      <div className="glass-panel-elevated p-5 sm:p-6 rounded-3xl border-2 border-brand-500/25 shadow-xl shadow-brand-500/5 relative overflow-hidden space-y-4">
+      <div className="glass-panel-elevated p-5 sm:p-6 rounded-3xl border-2 border-brand-500/25 shadow-xl shadow-brand-500/5 relative overflow-hidden space-y-5">
         {/* Subtle Ambient Accent Glow */}
         <div className="absolute top-0 right-0 w-44 h-44 bg-brand-500/10 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-36 h-36 bg-purple-500/8 rounded-full blur-xl pointer-events-none" />
@@ -145,7 +172,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-700 dark:text-brand-300 border border-brand-500/20 text-[11px] font-extrabold uppercase tracking-wide">
               <Sparkles className="w-3 h-3 text-brand-500" />
-              <span>AI Role Matching</span>
+              <span>AI Role & Company Matching</span>
             </span>
             {score && (
               <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
@@ -158,7 +185,9 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
             <span>Candidate is Best Suitable For</span>
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-            Target tech roles tailored to {candidateName || 'the candidate'} based on verified career milestones, technical skill depth, and scoring.
+            {isHighRating
+              ? `High-prestige target companies tailored to ${candidateName || 'candidate'} based on leadership score & verified background.`
+              : `High-growth companies and opportunities tailored to ${candidateName || 'candidate'} based on profile rating & skill depth.`}
           </p>
         </div>
 
@@ -180,18 +209,90 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
           </div>
         </div>
 
-        {/* Top Matched Live Job Opportunities */}
+        {/* ======================================================== */}
+        {/* SECTION 1: Candidate Best Suitable For (Express Interest) */}
+        {/* ======================================================== */}
         <div className="space-y-2.5 pt-1">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-            <span>Matched Live Opportunities</span>
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Direct Apply
+          <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+              <span>Recommended Target Companies</span>
+            </span>
+            <span className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+              Express Interest (Sheet 2)
             </span>
           </div>
 
           <div className="space-y-2">
-            {topMatchedRoles.map((job) => (
+            {recommendedCompanies.map((job) => (
+              <div
+                key={job.id}
+                className="p-3 rounded-2xl bg-indigo-50/50 dark:bg-charcoal-900/80 border border-brand-500/20 hover:border-brand-500/40 transition-all flex items-center justify-between gap-3 shadow-xs hover:shadow-sm"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-white dark:bg-charcoal-950 border border-slate-200 dark:border-white/10 flex items-center justify-center p-1 overflow-hidden flex-shrink-0">
+                    <img
+                      src={job.logo}
+                      alt={job.company}
+                      className="w-full h-full object-contain"
+                      onError={(e: any) => {
+                        e.target.style.display = 'none';
+                        e.target.parentNode.textContent = job.company[0];
+                      }}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                      {job.company}
+                    </h4>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate">
+                      {job.title}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {job.matchPercentage && (
+                    <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-brand-500/10 text-brand-700 dark:text-brand-300 border border-brand-500/25">
+                      {job.matchPercentage}% Fit
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenModal(job, 'express_interest')}
+                    disabled={expressedInterestJobs[job.id]}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      expressedInterestJobs[job.id]
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                        : 'bg-brand-600 hover:bg-brand-500 text-white shadow-xs hover:shadow-md shadow-brand-500/25'
+                    }`}
+                  >
+                    {expressedInterestJobs[job.id] ? '✓ Interest Expressed' : 'Express Interest'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* SECTION 2: Matched Live Opportunities (Direct Apply)     */}
+        {/* ======================================================== */}
+        <div className="space-y-2.5 pt-3 border-t border-slate-200/80 dark:border-white/5">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+            <span className="flex items-center gap-1.5">
+              <Briefcase className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Matched Live Opportunities</span>
+            </span>
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Direct Apply (Sheet 1)
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {liveOpportunities.map((job) => (
               <div
                 key={job.id}
                 className="p-3 rounded-2xl bg-slate-50/90 dark:bg-charcoal-900/80 border border-slate-200 hover:border-brand-500/40 dark:border-white/5 transition-all flex items-center justify-between gap-3 shadow-xs hover:shadow-sm"
@@ -228,12 +329,12 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                   )}
                   <button
                     type="button"
-                    onClick={() => handleOpenApplyModal(job)}
+                    onClick={() => handleOpenModal(job, 'direct_apply')}
                     disabled={appliedJobs[job.id]}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       appliedJobs[job.id]
                         ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
-                        : 'bg-brand-600 hover:bg-brand-500 text-white shadow-xs hover:shadow-md shadow-brand-500/25'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs hover:shadow-md shadow-emerald-500/25'
                     }`}
                   >
                     {appliedJobs[job.id] ? '✓ Applied' : 'Apply'}
@@ -254,12 +355,12 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
         </a>
       </div>
 
-      {/* Direct Job Application Modal */}
+      {/* Shared Job Modal (Express Interest vs Direct Apply) */}
       {applyingJob && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="glass-panel-elevated max-w-lg w-full rounded-3xl p-6 sm:p-8 border-2 border-brand-500/30 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
-              onClick={handleCloseApplyModal}
+              onClick={handleCloseModal}
               className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -279,13 +380,13 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-                  Direct Job Application
+                  {modalMode === 'express_interest' ? 'Priority Expression of Interest' : 'Direct Job Application'}
                 </span>
                 <h3 className="text-lg font-extrabold text-slate-900 dark:text-white leading-tight">
                   {applyingJob.title}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  {applyingJob.company} • {applyingJob.location}
+                  {applyingJob.company} • {applyingJob.location} • {modalMode === 'express_interest' ? 'Routing to Sheet 2' : 'Routing to Sheet 1'}
                 </p>
               </div>
             </div>
@@ -318,7 +419,21 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                   value={formFullName}
                   onChange={(e) => setFormFullName(e.target.value)}
                   placeholder="e.g. Anil BV"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-charcoal-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  LinkedIn Profile URL *
+                </label>
+                <input
+                  type="url"
+                  required
+                  value={formLinkedinUrl}
+                  onChange={(e) => setFormLinkedinUrl(e.target.value)}
+                  placeholder="https://www.linkedin.com/in/username"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                 />
               </div>
 
@@ -332,8 +447,8 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                     required
                     value={formEmail}
                     onChange={(e) => setFormEmail(e.target.value)}
-                    placeholder="anil@thinkifylabs.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-charcoal-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                    placeholder="you@example.com"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   />
                 </div>
                 <div>
@@ -345,52 +460,39 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                     required
                     value={formPhone}
                     onChange={(e) => setFormPhone(e.target.value)}
-                    placeholder="919876543210"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-charcoal-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                    placeholder="+91 98765 43210"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  LinkedIn URL
-                </label>
-                <input
-                  type="url"
-                  value={formLinkedinUrl}
-                  onChange={(e) => setFormLinkedinUrl(e.target.value)}
-                  placeholder="https://www.linkedin.com/in/anil-bv"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-charcoal-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
-                />
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Current CTC
                   </label>
                   <input
                     type="text"
                     value={formCurrentSalary}
                     onChange={(e) => setFormCurrentSalary(e.target.value)}
-                    placeholder="e.g. 15 LPA"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-charcoal-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                    placeholder="e.g. 12 LPA"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Expected CTC
                   </label>
                   <input
                     type="text"
                     value={formExpectedSalary}
                     onChange={(e) => setFormExpectedSalary(e.target.value)}
-                    placeholder="e.g. 20 LPA"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-charcoal-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                    placeholder="e.g. 18 LPA"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Location
                   </label>
                   <input
@@ -398,19 +500,19 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                     value={formLocation}
                     onChange={(e) => setFormLocation(e.target.value)}
                     placeholder="e.g. Bangalore"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-charcoal-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Resume / CV (PDF or DOC)
+                  Upload Resume / CV (Optional)
                 </label>
-                <div className="p-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-charcoal-900 text-center cursor-pointer hover:border-brand-500 transition-colors">
+                <div className="border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl p-4 text-center hover:border-brand-500/40 transition-colors">
                   <input
-                    type="file"
                     id="resume-upload-input-best-fit"
+                    type="file"
                     accept=".pdf,.doc,.docx"
                     onChange={handleFileChange}
                     className="hidden"
@@ -421,7 +523,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                       {resumeFile ? resumeFile.name : 'Click to upload resume (PDF recommended)'}
                     </span>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                      Auto-synced with hiring team Google Sheet
+                      Auto-synced with hiring team Google Sheet ({modalMode === 'express_interest' ? 'Sheet 2' : 'Sheet 1'})
                     </span>
                   </label>
                 </div>
@@ -430,7 +532,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={handleCloseApplyModal}
+                  onClick={handleCloseModal}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 >
                   Cancel
@@ -438,15 +540,19 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-brand-accent hover:from-brand-500 hover:to-brand-accent text-white text-xs font-extrabold shadow-md shadow-brand-500/25 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  className={`px-6 py-2.5 rounded-xl text-white text-xs font-extrabold shadow-md disabled:opacity-50 flex items-center gap-2 cursor-pointer ${
+                    modalMode === 'express_interest'
+                      ? 'bg-gradient-to-r from-brand-600 to-brand-accent hover:from-brand-500 hover:to-brand-accent shadow-brand-500/25'
+                      : 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/25'
+                  }`}
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Submitting...</span>
+                      <span>{modalMode === 'express_interest' ? 'Submitting Interest...' : 'Submitting Application...'}</span>
                     </>
                   ) : (
-                    <span>Submit Direct Application</span>
+                    <span>{modalMode === 'express_interest' ? 'Submit Expression of Interest' : 'Submit Direct Application'}</span>
                   )}
                 </button>
               </div>
@@ -457,4 +563,3 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
     </>
   );
 };
-

@@ -85,16 +85,23 @@ export class JobsService {
       resumeFileName: dto.resumeFileName || '',
       resumeUrl: resumeUrl || '',
       resumeData: dto.resumeData || null,
-      status: 'applied',
+      status: dto.applicationType === 'Express Interest' || dto.sheetName === 'Sheet2' ? 'expressed_interest' : 'applied',
     });
 
     const saved = await this.applicationRepo.save(application);
-    this.logger.log(`Saved job application for ${dto.fullName} -> ${dto.jobTitle} at ${dto.companyName}`);
+    this.logger.log(`Saved ${dto.applicationType || 'job application'} for ${dto.fullName} -> ${dto.jobTitle} at ${dto.companyName}`);
 
     // Forward to Google Sheet Webhook if configured
     const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
     if (webhookUrl) {
       try {
+        const isExpressInterest =
+          dto.applicationType === 'Express Interest' ||
+          dto.sheetName === 'Sheet2' ||
+          dto.sheetName?.toLowerCase().includes('interest');
+
+        const targetSheet = isExpressInterest ? 'Sheet2' : (dto.sheetName || 'Sheet1');
+
         await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -112,10 +119,17 @@ export class JobsService {
             location: saved.location,
             resumeFileName: saved.resumeFileName,
             resumeUrl: resumeUrl || '',
-            status: 'Applied',
+            status: isExpressInterest ? 'Expressed Interest' : 'Applied',
+            applicationType: isExpressInterest ? 'Express Interest' : 'Job Application',
+            action: isExpressInterest ? 'EXPRESS_INTEREST' : 'JOB_APPLICATION',
+            sheet: targetSheet,
+            sheetName: targetSheet,
+            targetSheet: targetSheet,
+            tab: targetSheet,
+            sheetIndex: isExpressInterest ? 2 : 1,
           }),
         });
-        this.logger.log(`Successfully synced application to Google Sheet webhook!`);
+        this.logger.log(`Successfully synced ${isExpressInterest ? 'Express Interest' : 'Job Application'} to Google Sheet (${targetSheet})!`);
       } catch (err: any) {
         this.logger.warn(`Failed to push to Google Sheet webhook: ${err.message}`);
       }

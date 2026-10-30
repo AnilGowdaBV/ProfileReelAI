@@ -411,6 +411,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
               candidateLinkedinUrl={candidate.normalizedProfileUrl}
               score={score}
               candidateSkills={factsByCategory.skills.map((f) => f.factText)}
+              candidateFacts={candidate.facts}
             />
           </div>
         </div>

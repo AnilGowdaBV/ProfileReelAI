@@ -103,6 +103,8 @@ export const api = {
     location?: string;
     resumeFileName?: string;
     resumeData?: string;
+    applicationType?: string;
+    sheetName?: string;
   }) =>
     request<{ success: boolean; message: string; application: any }>('/jobs/apply', {
       method: 'POST',

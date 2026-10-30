@@ -295,3 +295,4 @@ export const WorkedAtCompaniesHeaderRow: React.FC<WorkedAtCompaniesHeaderRowProp
     </div>
   );
 };
+
