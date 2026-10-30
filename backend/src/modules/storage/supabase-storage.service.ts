@@ -103,12 +103,21 @@ export class SupabaseStorageService {
       const sanitizedName = fileName.replace(/[^a-zA-Z0-9\._-]/g, '_');
       const filePath = `videos/${timestamp}_${sanitizedName}`;
 
-      const { data, error } = await this.supabase.storage
+      const uploadPromise = this.supabase.storage
         .from(this.bucketName)
         .upload(filePath, buffer, {
           contentType,
           upsert: true,
         });
+
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+        setTimeout(
+          () => resolve({ data: null, error: { message: 'Supabase upload timed out after 5s' } }),
+          5000,
+        ),
+      );
+
+      const { data, error } = await Promise.race([uploadPromise, timeoutPromise]);
 
       if (error) {
         this.logger.error(`Supabase video upload error: ${error.message}`);

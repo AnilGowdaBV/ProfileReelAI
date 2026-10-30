@@ -85,25 +85,28 @@ export class TextToSpeechService {
 
     // Split text into natural chunks of <= 180 characters
     const chunks = this.splitIntoChunks(text, 180);
-    this.logger.log(`Synthesizing speech via Cloud TTS for ${chunks.length} text chunk(s)...`);
+    this.logger.log(`Synthesizing speech in parallel via Cloud TTS for ${chunks.length} text chunk(s)...`);
 
-    const audioBuffers: Buffer[] = [];
-    for (const chunk of chunks) {
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=en&client=tw-ob`;
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          Referer: 'https://translate.google.com/',
-        },
-      });
+    const audioBuffers: Buffer[] = await Promise.all(
+      chunks.map(async (chunk) => {
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=en&client=tw-ob`;
+        const res = await fetch(url, {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            Referer: 'https://translate.google.com/',
+          },
+          signal: AbortSignal.timeout(4500),
+        });
 
-      if (!res.ok) {
-        throw new Error(`Cloud TTS returned HTTP status ${res.status}`);
-      }
+        if (!res.ok) {
+          throw new Error(`Cloud TTS returned HTTP status ${res.status}`);
+        }
 
-      const arrayBuffer = await res.arrayBuffer();
-      audioBuffers.push(Buffer.from(arrayBuffer));
-    }
+        const arrayBuffer = await res.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+      }),
+    );
 
     if (audioBuffers.length === 0) {
       return null;

@@ -52,14 +52,25 @@ export class VideoCompositionService {
       ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
       : (candidateName.slice(0, 2) || 'PR').toUpperCase();
 
-    // Detect clean modern fonts if running on Windows
+    // Detect clean modern fonts if running on Windows or Linux
     let boldFont = '';
     let regularFont = '';
     const winSegoeBold = 'C:/Windows/Fonts/segoeuib.ttf';
     const winSegoeReg = 'C:/Windows/Fonts/segoeui.ttf';
+    const linuxDejaVuBold = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
+    const linuxDejaVu = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
+    const linuxFreeSansBold = '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf';
+    const linuxFreeSans = '/usr/share/fonts/truetype/freefont/FreeSans.ttf';
+
     if (fs.existsSync(winSegoeBold) && fs.existsSync(winSegoeReg)) {
       boldFont = "fontfile='C\\:/Windows/Fonts/segoeuib.ttf':";
       regularFont = "fontfile='C\\:/Windows/Fonts/segoeui.ttf':";
+    } else if (fs.existsSync(linuxDejaVuBold) && fs.existsSync(linuxDejaVu)) {
+      boldFont = `fontfile='${linuxDejaVuBold}':`;
+      regularFont = `fontfile='${linuxDejaVu}':`;
+    } else if (fs.existsSync(linuxFreeSansBold) && fs.existsSync(linuxFreeSans)) {
+      boldFont = `fontfile='${linuxFreeSansBold}':`;
+      regularFont = `fontfile='${linuxFreeSans}':`;
     }
 
     // LinkedIn network connections pill text
@@ -125,6 +136,7 @@ export class VideoCompositionService {
           } else if (rawPic.startsWith('http://') || rawPic.startsWith('https://')) {
             const res = await fetch(rawPic, {
               headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+              signal: AbortSignal.timeout(3500),
             });
             if (res.ok) {
               const buf = await res.arrayBuffer();
@@ -180,7 +192,7 @@ export class VideoCompositionService {
         ? `-i "${narrationWavPath}"`
         : `-f lavfi -i anullsrc=r=44100:cl=mono`;
 
-      cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -i "${avatarLocalPath}" ${audioInput} -filter_complex "${filterComplex}" -map "[outv]" -map 2:a -c:v libx264 -preset ultrafast -pix_fmt yuv420p -movflags +faststart -c:a aac -shortest "${outputMp4Path}"`;
+      cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:r=5:d=${duration} -i "${avatarLocalPath}" ${audioInput} -filter_complex "${filterComplex}" -map "[outv]" -map 2:a -c:v libx264 -preset ultrafast -tune stillimage -crf 26 -r 5 -threads 0 -pix_fmt yuv420p -movflags +faststart -c:a aac -shortest "${outputMp4Path}"`;
     } else {
       // Composition with stylish LinkedIn Avatar initials box
       const filterGraph = [
@@ -209,10 +221,10 @@ export class VideoCompositionService {
 
       if (hasAudio) {
         this.logger.log(`Using real narration audio stream from: ${narrationWavPath}`);
-        cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -i "${narrationWavPath}" -vf "${filterGraph}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -movflags +faststart -c:a aac -ar 44100 -b:a 192k -shortest "${outputMp4Path}"`;
+        cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:r=5:d=${duration} -i "${narrationWavPath}" -vf "${filterGraph}" -c:v libx264 -preset ultrafast -tune stillimage -crf 26 -r 5 -threads 0 -pix_fmt yuv420p -movflags +faststart -c:a aac -ar 44100 -b:a 192k -shortest "${outputMp4Path}"`;
       } else {
         this.logger.warn(`No valid audio found at ${narrationWavPath}, using silent fallback audio`);
-        cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -f lavfi -i anullsrc=r=44100:cl=mono -vf "${filterGraph}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -movflags +faststart -c:a aac -shortest "${outputMp4Path}"`;
+        cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:r=5:d=${duration} -f lavfi -i anullsrc=r=44100:cl=mono -vf "${filterGraph}" -c:v libx264 -preset ultrafast -tune stillimage -crf 26 -r 5 -threads 0 -pix_fmt yuv420p -movflags +faststart -c:a aac -shortest "${outputMp4Path}"`;
       }
     }
 
