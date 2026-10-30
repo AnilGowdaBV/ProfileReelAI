@@ -389,7 +389,6 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
               candidateName={candidate.displayName || 'Candidate'}
               script={video?.script}
               durationSeconds={video?.durationSeconds}
-              posterUrl={candidate.profilePictureUrl}
               onGenerate={handleGenerateVideo}
               isGenerating={isGeneratingVideo}
               generationStage={generationStage}

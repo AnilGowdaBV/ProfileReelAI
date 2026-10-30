@@ -21,7 +21,6 @@ export interface VideoReelPlayerProps {
   candidateName: string;
   script?: string;
   durationSeconds?: number;
-  posterUrl?: string;
   onGenerate?: () => void;
   isGenerating?: boolean;
   generationStage?: string;
@@ -33,7 +32,6 @@ export const VideoReelPlayer: React.FC<VideoReelPlayerProps> = ({
   candidateName,
   script,
   durationSeconds = 35,
-  posterUrl,
   onGenerate,
   isGenerating = false,
   generationStage = '',
@@ -86,12 +84,12 @@ export const VideoReelPlayer: React.FC<VideoReelPlayerProps> = ({
           /* Video Player when ready */
           <video
             key={videoId}
-            src={streamUrl}
-            poster={posterUrl}
             controls
             playsInline
-            className="w-full h-full object-contain"
+            preload="metadata"
+            className="w-full h-full object-contain bg-slate-950"
           >
+            <source src={streamUrl} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         ) : isGenerating ? (

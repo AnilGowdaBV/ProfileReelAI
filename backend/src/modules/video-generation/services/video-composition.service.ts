@@ -153,7 +153,7 @@ export class VideoCompositionService {
         ? `-i "${narrationWavPath}"`
         : `-f lavfi -i anullsrc=r=44100:cl=mono`;
 
-      cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -i "${avatarLocalPath}" ${audioInput} -filter_complex "${filterComplex}" -map "[outv]" -map 2:a -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -shortest "${outputMp4Path}"`;
+      cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -i "${avatarLocalPath}" ${audioInput} -filter_complex "${filterComplex}" -map "[outv]" -map 2:a -c:v libx264 -preset ultrafast -pix_fmt yuv420p -movflags +faststart -c:a aac -shortest "${outputMp4Path}"`;
     } else {
       // Composition with stylish LinkedIn Avatar initials box
       const filterGraph = [
@@ -182,10 +182,10 @@ export class VideoCompositionService {
 
       if (hasAudio) {
         this.logger.log(`Using real narration audio stream from: ${narrationWavPath}`);
-        cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -i "${narrationWavPath}" -vf "${filterGraph}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -ar 44100 -b:a 192k -shortest "${outputMp4Path}"`;
+        cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -i "${narrationWavPath}" -vf "${filterGraph}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -movflags +faststart -c:a aac -ar 44100 -b:a 192k -shortest "${outputMp4Path}"`;
       } else {
         this.logger.warn(`No valid audio found at ${narrationWavPath}, using silent fallback audio`);
-        cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -f lavfi -i anullsrc=r=44100:cl=mono -vf "${filterGraph}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -shortest "${outputMp4Path}"`;
+        cmd = `"${this.ffmpegPath}" -y -f lavfi -i color=c=0x0b0f19:s=1280x720:d=${duration} -f lavfi -i anullsrc=r=44100:cl=mono -vf "${filterGraph}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -movflags +faststart -c:a aac -shortest "${outputMp4Path}"`;
       }
     }
 

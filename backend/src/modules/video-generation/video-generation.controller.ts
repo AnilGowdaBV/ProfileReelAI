@@ -61,9 +61,34 @@ export class VideoGenerationController {
     const fileSize = stat.size;
 
     if (range) {
-      const parts = range.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      let start = 0;
+      let end = fileSize - 1;
+
+      // RFC 7233 Range parser: supports closed ("bytes=0-1000"), prefix ("bytes=1000-"), and suffix ("bytes=-1000")
+      const match = range.match(/bytes=(\d*)-(\d*)/);
+      if (match) {
+        if (match[1] === '' && match[2] !== '') {
+          // Suffix range: bytes=-1000 (last 1000 bytes)
+          const suffixLength = parseInt(match[2], 10);
+          start = Math.max(0, fileSize - suffixLength);
+          end = fileSize - 1;
+        } else if (match[1] !== '' && match[2] === '') {
+          // Prefix range: bytes=1000-
+          start = parseInt(match[1], 10);
+          end = fileSize - 1;
+        } else if (match[1] !== '' && match[2] !== '') {
+          // Closed range: bytes=0-1000
+          start = parseInt(match[1], 10);
+          end = Math.min(parseInt(match[2], 10), fileSize - 1);
+        }
+      }
+
+      // Check bounds validity
+      if (isNaN(start) || isNaN(end) || start > end || start >= fileSize) {
+        res.status(416).setHeader('Content-Range', `bytes */${fileSize}`);
+        return res.end();
+      }
+
       const chunksize = end - start + 1;
       const file = fs.createReadStream(videoPath, { start, end });
       const head = {
@@ -77,6 +102,7 @@ export class VideoGenerationController {
     } else {
       const head = {
         'Content-Length': fileSize,
+        'Accept-Ranges': 'bytes',
         'Content-Type': 'video/mp4',
       };
       res.writeHead(200, head);
