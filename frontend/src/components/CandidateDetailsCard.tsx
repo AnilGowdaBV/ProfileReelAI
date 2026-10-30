@@ -176,7 +176,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
     <div className="space-y-6">
       {/* Header Profile Card */}
       <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-white/5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-accent p-0.5 shadow-xl shadow-brand-500/20 flex-shrink-0">
               <div className="w-full h-full bg-slate-100 dark:bg-charcoal-900 rounded-[14px] flex items-center justify-center overflow-hidden">
@@ -225,25 +225,26 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
             </div>
           </div>
 
-          {/* Action Buttons: Profile Score & Clear */}
-          <div className="flex items-center gap-2">
+          {/* Action Toolbar: Smooth Re-evaluate & Clear Profile */}
+          <div className="flex items-center gap-2 self-start sm:self-center flex-shrink-0">
             {isSuccess && (
               <button
                 type="button"
                 id="refresh-profile-score-button"
                 onClick={handleRefreshScore}
                 disabled={isLoadingScore}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-brand-accent hover:from-brand-500 hover:to-brand-accent text-white font-bold text-xs shadow-xl shadow-brand-500/25 flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/15 border border-brand-500/25 text-brand-700 dark:text-brand-300 hover:text-brand-800 dark:hover:text-white text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+                title="Re-evaluate candidate profile score"
               >
                 {isLoadingScore ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                    <span>Evaluating Profile...</span>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-600 dark:text-brand-400" />
+                    <span>Evaluating...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5 fill-white" />
-                    <span>Re-evaluate Profile Score</span>
+                    <Sparkles className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                    <span>Re-evaluate Score</span>
                   </>
                 )}
               </button>
@@ -253,8 +254,8 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 dark:bg-charcoal-800 dark:hover:bg-charcoal-700 dark:text-slate-300 dark:hover:text-white dark:border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Clear and search another candidate profile"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-rose-600 border border-slate-200 dark:bg-charcoal-850 dark:hover:bg-charcoal-800 dark:text-slate-400 dark:hover:text-rose-300 dark:border-white/10 text-xs font-medium transition-all cursor-pointer shadow-xs"
+                title="Clear profile and search another candidate"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Clear Profile</span>
@@ -263,7 +264,8 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
           </div>
         </div>
 
-        {/* Pipeline Stage Indicators */}
+        {/* Pipeline Stage Indicators - Commented per user request */}
+        {/*
         <div className="mt-5 pt-1">
           <div className="flex items-center justify-between text-xs mb-2">
             <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
@@ -367,6 +369,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
             </div>
           </div>
         </div>
+        */}
       </div>
 
       {/* Candidate Profile Score & Compact AI Video Reel */}
