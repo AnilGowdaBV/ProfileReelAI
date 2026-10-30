@@ -94,26 +94,53 @@ export class VideoCompositionService {
 
     this.logger.log(`Rendering LinkedIn-styled Profile Reel video for ${candidateName} (hasAudio=${hasAudio}, Duration: ${duration}s)...`);
 
+    // Helper to verify buffer is a valid raster image (PNG, JPEG, WebP, GIF) that FFmpeg can decode
+    const isRasterImage = (buf: Buffer): boolean => {
+      if (!buf || buf.length < 4) return false;
+      // PNG: 89 50 4E 47
+      if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return true;
+      // JPEG: FF D8 FF
+      if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true;
+      // WebP: RIFF .... WEBP
+      if (buf.length >= 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return true;
+      // GIF: GIF8
+      if (buf.toString('ascii', 0, 4) === 'GIF8') return true;
+      return false;
+    };
+
     // Attempt to download candidate's profile picture if valid URL exists
     let avatarLocalPath: string | null = null;
     if (script.profilePictureUrl && script.profilePictureUrl.trim()) {
       try {
         const rawPic = script.profilePictureUrl.trim();
-        const avatarFile = path.join(outputDir, `avatar_${script.candidateId || 'cand'}.png`);
-        if (rawPic.startsWith('data:image')) {
-          const base64Data = rawPic.split(';base64,').pop();
-          if (base64Data) {
-            fs.writeFileSync(avatarFile, Buffer.from(base64Data, 'base64'));
-            avatarLocalPath = avatarFile;
+        if (!rawPic.toLowerCase().includes('.svg')) {
+          const avatarFile = path.join(outputDir, `avatar_${script.candidateId || 'cand'}.png`);
+          let imageBuffer: Buffer | null = null;
+
+          if (rawPic.startsWith('data:image')) {
+            const base64Data = rawPic.split(';base64,').pop();
+            if (base64Data) {
+              imageBuffer = Buffer.from(base64Data, 'base64');
+            }
+          } else if (rawPic.startsWith('http://') || rawPic.startsWith('https://')) {
+            const res = await fetch(rawPic, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+            });
+            if (res.ok) {
+              const buf = await res.arrayBuffer();
+              imageBuffer = Buffer.from(buf);
+            }
           }
-        } else if (rawPic.startsWith('http://') || rawPic.startsWith('https://')) {
-          const res = await fetch(rawPic);
-          if (res.ok) {
-            const buf = await res.arrayBuffer();
-            fs.writeFileSync(avatarFile, Buffer.from(buf));
+
+          if (imageBuffer && isRasterImage(imageBuffer)) {
+            fs.writeFileSync(avatarFile, imageBuffer);
             avatarLocalPath = avatarFile;
-            this.logger.log(`Downloaded candidate profile picture to: ${avatarFile}`);
+            this.logger.log(`Downloaded valid candidate profile picture: ${avatarFile} (${imageBuffer.length} bytes)`);
+          } else {
+            this.logger.log(`Candidate profile picture is SVG or non-raster format, using stylish monogram avatar box`);
           }
+        } else {
+          this.logger.log(`Candidate profile picture is SVG, using stylish monogram avatar box`);
         }
       } catch (err: any) {
         this.logger.warn(`Could not download profile picture, using stylish avatar box: ${err.message}`);
