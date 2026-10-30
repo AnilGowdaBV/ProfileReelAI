@@ -440,12 +440,12 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
         </div>
       )}
 
-      {/* Case 2: Success - Verified Candidate Facts Display */}
-      {isSuccess && (
+      {/* Case 2: Success - Verified Candidate Facts Display (Commented out per user request) */}
+      {false && isSuccess && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Column: Headline, Summary, Experience */}
+          // Main Column: Headline, Summary, Experience
           <div className="lg:col-span-2 space-y-6">
-            {/* Headline & Summary */}
+            // Headline & Summary
             <div className="glass-panel rounded-2xl p-6">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
                 <Briefcase className="w-4 h-4 text-brand-600 dark:text-brand-400" />
@@ -475,7 +475,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
               )}
             </div>
 
-            {/* Career Timeline / Experiences */}
+            // Career Timeline / Experiences
             <div className="glass-panel rounded-2xl p-6">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-2">
                 <Briefcase className="w-4 h-4 text-brand-600 dark:text-brand-400" />
@@ -516,9 +516,9 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Skills, Education, Certifications */}
+          // Right Column: Skills, Education, Certifications
           <div className="space-y-6">
-            {/* Skills */}
+            // Skills
             <div className="glass-panel rounded-2xl p-6">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-brand-600 dark:text-brand-400" />
@@ -537,7 +537,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
               </div>
             </div>
 
-            {/* Education */}
+            // Education
             <div className="glass-panel rounded-2xl p-6">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-brand-600 dark:text-brand-400" />
@@ -556,7 +556,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
               </div>
             </div>
 
-            {/* Certifications */}
+            // Certifications
             {factsByCategory.certification.length > 0 && (
               <div className="glass-panel rounded-2xl p-6">
                 <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
