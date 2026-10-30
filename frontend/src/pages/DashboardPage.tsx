@@ -165,12 +165,14 @@ export const DashboardPage: React.FC = () => {
         </div>
         */}
 
-        {/* Submission Card */}
-        <CandidateSubmissionCard
-          onSubmit={handleCandidateSubmit}
-          isLoading={isLoading}
-          errorMessage={errorMessage}
-        />
+        {/* Submission Card: Only shown when no candidate profile is actively loaded */}
+        {!selectedCandidate && (
+          <CandidateSubmissionCard
+            onSubmit={handleCandidateSubmit}
+            isLoading={isLoading}
+            errorMessage={errorMessage}
+          />
+        )}
 
         {/* Active Candidate Details & Intelligence */}
         {selectedCandidate && (
