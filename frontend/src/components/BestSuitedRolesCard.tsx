@@ -206,11 +206,6 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {job.matchPercentage && (
-                    <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-brand-500/10 text-brand-700 dark:text-brand-300 border border-brand-500/25">
-                      {job.matchPercentage}% Fit
-                    </span>
-                  )}
                   <button
                     type="button"
                     onClick={() => handleOpenModal(job)}
