@@ -136,5 +136,55 @@ export class SupabaseStorageService {
       return null;
     }
   }
+
+  async uploadAvatar(
+    fileName: string,
+    bufferOrBase64: Buffer | string,
+    contentType: string = 'image/png',
+  ): Promise<string | null> {
+    if (!this.supabase) {
+      this.initClient();
+      if (!this.supabase) {
+        return null;
+      }
+    }
+
+    try {
+      let fileBuffer: Buffer;
+      if (typeof bufferOrBase64 === 'string') {
+        const cleanBase64 = bufferOrBase64.replace(/^data:.*?;base64,/, '');
+        fileBuffer = Buffer.from(cleanBase64, 'base64');
+      } else {
+        fileBuffer = bufferOrBase64;
+      }
+
+      const timestamp = Date.now();
+      const sanitizedName = fileName.replace(/[^a-zA-Z0-9\._-]/g, '_');
+      const filePath = `avatars/${timestamp}_${sanitizedName}`;
+
+      const { data, error } = await this.supabase.storage
+        .from(this.bucketName)
+        .upload(filePath, fileBuffer, {
+          contentType,
+          upsert: true,
+        });
+
+      if (error) {
+        this.logger.error(`Supabase avatar upload error: ${error.message}`);
+        return null;
+      }
+
+      const { data: publicData } = this.supabase.storage
+        .from(this.bucketName)
+        .getPublicUrl(filePath);
+
+      const publicUrl = publicData?.publicUrl || null;
+      this.logger.log(`Uploaded candidate avatar to Supabase: ${publicUrl}`);
+      return publicUrl;
+    } catch (err: any) {
+      this.logger.error(`Exception uploading avatar to Supabase: ${err.message}`);
+      return null;
+    }
+  }
 }
 

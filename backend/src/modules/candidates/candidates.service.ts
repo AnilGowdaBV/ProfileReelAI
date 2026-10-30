@@ -18,6 +18,7 @@ import {
   CandidateResponseDto,
   CreateCandidateResponseDto,
 } from './dto/candidate-response.dto';
+import { SupabaseStorageService } from '../storage/supabase-storage.service';
 
 @Injectable()
 export class CandidatesService {
@@ -30,6 +31,7 @@ export class CandidatesService {
     private readonly factRepo: Repository<CandidateFact>,
     private readonly jobsService: JobsService,
     private readonly retrievalService: ProfileRetrievalService,
+    private readonly supabaseStorage: SupabaseStorageService,
   ) {}
 
   /**
@@ -473,5 +475,39 @@ export class CandidatesService {
   private inferNameFromSlug(slug: string): string {
     const parts = slug.split('-').filter((p) => !/^[0-9a-f]{8,}$/i.test(p));
     return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  }
+
+  async updateProfilePicture(id: string, imageBase64OrUrl: string) {
+    const candidate = await this.candidateRepo.findOne({ where: { id } });
+    if (!candidate) {
+      throw new NotFoundException(`Candidate with ID ${id} not found`);
+    }
+
+    let finalUrl = imageBase64OrUrl;
+    if (imageBase64OrUrl.startsWith('data:image')) {
+      const mime =
+        imageBase64OrUrl.substring(
+          imageBase64OrUrl.indexOf(':') + 1,
+          imageBase64OrUrl.indexOf(';'),
+        ) || 'image/png';
+      const uploadedUrl = await this.supabaseStorage.uploadAvatar(
+        `avatar_${candidate.id}.png`,
+        imageBase64OrUrl,
+        mime,
+      );
+      if (uploadedUrl) {
+        finalUrl = uploadedUrl;
+      }
+    }
+
+    candidate.profilePictureUrl = finalUrl;
+    await this.candidateRepo.save(candidate);
+
+    return {
+      candidateId: candidate.id,
+      displayName: candidate.displayName,
+      profilePictureUrl: candidate.profilePictureUrl,
+      message: 'Profile picture updated successfully',
+    };
   }
 }

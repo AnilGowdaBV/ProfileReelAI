@@ -110,4 +110,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  updateProfilePicture: (candidateId: string, profilePictureUrl: string) =>
+    request<{ candidateId: string; displayName: string; profilePictureUrl: string; message: string }>(
+      `/candidates/${candidateId}/profile-picture`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ profilePictureUrl }),
+      },
+    ),
 };

@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Param,
   ParseUUIDPipe,
@@ -75,5 +76,15 @@ export class CandidatesController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<CandidateResponseDto> {
     return this.candidatesService.getCandidateById(id);
+  }
+
+  @Patch(':id/profile-picture')
+  @ApiOperation({ summary: 'Update candidate profile picture' })
+  @ApiParam({ name: 'id', description: 'Candidate UUID' })
+  async updateProfilePicture(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: { profilePictureUrl: string },
+  ) {
+    return this.candidatesService.updateProfilePicture(id, body.profilePictureUrl);
   }
 }

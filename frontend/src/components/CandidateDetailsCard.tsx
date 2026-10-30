@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Candidate,
   CandidateFact,
@@ -30,6 +30,7 @@ import {
   Loader2,
   Play,
   X,
+  Camera,
 } from 'lucide-react';
 
 interface CandidateDetailsCardProps {
@@ -49,6 +50,58 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [generationStage, setGenerationStage] = useState<string>('');
   const [videoError, setVideoError] = useState<string | null>(null);
+
+  // Avatar Upload / Edit state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isPlaceholderSvg = (url?: string | null) =>
+    !url ||
+    url.includes('static.licdn.com/aero-v1/sc/h/') ||
+    url.includes('ghost_person') ||
+    url.toLowerCase().endsWith('.svg');
+
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    candidate.profilePictureUrl && !isPlaceholderSvg(candidate.profilePictureUrl)
+      ? candidate.profilePictureUrl
+      : null,
+  );
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarSuccessMsg, setAvatarSuccessMsg] = useState(false);
+
+  useEffect(() => {
+    if (candidate.profilePictureUrl && !isPlaceholderSvg(candidate.profilePictureUrl)) {
+      setAvatarUrl(candidate.profilePictureUrl);
+    } else {
+      setAvatarUrl(null);
+    }
+  }, [candidate.id, candidate.profilePictureUrl]);
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !candidate.id) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Profile picture must be smaller than 5MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      try {
+        const res = await api.updateProfilePicture(candidate.id, base64);
+        setAvatarUrl(res.profilePictureUrl || base64);
+        candidate.profilePictureUrl = res.profilePictureUrl || base64;
+        setAvatarSuccessMsg(true);
+        setTimeout(() => setAvatarSuccessMsg(false), 5000);
+      } catch (err: any) {
+        console.error('Failed to update profile picture:', err);
+      } finally {
+        setIsUploadingAvatar(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Profile Scoring state
   const [score, setScore] = useState<CandidateScore | null>(null);
@@ -182,18 +235,59 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
       <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-accent p-0.5 shadow-xl shadow-brand-500/20 flex-shrink-0">
-              <div className="w-full h-full bg-slate-100 dark:bg-charcoal-900 rounded-[14px] flex items-center justify-center overflow-hidden">
-                {candidate.profilePictureUrl ? (
-                  <img
-                    src={candidate.profilePictureUrl}
-                    alt={candidate.displayName || 'Candidate profile picture'}
-                    className="w-full h-full object-cover rounded-[14px]"
-                  />
-                ) : (
-                  <User className="w-7 h-7 text-brand-500 dark:text-brand-300" />
-                )}
+            {/* Candidate Avatar with Upload / Edit Overlay */}
+            <div className="relative group flex-shrink-0">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                title="Click to upload or update candidate profile photo"
+                className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-accent p-0.5 shadow-xl shadow-brand-500/20 cursor-pointer relative overflow-hidden"
+              >
+                <div className="w-full h-full bg-slate-100 dark:bg-charcoal-900 rounded-[14px] flex items-center justify-center overflow-hidden relative">
+                  {avatarUrl && !isPlaceholderSvg(avatarUrl) ? (
+                    <img
+                      src={avatarUrl}
+                      alt={candidate.displayName || 'Candidate profile picture'}
+                      className="w-full h-full object-cover rounded-[14px]"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-600/15 to-brand-accent/20 text-brand-600 dark:text-brand-300 font-bold text-lg">
+                      {(candidate.displayName || 'PR')
+                        .split(' ')
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((n) => n[0])
+                        .join('')
+                        .toUpperCase()}
+                    </div>
+                  )}
+
+                  {/* Hover Camera Overlay */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                    {isUploadingAvatar ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Camera className="w-5 h-5" />
+                    )}
+                  </div>
+                </div>
               </div>
+
+              {/* Small Camera Badge on corner */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Upload custom photo"
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center shadow-md border-2 border-white dark:border-charcoal-900 cursor-pointer"
+              >
+                <Camera className="w-2.5 h-2.5" />
+              </button>
             </div>
 
             <div>
@@ -202,6 +296,11 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
                   {candidate.displayName || 'Candidate Profile'}
                 </h3>
                 <StatusBadge status={candidate.retrievalStatus} />
+                {avatarSuccessMsg && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold animate-pulse">
+                    ✓ Photo updated! Re-generate reel to show in video
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2 mt-1">

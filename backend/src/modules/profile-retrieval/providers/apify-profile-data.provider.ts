@@ -143,7 +143,16 @@ export class ApifyProfileDataProvider implements IProfileDataProvider {
     const headline = item.headline || item.currentCompany?.name || '';
     const location = item.location || '';
     const summary = item.summary || item.about || '';
-    const profilePictureUrl = item.profilePictureUrl || undefined;
+    let profilePictureUrl = item.profilePictureUrl || undefined;
+    // Discard LinkedIn generic ghost/silhouette placeholder SVGs (e.g. 9c8pery4andzj6ohjkjp54ma2)
+    if (
+      profilePictureUrl &&
+      (profilePictureUrl.includes('static.licdn.com/aero-v1/sc/h/') ||
+        profilePictureUrl.includes('ghost_person') ||
+        profilePictureUrl.toLowerCase().includes('.svg'))
+    ) {
+      profilePictureUrl = undefined;
+    }
     const connections = item.connections || undefined;
     const followers = item.followersText || undefined;
     const postsCount = Array.isArray(item.posts) ? item.posts.length : 0;
