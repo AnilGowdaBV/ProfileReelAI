@@ -103,6 +103,21 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
     reader.readAsDataURL(file);
   };
 
+  // Comic burst tooltip guiding to "Clear Profile" button (auto-dismisses after 5s)
+  const [showClearProfileGuide, setShowClearProfileGuide] = useState(false);
+
+  useEffect(() => {
+    if (candidate.id && candidate.retrievalStatus === 'SUCCESS') {
+      setShowClearProfileGuide(true);
+      const timer = setTimeout(() => {
+        setShowClearProfileGuide(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowClearProfileGuide(false);
+    }
+  }, [candidate.id, candidate.retrievalStatus]);
+
   // Profile Scoring state
   const [score, setScore] = useState<CandidateScore | null>(null);
   const [isLoadingScore, setIsLoadingScore] = useState<boolean>(false);
@@ -232,7 +247,7 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
   return (
     <div className="space-y-6">
       {/* Header Profile Card */}
-      <div className="glass-panel rounded-2xl p-6 relative overflow-hidden">
+      <div className="glass-panel rounded-2xl p-6 relative">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             {/* Candidate Avatar with Upload / Edit Overlay */}
@@ -354,15 +369,62 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
             )}
 
             {onClose && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-rose-600 border border-slate-200 dark:bg-charcoal-850 dark:hover:bg-charcoal-800 dark:text-slate-400 dark:hover:text-rose-300 dark:border-white/10 text-xs font-medium transition-all cursor-pointer shadow-xs"
-                title="Clear profile and search another candidate"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>Clear Profile</span>
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowClearProfileGuide(false);
+                    onClose();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-rose-600 border border-slate-200 dark:bg-charcoal-850 dark:hover:bg-charcoal-800 dark:text-slate-400 dark:hover:text-rose-300 dark:border-white/10 text-xs font-medium transition-all cursor-pointer shadow-xs"
+                  title="Clear profile and search another candidate"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Clear Profile</span>
+                </button>
+
+                {/* Clean Modern Tooltip Guide directly below Clear Profile button (right-aligned, no overflow) */}
+                {showClearProfileGuide && (
+                  <div
+                    onClick={() => {
+                      setShowClearProfileGuide(false);
+                      onClose();
+                    }}
+                    title="Click to clear profile and add another"
+                    className="absolute z-40 top-full mt-2.5 right-0 cursor-pointer select-none animate-in fade-in slide-in-from-top-2 duration-300 drop-shadow-xl"
+                  >
+                    <div className="relative flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 text-white dark:bg-charcoal-800 dark:text-white border border-brand-500/50 shadow-2xl shadow-brand-500/20 whitespace-nowrap group hover:border-brand-400 transition-colors">
+                      {/* Top pointer arrow pointing up at Clear Profile button */}
+                      <div className="absolute -top-1.5 right-8 w-3 h-3 bg-slate-900 dark:bg-charcoal-800 border-t border-l border-brand-500/50 rotate-45 pointer-events-none group-hover:border-brand-400 transition-colors" />
+
+                      {/* Glowing live indicator dot */}
+                      <span className="relative flex h-2 w-2 flex-shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-400" />
+                      </span>
+
+                      {/* Clean Text Message */}
+                      <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                        <span>Click here to add another profile</span>
+                        <span className="text-xs text-brand-300 font-bold">👆</span>
+                      </span>
+
+                      {/* Small Close / Dismiss Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowClearProfileGuide(false);
+                        }}
+                        title="Dismiss"
+                        className="ml-1 p-0.5 rounded-md text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
