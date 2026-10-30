@@ -48,70 +48,100 @@ export class ScriptGenerationService {
     const headlineText =
       headlineFacts.length > 0 ? headlineFacts[0].factText : 'Professional';
 
+    // Extract LinkedIn connections count
+    const networkFact = facts.find(
+      (f) =>
+        f.factText.startsWith('LinkedIn Network:') ||
+        f.factText.toLowerCase().includes('connections'),
+    );
+    let connectionsText = '';
+    if (networkFact) {
+      const match = networkFact.factText.match(/(\d+[\d,]*\+?\s*connections?)/i);
+      if (match) {
+        connectionsText = match[1];
+      } else {
+        const numMatch = networkFact.factText.match(/(\d+[\d,]*)/);
+        if (numMatch) {
+          connectionsText = `${numMatch[1]} connections`;
+        }
+      }
+    }
+
+    // Extract past working companies (NO YEARS, NO DATES - casual intro)
+    const companies: string[] = [];
+    for (const exp of experienceFacts) {
+      const atMatch = exp.factText.match(/\bat\s+([^(:\n,]+)/i);
+      if (atMatch) {
+        let comp = atMatch[1].trim();
+        comp = comp.replace(/\s+(from|during|since|in|tenure).*/i, '').trim();
+        comp = comp.replace(/[0-9]{4}.*/, '').trim();
+        if (comp && comp.length > 1 && !companies.includes(comp)) {
+          companies.push(comp);
+        }
+      }
+    }
+
     const scenes: ScriptScene[] = [];
     let sceneIndex = 1;
 
-    // --- Scene 1: Introduction & Headline ---
-    const s1Narration = `Meet ${name}, ${headlineText}. Here is a concise look into their professional journey and impact.`;
+    // --- Scene 1: Casual Introduction & LinkedIn Network ---
+    let s1Narration = `Meet ${name}, ${headlineText}.`;
+    if (connectionsText) {
+      s1Narration = `Meet ${name}, ${headlineText}. With an active LinkedIn network of over ${connectionsText}, ${name} is an active and engaged presence in the professional tech community.`;
+    } else {
+      s1Narration = `Meet ${name}, ${headlineText}. Here is a casual, verified look into their professional journey and impact.`;
+    }
+
     scenes.push({
       sceneIndex: sceneIndex++,
       title: 'Profile Introduction',
       narration: s1Narration,
-      durationSeconds: 7,
+      durationSeconds: connectionsText ? 8 : 6,
       visual: {
         headline: name,
         subheadline: headlineText,
-        tag: 'VERIFIED CANDIDATE',
+        tag: connectionsText ? `LINKEDIN: ${connectionsText.toUpperCase()}` : 'VERIFIED CANDIDATE',
       },
       supportingFacts: headlineFacts.map((f) => f.id),
     });
 
-    // --- Scene 2: Career Experience & Current Role ---
-    if (experienceFacts.length > 0) {
-      const topRole = experienceFacts[0].factText;
-      const s2Narration = `In their career, they have demonstrated proven expertise: ${topRole}.`;
+    // --- Scene 2: Past Companies (Casual, No Years/Dates) ---
+    if (experienceFacts.length > 0 || companies.length > 0) {
+      let s2Narration = '';
+      if (companies.length === 1) {
+        s2Narration = `Over their professional journey, ${name} has built hands-on industry experience working with companies like ${companies[0]}.`;
+      } else if (companies.length === 2) {
+        s2Narration = `Over their professional journey, ${name} has built hands-on industry experience working with companies like ${companies[0]} and ${companies[1]}.`;
+      } else if (companies.length > 2) {
+        s2Narration = `Over their professional journey, ${name} has built hands-on industry experience working with companies like ${companies.slice(0, 3).join(', ')}, and more.`;
+      } else {
+        s2Narration = `Throughout their career journey, ${name} has built proven hands-on experience delivering modern software solutions.`;
+      }
+
       scenes.push({
         sceneIndex: sceneIndex++,
-        title: 'Career Milestones',
+        title: 'Career & Past Companies',
         narration: s2Narration,
-        durationSeconds: 9,
+        durationSeconds: 8,
         visual: {
-          headline: 'Career Experience',
-          subheadline: topRole.slice(0, 80),
+          headline: 'Companies & Impact',
+          subheadline: companies.length > 0 ? `Contributed at: ${companies.join(', ')}` : 'Proven Software Experience',
           tag: 'EXPERIENCE',
-          bullets: experienceFacts.slice(0, 3).map((e) => e.factText.slice(0, 65)),
+          bullets: companies.length > 0 ? companies : ['Hands-on engineering impact'],
         },
         supportingFacts: experienceFacts.slice(0, 3).map((f) => f.id),
       });
     }
 
-    // --- Scene 3: Education & Academic Foundation ---
-    if (educationFacts.length > 0) {
-      const topEdu = educationFacts[0].factText;
-      const s3Narration = `Their academic foundation includes ${topEdu}.`;
-      scenes.push({
-        sceneIndex: sceneIndex++,
-        title: 'Education & Foundation',
-        narration: s3Narration,
-        durationSeconds: 6,
-        visual: {
-          headline: 'Academic Background',
-          subheadline: topEdu,
-          tag: 'EDUCATION',
-        },
-        supportingFacts: educationFacts.map((f) => f.id),
-      });
-    }
-
-    // --- Scene 4: Core Technical & Leadership Skills ---
+    // --- Scene 3: Core Technical & Engineering Skills ---
     if (skillFacts.length > 0) {
       const topSkills = skillFacts.slice(0, 5).map((s) => s.factText);
       const skillsJoined = topSkills.join(', ');
-      const s4Narration = `Key verified technical and professional competencies include ${skillsJoined}.`;
+      const s3Narration = `Their core technical toolkit includes ${skillsJoined}, delivering reliable and modern solutions.`;
       scenes.push({
         sceneIndex: sceneIndex++,
-        title: 'Core Competencies',
-        narration: s4Narration,
+        title: 'Technical Competencies',
+        narration: s3Narration,
         durationSeconds: 7,
         visual: {
           headline: 'Core Competencies',
@@ -123,12 +153,12 @@ export class ScriptGenerationService {
       });
     }
 
-    // --- Scene 5: Closing Outro ---
-    const s5Narration = `That is the verified story of ${name}. One profile. One AI. One powerful story on ProfileReel AI.`;
+    // --- Scene 4: Casual Outro ---
+    const s4Narration = `That's a quick look into ${name} — a verified talent ready for exciting new opportunities on ProfileReel AI.`;
     scenes.push({
       sceneIndex: sceneIndex++,
       title: 'Profile Story Summary',
-      narration: s5Narration,
+      narration: s4Narration,
       durationSeconds: 6,
       visual: {
         headline: name,
@@ -150,6 +180,9 @@ export class ScriptGenerationService {
       scenes,
       generatedAt: new Date().toISOString(),
       isTemplateFallback: true,
+      connectionsCount: connectionsText,
+      companies,
+      profilePictureUrl: candidate.profilePictureUrl,
     };
   }
 }

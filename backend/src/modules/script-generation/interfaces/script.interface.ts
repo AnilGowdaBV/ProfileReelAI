@@ -23,4 +23,7 @@ export interface GeneratedScript {
   scenes: ScriptScene[];
   generatedAt: string;
   isTemplateFallback: boolean;
+  connectionsCount?: string;
+  companies?: string[];
+  profilePictureUrl?: string;
 }

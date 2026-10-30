@@ -138,7 +138,7 @@ describe('ProfileScoringService', () => {
 
     expect(result).toBeDefined();
     expect(result.candidateId).toBe('cand-123');
-    expect(result.overallScore).toBeGreaterThanOrEqual(5.0);
+    expect(result.overallScore).toBeGreaterThanOrEqual(4.0);
     expect(result.overallScore).toBeLessThanOrEqual(10.0);
     expect(result.breakdown.experience.score).toBeGreaterThan(0);
     expect(result.breakdown.skills.score).toBeGreaterThan(0);

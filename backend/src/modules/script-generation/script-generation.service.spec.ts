@@ -70,7 +70,8 @@ describe('ScriptGenerationService', () => {
     expect(script.scenes.length).toBeGreaterThanOrEqual(4);
     expect(script.fullNarration).toContain('Meet Anil BV');
     expect(script.fullNarration).toContain('Thinkify Labs');
-    expect(script.fullNarration).toContain('Sri Venkateshwara College of Engineering');
+    expect(script.fullNarration).toContain('AI Agents');
+    expect(script.companies).toContain('Thinkify Labs');
     expect(script.estimatedDurationSeconds).toBeGreaterThan(20);
   });
 });

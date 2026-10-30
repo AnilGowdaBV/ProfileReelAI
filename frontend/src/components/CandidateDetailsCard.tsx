@@ -9,6 +9,7 @@ import {
 import { StatusBadge } from './StatusBadge';
 import { VideoReelPlayer } from './VideoReelPlayer';
 import { CandidateScoreCard } from './CandidateScoreCard';
+import { BestSuitedRolesCard } from './BestSuitedRolesCard';
 import { api } from '../services/api';
 import {
   User,
@@ -381,17 +382,26 @@ export const CandidateDetailsCard: React.FC<CandidateDetailsCardProps> = ({
             />
           </div>
 
-          {/* Side Column: AI Video Reel (Small / Compact Size) */}
-          <div className="lg:col-span-5">
+          {/* Side Column: AI Video Reel & Best Suitable For Card */}
+          <div className="lg:col-span-5 space-y-6">
             <VideoReelPlayer
               videoId={video?.id}
               candidateName={candidate.displayName || 'Candidate'}
               script={video?.script}
               durationSeconds={video?.durationSeconds}
+              posterUrl={candidate.profilePictureUrl}
               onGenerate={handleGenerateVideo}
               isGenerating={isGeneratingVideo}
               generationStage={generationStage}
               error={videoError}
+            />
+
+            {/* Candidate is Best Suitable For Card - Placed directly below video to eliminate whitespace */}
+            <BestSuitedRolesCard
+              candidateName={candidate.displayName}
+              candidateLinkedinUrl={candidate.normalizedProfileUrl}
+              score={score}
+              candidateSkills={factsByCategory.skills.map((f) => f.factText)}
             />
           </div>
         </div>
