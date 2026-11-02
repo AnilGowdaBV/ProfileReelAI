@@ -30,4 +30,9 @@ export class CreatePaymentOrderDto {
   @IsOptional()
   @IsString()
   candidateProfileUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }

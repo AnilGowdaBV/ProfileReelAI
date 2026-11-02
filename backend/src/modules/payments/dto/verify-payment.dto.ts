@@ -26,4 +26,14 @@ export class VerifyPaymentDto {
   @IsOptional()
   @IsString()
   candidateProfileUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  userEmail?: string;
 }

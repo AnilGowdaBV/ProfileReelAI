@@ -191,6 +191,24 @@ export class PaymentsService {
       this.activeSubscriptions.set(clean + '/', record);
     }
 
+    // Persist Pro status to database user account
+    if (dto.userId || dto.userEmail) {
+      try {
+        const user = await this.userRepository.findOne({
+          where: [{ id: dto.userId }, { email: dto.userEmail }],
+        });
+        if (user) {
+          user.isPro = true;
+          user.proExpiresAt = new Date(expiresAt);
+          user.lastPaymentId = dto.razorpayPaymentId;
+          await this.userRepository.save(user);
+          this.logger.log(`✓ Activated Pro in database for user: ${user.name} (${user.email})`);
+        }
+      } catch (err: any) {
+        this.logger.error(`Failed to update user subscription in database: ${err.message}`);
+      }
+    }
+
     this.logger.log(`✓ Payment verified successfully! Pro activated for ${durationDays} days.`);
 
     return {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api, API_BASE } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { Shield, Check, X, CreditCard, QrCode, Lock, RotateCcw } from 'lucide-react';
 
 interface SubscriptionModalProps {
@@ -17,6 +18,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   onUnlockPro,
   onResetFree,
 }) => {
+  const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Auto-sync payment status via postMessage and periodic backend polling
@@ -33,7 +35,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
     const timer = setInterval(async () => {
       try {
-        const res = await api.getSubscriptionStatus();
+        const res = await api.getSubscriptionStatus(user?.id || user?.email);
         if (res && res.isPremium) {
           onUnlockPro();
           onClose();
@@ -47,34 +49,42 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
       window.removeEventListener('message', handleMessage);
       clearInterval(timer);
     };
-  }, [isOpen, onUnlockPro, onClose]);
+  }, [isOpen, onUnlockPro, onClose, user]);
 
   if (!isOpen) return null;
 
   const handleRazorpayCheckout = async () => {
     setIsProcessing(true);
     try {
-      // 1. Create official Razorpay order with live credentials
+      // 1. Create official Razorpay order tied strictly to authenticated user
       const res = await fetch(`${API_BASE}/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'monthly' }),
+        body: JSON.stringify({
+          plan: 'monthly',
+          customerName: user?.name,
+          customerEmail: user?.email,
+          userId: user?.id,
+        }),
       });
       const data = await res.json();
+
+      const userParams = `userId=${encodeURIComponent(user?.id || '')}&userEmail=${encodeURIComponent(user?.email || '')}`;
 
       if (data && data.paymentLinkUrl) {
         // Direct to Razorpay's official hosted live checkout
         window.open(data.paymentLinkUrl, '_blank');
       } else if (data && data.orderId) {
-        const checkoutUrl = `${API_BASE}/payments/checkout?orderId=${data.orderId}&plan=monthly&amount=100`;
+        const checkoutUrl = `${API_BASE}/payments/checkout?orderId=${data.orderId}&plan=monthly&amount=100&${userParams}`;
         window.open(checkoutUrl, '_blank', 'width=520,height=720');
       } else {
-        const checkoutUrl = `${API_BASE}/payments/checkout?plan=monthly&amount=100`;
+        const checkoutUrl = `${API_BASE}/payments/checkout?plan=monthly&amount=100&${userParams}`;
         window.open(checkoutUrl, '_blank', 'width=520,height=720');
       }
     } catch (err) {
       console.error('Error starting Razorpay checkout:', err);
-      const checkoutUrl = `${API_BASE}/payments/checkout?plan=monthly&amount=100`;
+      const userParams = `userId=${encodeURIComponent(user?.id || '')}&userEmail=${encodeURIComponent(user?.email || '')}`;
+      const checkoutUrl = `${API_BASE}/payments/checkout?plan=monthly&amount=100&${userParams}`;
       window.open(checkoutUrl, '_blank', 'width=520,height=720');
     } finally {
       setTimeout(() => {

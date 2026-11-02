@@ -84,6 +84,8 @@ export class PaymentsController {
     @Query('plan') plan: string,
     @Query('amount') amount: string,
     @Query('candidateProfileUrl') candidateProfileUrl: string,
+    @Query('userId') userId: string,
+    @Query('userEmail') userEmail: string,
     @Res() res: Response,
   ) {
     let activeOrderId = orderId;
@@ -211,7 +213,9 @@ export class PaymentsController {
                   razorpayOrderId: response.razorpay_order_id,
                   razorpaySignature: response.razorpay_signature,
                   plan: "${plan || 'monthly'}",
-                  candidateProfileUrl: "${candidateProfileUrl || ''}"
+                  candidateProfileUrl: "${candidateProfileUrl || ''}",
+                  userId: "${userId || ''}",
+                  userEmail: "${userEmail || ''}"
                 })
               }).then(function(r) { return r.json(); }).then(function(data) {
                 window.location.href = '/api/payments/callback-success?orderId=' + encodeURIComponent(response.razorpay_order_id);
