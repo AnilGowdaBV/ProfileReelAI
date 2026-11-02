@@ -25,22 +25,18 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Brand */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-brand-accent p-0.5 shadow-md shadow-brand-500/25">
-            <div className="w-full h-full bg-white dark:bg-charcoal-950 rounded-[10px] flex items-center justify-center transition-colors">
-              <Film className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-            </div>
+        <div className="flex items-center gap-3 group cursor-pointer">
+          <div className="relative">
+            <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-brand-500 to-indigo-500 opacity-60 blur-xs group-hover:opacity-100 transition-opacity" />
+            <img
+              src="/logo.jpg"
+              alt="ProfileReel AI"
+              className="relative w-9 h-9 rounded-xl object-cover shadow-md border border-slate-200/50 dark:border-white/20 group-hover:scale-105 transition-transform"
+            />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-indigo-900 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
-                ProfileReel AI
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
-              One profile. One AI. One powerful story.
-            </p>
-          </div>
+          <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-indigo-900 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
+            ProfileReel AI
+          </span>
         </div>
 
         {/* Navigation Links, Theme Toggle & Pro Action */}

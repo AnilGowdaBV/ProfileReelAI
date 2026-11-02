@@ -204,26 +204,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
           {/* Logo & Brand */}
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-brand-500 via-indigo-500 to-fuchsia-500 opacity-60 blur-sm group-hover:opacity-100 transition-opacity" />
-              <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-fuchsia-600 p-[1.5px] shadow-lg shadow-brand-500/25">
-                <div className="w-full h-full bg-white dark:bg-[#0b0f19] rounded-[14px] flex items-center justify-center">
-                  <Film className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-                </div>
-              </div>
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="relative">
+              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-brand-500 via-indigo-500 to-cyan-500 opacity-60 blur-sm group-hover:opacity-100 transition-opacity" />
+              <img
+                src="/logo.jpg"
+                alt="ProfileReel AI"
+                className="relative w-10 h-10 rounded-xl object-cover shadow-lg border border-slate-200/50 dark:border-white/20 group-hover:scale-105 transition-transform"
+              />
             </div>
-            <div>
-              <div className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-indigo-900 dark:from-white dark:via-slate-100 dark:to-slate-300 bg-clip-text text-transparent flex items-center gap-2">
-                <span>ProfileReel AI</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
-                  v2.4
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
-                One Profile. One AI. One Powerful Story.
-              </p>
-            </div>
+            <span className="font-black text-xl tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-indigo-900 dark:from-white dark:via-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              ProfileReel AI
+            </span>
           </div>
 
           {/* Links & CTA */}
