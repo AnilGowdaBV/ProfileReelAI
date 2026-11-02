@@ -85,6 +85,8 @@ export class PaymentsService {
           product: 'ProfileReel AI Pro',
           plan: dto.plan,
           customerName: dto.customerName || 'Subscriber',
+          customerEmail: dto.customerEmail || '',
+          userId: dto.userId || '',
           candidateProfileUrl: dto.candidateProfileUrl || '',
         },
       });
@@ -114,6 +116,8 @@ export class PaymentsService {
           notes: {
             orderId: order.id,
             plan: dto.plan,
+            userId: dto.userId || '',
+            customerEmail: dto.customerEmail || '',
             candidateProfileUrl: dto.candidateProfileUrl || '',
           },
           callback_url: `${baseUrl}/api/payments/callback-success?orderId=${order.id}`,
@@ -392,21 +396,54 @@ export class PaymentsService {
     this.activeSubscriptions.set(params.paymentId, record);
     this.activeSubscriptions.set(params.orderId, record);
 
-    // If userId or userEmail is provided, update MySQL users table directly!
-    if (params.userId || params.userEmail) {
+    // If userId or userEmail is not directly provided, fetch notes from Razorpay order or payment
+    let resolvedUserId = params.userId;
+    let resolvedUserEmail = params.userEmail;
+
+    if ((!resolvedUserId || !resolvedUserEmail) && this.razorpay) {
+      if (params.orderId && params.orderId.startsWith('order_')) {
+        try {
+          const rzpOrder = await this.razorpay.orders.fetch(params.orderId);
+          if (rzpOrder?.notes) {
+            resolvedUserId = resolvedUserId || rzpOrder.notes.userId;
+            resolvedUserEmail = resolvedUserEmail || rzpOrder.notes.customerEmail;
+          }
+        } catch (err: any) {
+          this.logger.warn(`Could not fetch Razorpay order notes: ${err.message}`);
+        }
+      }
+
+      if ((!resolvedUserId || !resolvedUserEmail) && params.paymentId && params.paymentId.startsWith('pay_')) {
+        try {
+          const rzpPayment = await this.razorpay.payments.fetch(params.paymentId);
+          if (rzpPayment) {
+            resolvedUserEmail = resolvedUserEmail || rzpPayment.email;
+            if (rzpPayment.notes) {
+              resolvedUserId = resolvedUserId || rzpPayment.notes.userId;
+              resolvedUserEmail = resolvedUserEmail || rzpPayment.notes.customerEmail;
+            }
+          }
+        } catch (err: any) {
+          this.logger.warn(`Could not fetch Razorpay payment notes: ${err.message}`);
+        }
+      }
+    }
+
+    // Update database user record directly
+    if (resolvedUserId || resolvedUserEmail) {
       try {
         const user = await this.userRepository.findOne({
-          where: [{ id: params.userId }, { email: params.userEmail }],
+          where: [{ id: resolvedUserId }, { email: resolvedUserEmail }],
         });
         if (user) {
           user.isPro = true;
           user.proExpiresAt = new Date(expiresAt);
           user.lastPaymentId = params.paymentId;
           await this.userRepository.save(user);
-          this.logger.log(`✓ Activated Pro for MySQL user: ${user.name} (${user.email})`);
+          this.logger.log(`✓ Activated Pro for database user: ${user.name} (${user.email})`);
         }
       } catch (err: any) {
-        this.logger.error(`Failed to update MySQL user subscription: ${err.message}`);
+        this.logger.error(`Failed to update database user subscription: ${err.message}`);
       }
     }
 
