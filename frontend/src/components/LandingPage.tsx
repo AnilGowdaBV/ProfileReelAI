@@ -34,8 +34,10 @@ import {
   FileCheck2,
   Clock,
   Terminal,
+  LogOut,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 interface LandingPageProps {
   onOpenLogin: () => void;
@@ -145,6 +147,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   isPro = false,
 }) => {
   const { theme, toggleTheme } = useTheme();
+  const { user, isLoggedIn, logout } = useAuth();
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [selectedDemo, setSelectedDemo] = useState<DemoProfile>(DEMO_PROFILES[0]);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -253,17 +256,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               )}
             </button>
 
-            {/* Sign in with LinkedIn Primary Button */}
-            <button
-              type="button"
-              onClick={onOpenLogin}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0A66C2] via-blue-600 to-indigo-600 hover:from-[#004182] hover:to-indigo-700 text-white font-bold text-xs shadow-lg shadow-[#0A66C2]/30 flex items-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
-                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-              </svg>
-              <span>Sign In with LinkedIn</span>
-            </button>
+            {/* Sign in or Dashboard Action */}
+            {isLoggedIn ? (
+              <div className="flex items-center gap-3">
+                <a
+                  href="/dashboard"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-brand-500/25 flex items-center gap-1.5 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <span>Go to Dashboard</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
+                <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-white/10">
+                  <div className="w-8 h-8 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                    {user?.name ? user.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenLogin}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0A66C2] via-blue-600 to-indigo-600 hover:from-[#004182] hover:to-indigo-700 text-white font-bold text-xs shadow-lg shadow-[#0A66C2]/30 flex items-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                </svg>
+                <span>Sign In with LinkedIn</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -301,17 +329,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto mb-10">
-          <button
-            type="button"
-            onClick={onOpenLogin}
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-[#0A66C2] via-blue-600 to-indigo-600 hover:from-[#004182] hover:to-indigo-700 text-white font-extrabold text-sm shadow-2xl shadow-blue-500/35 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group"
-          >
-            <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
-              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-            </svg>
-            <span>Launch Dashboard with LinkedIn</span>
-            <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-          </button>
+          {isLoggedIn ? (
+            <a
+              href="/dashboard"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-extrabold text-sm shadow-2xl shadow-brand-500/35 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] group"
+            >
+              <span>Go to Your Dashboard</span>
+              <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenLogin}
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-[#0A66C2] via-blue-600 to-indigo-600 hover:from-[#004182] hover:to-indigo-700 text-white font-extrabold text-sm shadow-2xl shadow-blue-500/35 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group"
+            >
+              <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
+                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+              </svg>
+              <span>Launch Dashboard with LinkedIn</span>
+              <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            </button>
+          )}
 
           <a
             href="#interactive-preview"

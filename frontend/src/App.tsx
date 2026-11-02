@@ -16,26 +16,44 @@ const queryClient = new QueryClient({
   },
 });
 
-const MainView: React.FC = () => {
-  const { isLoggedIn } = useAuth();
+const LandingRoute: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-
   return (
     <>
-      {isLoggedIn ? (
-        <DashboardPage />
-      ) : (
-        <LandingPage onOpenLogin={() => setIsLoginModalOpen(true)} />
-      )}
-
+      <LandingPage onOpenLogin={() => setIsLoginModalOpen(true)} />
       {isLoginModalOpen && (
         <LoginModal
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
+          onSuccess={() => {
+            window.location.href = '/dashboard';
+          }}
         />
       )}
     </>
   );
+};
+
+const DashboardRoute: React.FC = () => {
+  const { isLoggedIn } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <LandingPage onOpenLogin={() => setIsLoginModalOpen(true)} />
+        <LoginModal
+          isOpen={true}
+          onClose={() => setIsLoginModalOpen(false)}
+          onSuccess={() => {
+            window.location.href = '/dashboard';
+          }}
+        />
+      </>
+    );
+  }
+
+  return <DashboardPage />;
 };
 
 export const App: React.FC = () => {
@@ -45,8 +63,8 @@ export const App: React.FC = () => {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<MainView />} />
-              <Route path="/dashboard" element={<MainView />} />
+              <Route path="/" element={<LandingRoute />} />
+              <Route path="/dashboard" element={<DashboardRoute />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>

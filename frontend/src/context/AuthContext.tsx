@@ -25,8 +25,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
     try {
-      const saved = localStorage.getItem('profilereel_user');
-      return saved ? JSON.parse(saved) : null;
+      // Clear legacy localStorage to ensure tab closure clears session
+      localStorage.removeItem('profilereel_user');
+      const session = sessionStorage.getItem('profilereel_user');
+      return session ? JSON.parse(session) : null;
     } catch {
       return null;
     }
@@ -58,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .then((data) => {
           if (data?.user) {
             setUser(data.user);
-            localStorage.setItem('profilereel_user', JSON.stringify(data.user));
+            sessionStorage.setItem('profilereel_user', JSON.stringify(data.user));
           }
         })
         .catch((err) => {
@@ -72,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const parsedUser: User = JSON.parse(decodeURIComponent(userParam));
         setUser(parsedUser);
-        localStorage.setItem('profilereel_user', JSON.stringify(parsedUser));
+        sessionStorage.setItem('profilereel_user', JSON.stringify(parsedUser));
 
         // Clean query parameters from address bar
         const cleanUrl = window.location.pathname;
@@ -87,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (event.data?.type === 'PROFILEREEL_AUTH_SUCCESS' && event.data?.user) {
         const receivedUser: User = event.data.user;
         setUser(receivedUser);
-        localStorage.setItem('profilereel_user', JSON.stringify(receivedUser));
+        sessionStorage.setItem('profilereel_user', JSON.stringify(receivedUser));
       }
     };
     window.addEventListener('message', handleAuthMessage);
@@ -128,7 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithCredentials = (authenticatedUser: User) => {
     setUser(authenticatedUser);
     try {
-      localStorage.setItem('profilereel_user', JSON.stringify(authenticatedUser));
+      sessionStorage.setItem('profilereel_user', JSON.stringify(authenticatedUser));
     } catch (e) {
       console.error(e);
     }
@@ -137,7 +139,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     try {
+      sessionStorage.removeItem('profilereel_user');
       localStorage.removeItem('profilereel_user');
+      window.location.href = '/';
     } catch (e) {
       console.error(e);
     }
