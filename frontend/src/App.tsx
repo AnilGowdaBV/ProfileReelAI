@@ -28,10 +28,12 @@ const MainView: React.FC = () => {
         <LandingPage onOpenLogin={() => setIsLoginModalOpen(true)} />
       )}
 
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-      />
+      {isLoginModalOpen && (
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+        />
+      )}
     </>
   );
 };

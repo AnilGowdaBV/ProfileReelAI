@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Shield, ArrowRight, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../services/api';
@@ -20,6 +20,45 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Auto-refresh and reset form every time modal is opened or closed
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('linkedin');
+      setIsRegisterMode(false);
+      setName('');
+      setEmail('');
+      setPassword('');
+      setIsSubmitting(false);
+      setErrorMsg(null);
+    }
+  }, [isOpen]);
+
+  // Close on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleModalClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  const handleModalClose = () => {
+    setErrorMsg(null);
+    setName('');
+    setEmail('');
+    setPassword('');
+    setIsSubmitting(false);
+    setIsRegisterMode(false);
+    onClose();
+  };
+
+  const handleTabSwitch = (tab: 'linkedin' | 'email') => {
+    setActiveTab(tab);
+    setErrorMsg(null);
+  };
 
   if (!isOpen) return null;
 
@@ -61,7 +100,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
         loginMethod: 'database',
       });
 
-      onClose();
+      handleModalClose();
       if (onSuccess) onSuccess();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to authenticate with database.');
@@ -71,12 +110,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md animate-fade-in">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleModalClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md animate-fade-in"
+    >
       <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden p-6 sm:p-8 text-slate-900 dark:text-white">
         
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleModalClose}
           className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
           title="Close"
         >
@@ -95,7 +141,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
             Sign In to ProfileReel AI
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-            Official OAuth 2.0 OpenID Connect &amp; MySQL 8.4 database login.
+            Official OAuth 2.0 OpenID Connect &amp; Secure Cloud Database login.
           </p>
         </div>
 
@@ -103,7 +149,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
         <div className="flex rounded-xl bg-slate-100 dark:bg-white/5 p-1 mb-6 text-xs font-bold">
           <button
             type="button"
-            onClick={() => setActiveTab('linkedin')}
+            onClick={() => handleTabSwitch('linkedin')}
             className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
               activeTab === 'linkedin'
                 ? 'bg-white dark:bg-charcoal-800 text-[#0A66C2] dark:text-[#38bdf8] shadow-xs'
@@ -114,7 +160,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('email')}
+            onClick={() => handleTabSwitch('email')}
             className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
               activeTab === 'email'
                 ? 'bg-white dark:bg-charcoal-800 text-brand-600 dark:text-brand-400 shadow-xs'
@@ -148,7 +194,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
             </button>
 
             <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/5 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed text-center">
-              🔒 Redirects to official <strong>linkedin.com</strong> authorization screen. Your profile picture, verified name, and email will be synchronized with our MySQL database.
+              🔒 Redirects to official <strong>linkedin.com</strong> authorization screen. Your profile picture, verified name, and email will be securely synchronized.
             </div>
           </div>
         )}
@@ -243,7 +289,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
         {/* Security & Privacy Notice */}
         <div className="mt-5 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
           <Shield className="w-3.5 h-3.5 text-emerald-500" />
-          <span>OAuth 2.0 SSL • MySQL 8.4 Normalized Auth</span>
+          <span>OAuth 2.0 SSL • Secure Normalized Auth</span>
         </div>
       </div>
     </div>
