@@ -25,6 +25,30 @@ export class AuthController {
     return res.redirect(authUrl);
   }
 
+  @Post('linkedin/exchange')
+  @ApiOperation({ summary: 'Exchange LinkedIn authorization code from frontend SPA without browser redirect' })
+  async exchangeLinkedInCode(
+    @Body() body: { code: string; redirectUri?: string },
+  ) {
+    if (!body?.code) {
+      throw new BadRequestException('Authorization code is required');
+    }
+    const user = await this.authService.handleLinkedInCallback(body.code, body.redirectUri);
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        headline: user.headline || 'Verified LinkedIn Member',
+        avatarUrl: user.avatarUrl,
+        linkedinUrl: user.linkedinId ? `https://linkedin.com/in/${user.linkedinId}` : undefined,
+        isPro: user.isPro,
+        loginMethod: 'linkedin',
+      },
+    };
+  }
+
   @Get('linkedin/callback')
   @ApiOperation({ summary: 'Official LinkedIn OAuth 2.0 redirect callback handler' })
   async handleLinkedInCallback(

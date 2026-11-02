@@ -55,10 +55,12 @@ export class AuthService {
   }
 
   /**
-   * Handle LinkedIn OAuth 2.0 callback, exchange code, fetch profile & persist to MySQL
+   * Handle LinkedIn OAuth 2.0 callback, exchange code, fetch profile & persist to database
    */
-  async handleLinkedInCallback(code: string): Promise<User> {
+  async handleLinkedInCallback(code: string, customRedirectUri?: string): Promise<User> {
     this.logger.log(`Exchanging LinkedIn authorization code for access token...`);
+
+    const redirectUri = customRedirectUri || this.redirectUri;
 
     // 1. Exchange code for access token
     const tokenResponse = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
@@ -69,7 +71,7 @@ export class AuthService {
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
-        redirect_uri: this.redirectUri,
+        redirect_uri: redirectUri,
         client_id: this.clientId,
         client_secret: this.clientSecret,
       }).toString(),

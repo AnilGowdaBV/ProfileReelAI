@@ -36,9 +36,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // 1. Check URL parameters from genuine LinkedIn OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
     const userParam = urlParams.get('user');
     const loginSuccess = urlParams.get('login_success');
 
+    // Case A: Frontend SPA direct code exchange
+    if (code) {
+      const isLocal = window.location.hostname === 'localhost';
+      const redirectUri = isLocal
+        ? 'http://localhost:5174/dashboard'
+        : `${window.location.origin}/dashboard`;
+
+      window.history.replaceState({}, '', window.location.pathname);
+
+      fetch(`${API_BASE}/auth/linkedin/exchange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, redirectUri }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.user) {
+            setUser(data.user);
+            localStorage.setItem('profilereel_user', JSON.stringify(data.user));
+          }
+        })
+        .catch((err) => {
+          console.error('Direct LinkedIn code exchange failed:', err);
+        });
+      return;
+    }
+
+    // Case B: Backend callback with serialized user redirect
     if (loginSuccess === 'true' && userParam) {
       try {
         const parsedUser: User = JSON.parse(decodeURIComponent(userParam));
@@ -68,9 +97,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Redirect browser to genuine LinkedIn OAuth 2.0 handshake
+  // Directly navigate to official linkedin.com (bypasses Render in address bar to prevent browser phishing warnings)
   const loginWithLinkedIn = () => {
-    window.location.href = `${API_BASE}/auth/linkedin`;
+    const clientId = '86l8y9yf175uqy';
+    const isLocal = window.location.hostname === 'localhost';
+
+    // Use backend callback URL registered in LinkedIn Developer Portal
+    const redirectUri = isLocal
+      ? 'http://localhost:3000/api/auth/linkedin/callback'
+      : `${API_BASE}/auth/linkedin/callback`;
+
+    const state = Math.random().toString(36).substring(2, 15);
+    try {
+      sessionStorage.setItem('linkedin_oauth_state', state);
+    } catch (e) {
+      // ignore
+    }
+
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: 'openid profile email',
+      state,
+    });
+
+    window.location.href = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
   };
 
   const loginWithCredentials = (authenticatedUser: User) => {
