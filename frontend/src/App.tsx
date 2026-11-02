@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardPage } from './pages/DashboardPage';
 import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/LoginModal';
+import { FullPageSpinner } from './components/FullPageSpinner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,8 +36,20 @@ const LandingRoute: React.FC = () => {
 };
 
 const DashboardRoute: React.FC = () => {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, authTransition } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  // During active OAuth token exchange or session establishment, render smooth spinner
+  if (authTransition.isActive) {
+    return (
+      <FullPageSpinner
+        title={authTransition.title}
+        subtitle={authTransition.subtitle}
+        badge={authTransition.badge}
+        variant={authTransition.variant}
+      />
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -56,18 +69,38 @@ const DashboardRoute: React.FC = () => {
   return <DashboardPage />;
 };
 
+const AppContent: React.FC = () => {
+  const { authTransition } = useAuth();
+
+  return (
+    <>
+      {/* Global Top-Level Smooth Transition Spinner */}
+      {authTransition.isActive && (
+        <FullPageSpinner
+          title={authTransition.title}
+          subtitle={authTransition.subtitle}
+          badge={authTransition.badge}
+          variant={authTransition.variant}
+        />
+      )}
+
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingRoute />} />
+          <Route path="/dashboard" element={<DashboardRoute />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </>
+  );
+};
+
 export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LandingRoute />} />
-              <Route path="/dashboard" element={<DashboardRoute />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </BrowserRouter>
+          <AppContent />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

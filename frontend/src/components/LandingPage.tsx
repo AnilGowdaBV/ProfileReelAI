@@ -147,7 +147,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   isPro = false,
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, logout, loginWithLinkedIn } = useAuth();
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [selectedDemo, setSelectedDemo] = useState<DemoProfile>(DEMO_PROFILES[0]);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -340,7 +340,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           ) : (
             <button
               type="button"
-              onClick={onOpenLogin}
+              onClick={loginWithLinkedIn}
               className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-[#0A66C2] via-blue-600 to-indigo-600 hover:from-[#004182] hover:to-indigo-700 text-white font-extrabold text-sm shadow-2xl shadow-blue-500/35 flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer group"
             >
               <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">

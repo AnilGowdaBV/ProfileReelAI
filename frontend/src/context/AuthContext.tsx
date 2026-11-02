@@ -12,9 +12,19 @@ export interface User {
   isPro?: boolean;
 }
 
+export interface AuthTransitionState {
+  isActive: boolean;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  variant: 'linkedin' | 'brand' | 'success' | 'logout';
+}
+
 interface AuthContextType {
   user: User | null;
   isLoggedIn: boolean;
+  authTransition: AuthTransitionState;
+  setAuthTransition: React.Dispatch<React.SetStateAction<AuthTransitionState>>;
   loginWithLinkedIn: () => void;
   loginWithCredentials: (user: User) => void;
   logout: () => void;
@@ -34,9 +44,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  // Listen for real LinkedIn OAuth redirect or popup postMessage
+  // Detect incoming OAuth parameters immediately on initial execution to avoid any unauthenticated flash
+  const initialOAuthParams = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search)
+    : null;
+  const isIncomingOAuth = Boolean(
+    initialOAuthParams?.get('code') ||
+    initialOAuthParams?.get('user')
+  );
+
+  const [authTransition, setAuthTransition] = useState<AuthTransitionState>({
+    isActive: isIncomingOAuth,
+    title: isIncomingOAuth ? 'Authenticating with LinkedIn...' : 'Loading...',
+    subtitle: isIncomingOAuth
+      ? 'Exchanging secure OAuth 2.0 credentials & synchronizing profile...'
+      : 'Please wait...',
+    badge: 'Enterprise Single Sign-On',
+    variant: 'linkedin',
+  });
+
+  // Listen for genuine LinkedIn OAuth redirect or popup postMessage
   useEffect(() => {
-    // 1. Check URL parameters from genuine LinkedIn OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const userParam = urlParams.get('user');
@@ -44,6 +72,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Case A: Frontend SPA direct code exchange
     if (code) {
+      setAuthTransition({
+        isActive: true,
+        title: 'Authenticating with LinkedIn...',
+        subtitle: 'Verifying OAuth 2.0 credentials with LinkedIn server...',
+        badge: 'Enterprise SSO',
+        variant: 'linkedin',
+      });
+
       const isLocal = window.location.hostname === 'localhost';
       const redirectUri = isLocal
         ? 'http://localhost:5174/dashboard'
@@ -61,10 +97,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (data?.user) {
             setUser(data.user);
             sessionStorage.setItem('profilereel_user', JSON.stringify(data.user));
+
+            setAuthTransition({
+              isActive: true,
+              title: `Welcome, ${data.user.name || 'Member'}!`,
+              subtitle: 'Loading your Studio Dashboard...',
+              badge: 'Authentication Verified',
+              variant: 'success',
+            });
+
+            setTimeout(() => {
+              setAuthTransition((prev) => ({ ...prev, isActive: false }));
+            }, 600);
+          } else {
+            setAuthTransition((prev) => ({ ...prev, isActive: false }));
           }
         })
         .catch((err) => {
           console.error('Direct LinkedIn code exchange failed:', err);
+          setAuthTransition((prev) => ({ ...prev, isActive: false }));
         });
       return;
     }
@@ -76,20 +127,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(parsedUser);
         sessionStorage.setItem('profilereel_user', JSON.stringify(parsedUser));
 
-        // Clean query parameters from address bar
+        setAuthTransition({
+          isActive: true,
+          title: `Welcome, ${parsedUser.name || 'Member'}!`,
+          subtitle: 'Loading your Studio Dashboard...',
+          badge: 'Authentication Verified',
+          variant: 'success',
+        });
+
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, '', cleanUrl);
+
+        setTimeout(() => {
+          setAuthTransition((prev) => ({ ...prev, isActive: false }));
+        }, 600);
       } catch (err) {
         console.error('Failed to parse LinkedIn user from callback URL:', err);
+        setAuthTransition((prev) => ({ ...prev, isActive: false }));
       }
     }
 
-    // 2. Real-time postMessage listener from popup
+    // Real-time postMessage listener from popup
     const handleAuthMessage = (event: MessageEvent) => {
       if (event.data?.type === 'PROFILEREEL_AUTH_SUCCESS' && event.data?.user) {
         const receivedUser: User = event.data.user;
         setUser(receivedUser);
         sessionStorage.setItem('profilereel_user', JSON.stringify(receivedUser));
+
+        setAuthTransition({
+          isActive: true,
+          title: `Welcome, ${receivedUser.name || 'Member'}!`,
+          subtitle: 'Loading your Studio Dashboard...',
+          badge: 'Authentication Verified',
+          variant: 'success',
+        });
+
+        setTimeout(() => {
+          setAuthTransition((prev) => ({ ...prev, isActive: false }));
+        }, 600);
       }
     };
     window.addEventListener('message', handleAuthMessage);
@@ -99,14 +174,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Directly navigate to official linkedin.com (bypasses Render in address bar to prevent browser phishing warnings)
+  // Directly navigate to official linkedin.com with smooth pre-transition spinner
   const loginWithLinkedIn = () => {
+    setAuthTransition({
+      isActive: true,
+      title: 'Connecting to LinkedIn...',
+      subtitle: 'Redirecting to official LinkedIn OAuth 2.0 authorization...',
+      badge: 'Secure Redirect',
+      variant: 'linkedin',
+    });
+
     const clientId = '86l8y9yf175uqy';
     const isLocal = window.location.hostname === 'localhost';
 
-    // In production, redirecting to Vercel completely bypasses Chrome Safe Browsing warnings
     const redirectUri = isLocal
-      ? 'http://localhost:3000/api/auth/linkedin/callback'
+      ? 'http://localhost:5174/dashboard'
       : `${window.location.origin}/dashboard`;
 
     const state = Math.random().toString(36).substring(2, 15);
@@ -124,7 +206,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       state,
     });
 
-    window.location.href = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
+    setTimeout(() => {
+      window.location.href = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
+    }, 350);
   };
 
   const loginWithCredentials = (authenticatedUser: User) => {
@@ -134,17 +218,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       console.error(e);
     }
+
+    setAuthTransition({
+      isActive: true,
+      title: `Welcome back, ${authenticatedUser.name || 'Member'}!`,
+      subtitle: 'Setting up your Studio Dashboard...',
+      badge: 'Database Verified',
+      variant: 'success',
+    });
+
+    setTimeout(() => {
+      setAuthTransition((prev) => ({ ...prev, isActive: false }));
+      window.location.href = '/dashboard';
+    }, 650);
   };
 
   const logout = () => {
-    setUser(null);
-    try {
-      sessionStorage.removeItem('profilereel_user');
-      localStorage.removeItem('profilereel_user');
+    setAuthTransition({
+      isActive: true,
+      title: 'Signing Out Safely...',
+      subtitle: 'Clearing session credentials and returning to landing page...',
+      badge: 'Session Ended',
+      variant: 'logout',
+    });
+
+    setTimeout(() => {
+      setUser(null);
+      try {
+        sessionStorage.removeItem('profilereel_user');
+        localStorage.removeItem('profilereel_user');
+      } catch (e) {
+        console.error(e);
+      }
+      setAuthTransition((prev) => ({ ...prev, isActive: false }));
       window.location.href = '/';
-    } catch (e) {
-      console.error(e);
-    }
+    }, 650);
   };
 
   return (
@@ -152,6 +260,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isLoggedIn: Boolean(user),
+        authTransition,
+        setAuthTransition,
         loginWithLinkedIn,
         loginWithCredentials,
         logout,

@@ -14,6 +14,7 @@ import { Footer } from '../components/Footer';
 import { Candidate, HealthStatus, CandidateScore } from '../types/candidate';
 import { api, ApiError } from '../services/api';
 import { Sparkles, Database, ShieldCheck, Zap } from 'lucide-react';
+import { FullPageSpinner } from '../components/FullPageSpinner';
 
 export const DashboardPage: React.FC = () => {
   const [health, setHealth] = useState<HealthStatus | undefined>(undefined);
@@ -131,6 +132,17 @@ export const DashboardPage: React.FC = () => {
   const candidateSkills = (selectedCandidate?.facts || [])
     .filter((f) => f.category === 'skills')
     .map((f) => f.factText);
+
+  if (isInitialLoading) {
+    return (
+      <FullPageSpinner
+        title="Loading Studio Dashboard..."
+        subtitle="Connecting to candidate evaluation intelligence & live roles..."
+        badge="ProfileReel AI Studio"
+        variant="brand"
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-transparent dark:bg-charcoal-950 relative overflow-x-hidden flex flex-col text-slate-800 dark:text-slate-100 selection:bg-brand-500 selection:text-white transition-colors duration-200">
