@@ -12,7 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { PaymentsService } from './payments.service';
-import { CreatePaymentOrderDto } from './dto/create-order.dto';
+import { CreatePaymentOrderDto, SubscriptionPlan } from './dto/create-order.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 
 @ApiTags('Payments')
@@ -79,13 +79,28 @@ export class PaymentsController {
 
   @Get('checkout')
   @ApiOperation({ summary: 'Hosted official Razorpay checkout page' })
-  checkout(
+  async checkout(
     @Query('orderId') orderId: string,
     @Query('plan') plan: string,
     @Query('amount') amount: string,
     @Query('candidateProfileUrl') candidateProfileUrl: string,
     @Res() res: Response,
   ) {
+    let activeOrderId = orderId;
+
+    // If orderId was not provided, auto-create a real Razorpay order on the fly
+    if (!activeOrderId || activeOrderId === 'undefined') {
+      try {
+        const order = await this.paymentsService.createPaymentOrder({
+          plan: (plan as SubscriptionPlan) || SubscriptionPlan.MONTHLY,
+          candidateProfileUrl,
+        });
+        activeOrderId = order.orderId;
+      } catch (err: any) {
+        // Fallback
+      }
+    }
+
     const numAmount = 100;
     const amountInPaise = 10000;
     const keyId = this.paymentsService.getPublicKey();
@@ -155,7 +170,7 @@ export class PaymentsController {
           <div class="amount-box">
             <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">TOTAL AMOUNT DUE</div>
             <div class="amount-val">₹100</div>
-            <div class="order-ref">Order: ${orderId} • Monthly Pro Subscription</div>
+            <div class="order-ref">${activeOrderId && activeOrderId !== 'undefined' ? `Order: ${activeOrderId} • ` : ''}Monthly Pro Subscription</div>
           </div>
           <div style="background: rgba(37, 99, 235, 0.15); border: 1px dashed rgba(59, 130, 246, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 18px; font-size: 11.5px; color: #93c5fd; text-align: left; line-height: 1.4;">
             💡 <strong>Payment Instructions:</strong><br>
@@ -172,7 +187,7 @@ export class PaymentsController {
             currency: "INR",
             name: "ProfileReel AI",
             description: "ProfileReel AI Pro Monthly (₹100/mo)",
-            order_id: "${orderId}",
+            ${activeOrderId && activeOrderId !== 'undefined' ? `order_id: "${activeOrderId}",` : ''}
             prefill: {
               name: "Subscriber",
               email: "subscriber@profilereel.ai",

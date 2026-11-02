@@ -21,16 +21,36 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleRazorpayCheckout = () => {
+  const handleRazorpayCheckout = async () => {
     setIsProcessing(true);
-    // Open the hosted Razorpay checkout page from the backend for ₹100 monthly plan
-    const checkoutUrl = `${API_BASE}/payments/checkout?plan=monthly&amount=100`;
-    window.open(checkoutUrl, '_blank', 'width=520,height=720');
+    try {
+      // 1. Create official Razorpay order with live credentials
+      const res = await fetch(`${API_BASE}/payments/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'monthly' }),
+      });
+      const data = await res.json();
 
-    // Reset processing state
-    setTimeout(() => {
-      setIsProcessing(false);
-    }, 2000);
+      if (data && data.paymentLinkUrl) {
+        // Direct to Razorpay's official hosted live checkout
+        window.open(data.paymentLinkUrl, '_blank');
+      } else if (data && data.orderId) {
+        const checkoutUrl = `${API_BASE}/payments/checkout?orderId=${data.orderId}&plan=monthly&amount=100`;
+        window.open(checkoutUrl, '_blank', 'width=520,height=720');
+      } else {
+        const checkoutUrl = `${API_BASE}/payments/checkout?plan=monthly&amount=100`;
+        window.open(checkoutUrl, '_blank', 'width=520,height=720');
+      }
+    } catch (err) {
+      console.error('Error starting Razorpay checkout:', err);
+      const checkoutUrl = `${API_BASE}/payments/checkout?plan=monthly&amount=100`;
+      window.open(checkoutUrl, '_blank', 'width=520,height=720');
+    } finally {
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 1500);
+    }
   };
 
   return (
