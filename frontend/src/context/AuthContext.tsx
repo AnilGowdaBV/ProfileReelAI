@@ -102,10 +102,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const clientId = '86l8y9yf175uqy';
     const isLocal = window.location.hostname === 'localhost';
 
-    // Use backend callback URL registered in LinkedIn Developer Portal
+    // In production, redirecting to Vercel completely bypasses Chrome Safe Browsing warnings
     const redirectUri = isLocal
       ? 'http://localhost:3000/api/auth/linkedin/callback'
-      : `${API_BASE}/auth/linkedin/callback`;
+      : `${window.location.origin}/dashboard`;
 
     const state = Math.random().toString(36).substring(2, 15);
     try {
