@@ -85,6 +85,10 @@ export class PaymentsService {
       // 2. Generate standard Payment Link for 1-click tab checkout
       let paymentLinkUrl: string | null = null;
       try {
+        const baseUrl =
+          this.configService.get<string>('BACKEND_URL') ||
+          process.env.RENDER_EXTERNAL_URL ||
+          'http://localhost:3000';
         const link = await this.razorpay.paymentLink.create({
           amount: amountInPaise,
           currency,
@@ -105,7 +109,7 @@ export class PaymentsService {
             plan: dto.plan,
             candidateProfileUrl: dto.candidateProfileUrl || '',
           },
-          callback_url: `http://localhost:3000/api/payments/callback-success?orderId=${order.id}`,
+          callback_url: `${baseUrl}/api/payments/callback-success?orderId=${order.id}`,
           callback_method: 'get',
         });
         paymentLinkUrl = link.short_url;
