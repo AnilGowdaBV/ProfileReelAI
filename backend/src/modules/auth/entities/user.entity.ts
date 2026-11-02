@@ -32,7 +32,7 @@ export class User {
   @Column({ type: 'boolean', default: false })
   isPro: boolean;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   proExpiresAt?: Date;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
