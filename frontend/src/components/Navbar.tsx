@@ -1,7 +1,8 @@
 import React from 'react';
-import { Film, Database, CheckCircle, AlertCircle, Zap, Sun, Moon } from 'lucide-react';
+import { Film, Database, CheckCircle, AlertCircle, Zap, Sun, Moon, LogOut } from 'lucide-react';
 import { HealthStatus } from '../types/candidate';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
   health?: HealthStatus;
@@ -17,6 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   hasScore = false,
 }) => {
   const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/90 dark:border-white/5 bg-white/90 dark:bg-charcoal-950/80 backdrop-blur-xl transition-colors duration-200 shadow-xs">
@@ -108,6 +110,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </>
               )}
             </button>
+          )}
+
+          {/* User Profile Pill & Log Out */}
+          {user && (
+            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-white/10">
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200/80 dark:border-white/10">
+                <div className="w-6 h-6 rounded-full bg-[#0A66C2] text-white flex items-center justify-center text-[10px] font-bold">
+                  {user.name ? user.name.substring(0, 2).toUpperCase() : 'IN'}
+                </div>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 hidden sm:inline">
+                  {user.name}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer text-xs"
+                title="Log Out to Landing Page"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           )}
         </div>
       </div>

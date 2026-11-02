@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { API_BASE } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { api, API_BASE } from '../services/api';
 import { Shield, Check, X, CreditCard, QrCode, Lock, RotateCcw } from 'lucide-react';
 
 interface SubscriptionModalProps {
@@ -18,6 +18,36 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   onResetFree,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Auto-sync payment status via postMessage and periodic backend polling
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PROFILEREEL_PAYMENT_SUCCESS') {
+        onUnlockPro();
+        onClose();
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    const timer = setInterval(async () => {
+      try {
+        const res = await api.getSubscriptionStatus();
+        if (res && res.isPremium) {
+          onUnlockPro();
+          onClose();
+        }
+      } catch (e) {
+        // Safe check
+      }
+    }, 2500);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearInterval(timer);
+    };
+  }, [isOpen, onUnlockPro, onClose]);
 
   if (!isOpen) return null;
 

@@ -119,4 +119,9 @@ export const api = {
         body: JSON.stringify({ profilePictureUrl }),
       },
     ),
+
+  getSubscriptionStatus: (identifier?: string) =>
+    request<{ isPremium: boolean; subscription?: any }>(
+      identifier ? `/payments/status?identifier=${encodeURIComponent(identifier)}` : '/payments/status',
+    ),
 };

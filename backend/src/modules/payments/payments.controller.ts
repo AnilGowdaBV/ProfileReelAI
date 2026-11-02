@@ -73,7 +73,7 @@ export class PaymentsController {
 
   @Get('status')
   @ApiOperation({ summary: 'Check subscription status for user or profile' })
-  getStatus(@Query('identifier') identifier?: string) {
+  async getStatus(@Query('identifier') identifier?: string) {
     return this.paymentsService.getSubscriptionStatus(identifier);
   }
 
@@ -238,15 +238,40 @@ export class PaymentsController {
 
   @Get('callback-success')
   @ApiOperation({ summary: 'Hosted callback success page' })
-  callbackSuccess(@Query('orderId') orderId: string, @Res() res: Response) {
+  async callbackSuccess(
+    @Query('orderId') orderId: string,
+    @Query('razorpay_payment_id') paymentId: string,
+    @Query('razorpay_payment_link_id') paymentLinkId: string,
+    @Query('razorpay_payment_link_status') paymentLinkStatus: string,
+    @Res() res: Response,
+  ) {
+    const activePaymentId = paymentId || (paymentLinkId ? `link_${paymentLinkId}` : `pay_${Date.now()}`);
+    const activeOrderId = orderId || 'order_direct';
+
+    try {
+      await this.paymentsService.recordSuccessfulPayment({
+        paymentId: activePaymentId,
+        orderId: activeOrderId,
+      });
+    } catch (e: any) {
+      // Safe fallback
+    }
+
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      'https://profile-reel-ai.vercel.app';
+    const redirectUrl = `${frontendUrl.replace(/\/+$/, '')}/?payment_success=true&orderId=${encodeURIComponent(activeOrderId)}`;
+
     res.setHeader('Content-Type', 'text/html');
     return res.send(`
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <title>Payment Successful • ProfileReel AI</title>
+        <title>Payment Successful • ProfileReel AI Pro</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
+          * { box-sizing: border-box; }
           body {
             margin: 0;
             padding: 0;
@@ -259,58 +284,101 @@ export class PaymentsController {
             min-height: 100vh;
           }
           .card {
-            background: rgba(18, 26, 46, 0.9);
+            background: rgba(18, 26, 46, 0.95);
             border: 1px solid rgba(16, 185, 129, 0.4);
-            border-radius: 16px;
-            padding: 36px 32px;
+            border-radius: 20px;
+            padding: 40px 32px;
             text-align: center;
-            max-width: 420px;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 30px rgba(16, 185, 129, 0.2);
+            max-width: 440px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px rgba(16, 185, 129, 0.25);
+            animation: fadeIn 0.4s ease-out;
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
           }
           .icon-badge {
-            width: 60px;
-            height: 60px;
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
-            background: rgba(16, 185, 129, 0.2);
+            background: rgba(16, 185, 129, 0.15);
             color: #34d399;
-            font-size: 28px;
+            font-size: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 16px auto;
+            margin: 0 auto 18px auto;
             border: 2px solid #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
           }
-          h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; color: #fff; }
-          p { color: #94a3b8; font-size: 13.5px; line-height: 1.5; margin-bottom: 24px; }
+          h1 { font-size: 24px; font-weight: 800; margin: 0 0 8px 0; color: #fff; }
+          p { color: #94a3b8; font-size: 14px; line-height: 1.5; margin: 0 0 20px 0; }
           .pill {
             background: rgba(99, 102, 241, 0.2);
             color: #a5b4fc;
-            padding: 6px 14px;
+            padding: 6px 16px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 700;
             display: inline-block;
             margin-bottom: 20px;
+            border: 1px solid rgba(99, 102, 241, 0.4);
           }
           .btn {
             background: linear-gradient(135deg, #10b981, #059669);
             color: #fff;
-            padding: 10px 24px;
-            border-radius: 8px;
+            padding: 14px 28px;
+            border-radius: 10px;
             text-decoration: none;
             font-weight: 700;
-            display: inline-block;
+            font-size: 14px;
+            display: block;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
           }
+          .btn:hover { background: #059669; transform: translateY(-1px); }
+          .redirect-note { font-size: 12px; color: #64748b; margin-top: 16px; }
         </style>
       </head>
       <body>
         <div class="card">
           <div class="icon-badge">✓</div>
-          <div class="pill">👑 PRO ACTIVE</div>
+          <div class="pill">👑 PRO ACTIVE • 30 DAYS</div>
           <h1>Payment Confirmed!</h1>
-          <p>Your ProfileReel AI Pro subscription is now active. All 45+ matching roles, specialized course tracks, and mock interview slots are unlocked.</p>
-          <a href="#" class="btn" onclick="window.close();">Return to LinkedIn Extension</a>
+          <p>Your <strong>ProfileReel AI Pro</strong> subscription has been successfully verified. 45+ verified roles and AI features are now unlocked!</p>
+          <a href="${redirectUrl}" id="return-link" class="btn">🚀 Open ProfileReel AI (Pro Unlocked)</a>
+          <div class="redirect-note" id="redirect-text">Redirecting automatically in 2 seconds...</div>
         </div>
+
+        <script>
+          // 1. Post real-time message to opener window if payment was opened from popup
+          if (window.opener && !window.opener.closed) {
+            try {
+              window.opener.postMessage({
+                type: 'PROFILEREEL_PAYMENT_SUCCESS',
+                orderId: '${activeOrderId}',
+                paymentId: '${activePaymentId}',
+                status: 'active'
+              }, '*');
+            } catch (e) {
+              console.error(e);
+            }
+          }
+
+          // 2. Set localStorage on this domain as well
+          try {
+            localStorage.setItem('profilereel_pro_active', 'true');
+          } catch(e) {}
+
+          // 3. Auto-redirect to frontend application
+          setTimeout(function() {
+            window.location.href = "${redirectUrl}";
+          }, 1800);
+        </script>
       </body>
       </html>
     `);

@@ -15,7 +15,28 @@ export class User {
   email: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
+  name?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
   passwordHash?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  linkedinId?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  headline?: string;
+
+  @Column({ type: 'text', nullable: true })
+  avatarUrl?: string;
+
+  @Column({ type: 'boolean', default: false })
+  isPro: boolean;
+
+  @Column({ type: 'datetime', nullable: true })
+  proExpiresAt?: Date;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  lastPaymentId?: string;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -1,9 +1,12 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
 import { CreatePaymentOrderDto, SubscriptionPlan } from './dto/create-order.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import * as QRCode from 'qrcode';
+import { User } from '../auth/entities/user.entity';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const Razorpay = require('razorpay');
@@ -31,7 +34,11 @@ export class PaymentsService {
   // In-memory subscription registry (can sync with DB / storage)
   private readonly activeSubscriptions = new Map<string, SubscriptionRecord>();
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {
     this.keyId = this.configService.get<string>('RAZORPAY_KEY_ID') || '';
     this.keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET') || '';
 
@@ -320,6 +327,7 @@ export class PaymentsService {
     };
 
     this.activeSubscriptions.set(paymentId, record);
+    this.activeSubscriptions.set('latest', record);
     if (dto.candidateProfileUrl) {
       this.activeSubscriptions.set(dto.candidateProfileUrl, record);
     }
@@ -337,27 +345,99 @@ export class PaymentsService {
   }
 
   /**
-   * Query subscription status
+   * Directly record a confirmed successful payment (e.g. from callback or checkout)
    */
-  getSubscriptionStatus(identifier?: string) {
-    let record: SubscriptionRecord | undefined;
+  async recordSuccessfulPayment(params: {
+    paymentId: string;
+    orderId: string;
+    candidateProfileUrl?: string;
+    plan?: string;
+    userId?: string;
+    userEmail?: string;
+  }) {
+    const durationDays = 30;
+    const now = Date.now();
+    const expiresAt = now + durationDays * 24 * 60 * 60 * 1000;
+
+    const record: SubscriptionRecord = {
+      paymentId: params.paymentId,
+      orderId: params.orderId,
+      plan: params.plan || 'monthly',
+      amount: 100,
+      currency: 'INR',
+      candidateProfileUrl: params.candidateProfileUrl,
+      status: 'active',
+      activatedAt: now,
+      expiresAt,
+    };
+
+    this.activeSubscriptions.set(params.paymentId, record);
+    this.activeSubscriptions.set(params.orderId, record);
+
+    // If userId or userEmail is provided, update MySQL users table directly!
+    if (params.userId || params.userEmail) {
+      try {
+        const user = await this.userRepository.findOne({
+          where: [{ id: params.userId }, { email: params.userEmail }],
+        });
+        if (user) {
+          user.isPro = true;
+          user.proExpiresAt = new Date(expiresAt);
+          user.lastPaymentId = params.paymentId;
+          await this.userRepository.save(user);
+          this.logger.log(`✓ Activated Pro for MySQL user: ${user.name} (${user.email})`);
+        }
+      } catch (err: any) {
+        this.logger.error(`Failed to update MySQL user subscription: ${err.message}`);
+      }
+    }
+
+    if (params.candidateProfileUrl) {
+      this.activeSubscriptions.set(params.candidateProfileUrl, record);
+      const clean = params.candidateProfileUrl.replace(/\/+$/, '');
+      this.activeSubscriptions.set(clean, record);
+      this.activeSubscriptions.set(clean + '/', record);
+    }
+    this.logger.log(`✓ Payment recorded successfully: ${params.paymentId} for order ${params.orderId}`);
+    return record;
+  }
+
+  /**
+   * Query subscription status for a specific user or profile
+   */
+  async getSubscriptionStatus(identifier?: string) {
     if (identifier) {
+      // 1. Check if identifier is a registered MySQL user
+      try {
+        const user = await this.userRepository.findOne({
+          where: [{ id: identifier }, { email: identifier }],
+        });
+        if (user) {
+          const isUserPro = Boolean(user.isPro) && (!user.proExpiresAt || new Date(user.proExpiresAt) > new Date());
+          return {
+            isPremium: isUserPro,
+            userId: user.id,
+            email: user.email,
+          };
+        }
+      } catch (e) {
+        // Safe check
+      }
+
+      // 2. Check in-memory subscriptions
       const clean = identifier.replace(/\/+$/, '');
-      record =
+      const record =
         this.activeSubscriptions.get(identifier) ||
         this.activeSubscriptions.get(clean) ||
         this.activeSubscriptions.get(clean + '/');
+      if (record && record.status === 'active' && record.expiresAt > Date.now()) {
+        return {
+          isPremium: true,
+          subscription: record,
+        };
+      }
     }
-    if (!record) {
-      record = this.activeSubscriptions.get('latest');
-    }
-    if (!record) {
-      return { isPremium: false };
-    }
-    const isActive = record.status === 'active' && record.expiresAt > Date.now();
-    return {
-      isPremium: isActive,
-      subscription: record,
-    };
+
+    return { isPremium: false };
   }
 }

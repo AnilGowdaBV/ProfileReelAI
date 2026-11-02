@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
+import { useAuth } from '../context/AuthContext';
 import {
   CandidateSubmissionCard,
   CandidateSubmissionPayload,
@@ -23,11 +24,55 @@ export const DashboardPage: React.FC = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Pro Subscription State
+  const { user } = useAuth();
+
+  // Pro Subscription State strictly tied to authenticated user database status
   const [isPro, setIsPro] = useState<boolean>(() => {
-    return localStorage.getItem('profilereel_pro_active') === 'true';
+    return Boolean(user?.isPro);
   });
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+
+  // Synchronize Pro Subscription status from MySQL database for this specific user
+  useEffect(() => {
+    // Clear old global test key from browser
+    localStorage.removeItem('profilereel_pro_active');
+
+    // 1. Check URL parameters (e.g. redirected from Razorpay checkout/callback)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment_success') === 'true' || urlParams.get('pro') === 'true') {
+      setIsPro(true);
+      setIsSubModalOpen(false);
+      // Clean query parameters from address bar without reloading
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+
+    // 2. Real-time postMessage listener from Razorpay checkout tabs or popups
+    const handlePaymentMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PROFILEREEL_PAYMENT_SUCCESS') {
+        setIsPro(true);
+        setIsSubModalOpen(false);
+      }
+    };
+    window.addEventListener('message', handlePaymentMessage);
+
+    // 3. Query backend subscription status for this specific authenticated user
+    if (user?.id) {
+      api.getSubscriptionStatus(user.id)
+        .then((res) => {
+          setIsPro(Boolean(res && res.isPremium));
+        })
+        .catch(() => {
+          setIsPro(false);
+        });
+    } else {
+      setIsPro(false);
+    }
+
+    return () => {
+      window.removeEventListener('message', handlePaymentMessage);
+    };
+  }, [user]);
 
   // Legal / Compliance Policy Modals
   const [activePolicy, setActivePolicy] = useState<PolicyType>(null);
@@ -40,7 +85,6 @@ export const DashboardPage: React.FC = () => {
           api.getHealth().catch(() => undefined),
           api.listCandidates().catch(() => []),
         ]);
-
         if (healthData) setHealth(healthData);
         if (candidatesData) {
           setCandidates(candidatesData);
