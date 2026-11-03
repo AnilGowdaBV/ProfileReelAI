@@ -24,7 +24,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           Flat ₹100 Monthly Subscription
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto mb-10">
-          One single, transparent plan. Unlock all 45+ live career roles, priority 1-on-1 FAANG mock interview slots, tailored learning tracks, and unlimited AI video reels.
+          One single, transparent plan. Unlock all 15 live career roles, 15 priority 1-on-1 FAANG mock interview slots, 15 specialized learning tracks, and unlimited AI video reels.
         </p>
 
         {/* Pricing Cards Grid */}
@@ -61,19 +61,31 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
                     <Check className="w-3.5 h-3.5" />
                   </div>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">Preview of Top 3 Verified Live Roles</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">5 Verified Live Roles (1-Click Apply)</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">5 Preferred Upskilling Courses</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">5 FAANG Mock Interview Slots</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-slate-400 dark:text-slate-500">
                   <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center flex-shrink-0 text-[10px]">
                     ✕
                   </div>
-                  <span>45+ Live Direct Job Applications</span>
+                  <span>15 Verified Live Roles (Pro Tier)</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-slate-400 dark:text-slate-500">
                   <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center flex-shrink-0 text-[10px]">
                     ✕
                   </div>
-                  <span>FAANG Mock Interview Panel</span>
+                  <span>15 Complete Courses &amp; Interview Slots</span>
                 </div>
               </div>
             </div>
@@ -104,7 +116,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               </div>
               
               <p className="text-xs text-slate-600 dark:text-slate-300 mb-6">
-                Complete access to the entire verified tech jobs catalog, FAANG mock interview slots, and expert upskilling tracks.
+                Complete access to the entire 15 verified tech jobs catalog, 15 FAANG mock interview slots, and 15 expert upskilling tracks.
               </p>
 
               <div className="space-y-3 text-xs text-slate-700 dark:text-slate-200 border-t border-brand-500/20 pt-6 mb-8">
@@ -112,19 +124,19 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   <div className="w-5 h-5 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center flex-shrink-0">
                     <Check className="w-3.5 h-3.5" />
                   </div>
-                  <span className="font-semibold text-slate-900 dark:text-white">45+ Live Verified Roles (1-click apply)</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">15 Live Verified Roles (1-click direct apply)</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-5 h-5 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center flex-shrink-0">
                     <Check className="w-3.5 h-3.5" />
                   </div>
-                  <span className="font-semibold text-slate-900 dark:text-white">FAANG Mock Interviews (1-on-1 slots)</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">15 FAANG Mock Interviews (1-on-1 priority slots)</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-5 h-5 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center flex-shrink-0">
                     <Check className="w-3.5 h-3.5" />
                   </div>
-                  <span className="font-semibold text-slate-900 dark:text-white">Meta, Stanford &amp; DeepLearning Tracks</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">15 Specialized Learning Pathways (Meta, Stanford, Google)</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-5 h-5 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center flex-shrink-0">

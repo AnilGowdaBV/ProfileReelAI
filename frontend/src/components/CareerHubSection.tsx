@@ -133,7 +133,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
     }
   };
 
-  // Preferred Courses
+  // Preferred Courses (15 Specialized Tracks)
   const COURSES = [
     {
       id: 'c-1',
@@ -175,9 +175,119 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
       skills: ['React', 'Node.js', 'Next.js', 'REST APIs'],
       url: 'https://www.coursera.org/professional-certificates/ibm-full-stack-cloud-developer',
     },
+    {
+      id: 'c-5',
+      title: 'High-Performance Go for Distributed Cloud Systems',
+      provider: 'Google Open Source • Coursera',
+      rating: '4.9 ★',
+      duration: '6 Weeks',
+      logo: '🚀',
+      skills: ['Golang', 'Concurrency', 'gRPC', 'Distributed Systems'],
+      url: 'https://www.coursera.org/specializations/google-golang',
+    },
+    {
+      id: 'c-6',
+      title: 'Deep Reinforcement Learning & LLM Alignment',
+      provider: 'Stanford Online',
+      rating: '5.0 ★',
+      duration: '10 Weeks',
+      logo: '🧠',
+      skills: ['Reinforcement Learning', 'RLHF', 'PyTorch', 'Model Alignment'],
+      url: 'https://online.stanford.edu/courses/cs234-reinforcement-learning',
+    },
+    {
+      id: 'c-7',
+      title: 'Machine Learning Operations (MLOps) at Scale',
+      provider: 'Databricks Academy',
+      rating: '4.9 ★',
+      duration: '6 Weeks',
+      logo: '📊',
+      skills: ['MLflow', 'Feature Stores', 'CI/CD for ML', 'Model Monitoring'],
+      url: 'https://www.databricks.com/learn/training/mlops',
+    },
+    {
+      id: 'c-8',
+      title: 'Enterprise Distributed Data Engineering with Kafka & Spark',
+      provider: 'AWS Training & Certification',
+      rating: '4.9 ★',
+      duration: '8 Weeks',
+      logo: '🔥',
+      skills: ['Apache Kafka', 'Apache Spark', 'AWS EMR', 'Data Lakes'],
+      url: 'https://aws.amazon.com/training/classroom/data-engineering-on-aws/',
+    },
+    {
+      id: 'c-9',
+      title: 'Advanced React Architecture, State & Concurrency',
+      provider: 'Meta Professional',
+      rating: '4.8 ★',
+      duration: '5 Weeks',
+      logo: '⚛️',
+      skills: ['React 19', 'Server Components', 'Performance', 'Custom Hooks'],
+      url: 'https://www.coursera.org/learn/advanced-react',
+    },
+    {
+      id: 'c-10',
+      title: 'Applied Cloud Cybersecurity & Zero Trust Architecture',
+      provider: 'Microsoft Learn',
+      rating: '4.8 ★',
+      duration: '6 Weeks',
+      logo: '🛡️',
+      skills: ['Zero Trust', 'Cloud Security', 'IAM', 'Network Security'],
+      url: 'https://learn.microsoft.com/training/paths/sc-100-cybersecurity-architect/',
+    },
+    {
+      id: 'c-11',
+      title: 'Large Language Model Orchestration with LangGraph & LlamaIndex',
+      provider: 'DeepLearning.AI',
+      rating: '5.0 ★',
+      duration: '4 Weeks',
+      logo: '🦙',
+      skills: ['LangGraph', 'LlamaIndex', 'Multi-Agent Systems', 'Vector Search'],
+      url: 'https://www.deeplearning.ai/short-courses/building-agentic-rag-with-llamaindex/',
+    },
+    {
+      id: 'c-12',
+      title: 'Linux Kernel & Low-Latency Systems Programming',
+      provider: 'The Linux Foundation',
+      rating: '4.9 ★',
+      duration: '10 Weeks',
+      logo: '🐧',
+      skills: ['Linux Kernel', 'eBPF', 'C', 'Low Latency', 'Memory Management'],
+      url: 'https://training.linuxfoundation.org/training/linux-kernel-internals-and-development/',
+    },
+    {
+      id: 'c-13',
+      title: 'High-Scale Database Internals & PostgreSQL Tuning',
+      provider: 'Carnegie Mellon Online',
+      rating: '5.0 ★',
+      duration: '8 Weeks',
+      logo: '🐘',
+      skills: ['PostgreSQL', 'Query Optimization', 'MVCC', 'Database Internals'],
+      url: 'https://15721.courses.cs.cmu.edu/',
+    },
+    {
+      id: 'c-14',
+      title: 'Cloud-Native Microservices with Spring Boot 3 & Istio',
+      provider: 'VMware Tanzu Academy',
+      rating: '4.8 ★',
+      duration: '6 Weeks',
+      logo: '🌱',
+      skills: ['Spring Boot', 'Service Mesh', 'Istio', 'Observability'],
+      url: 'https://tanzu.academy/',
+    },
+    {
+      id: 'c-15',
+      title: 'AI Ethics, Safety & Autonomous Agent Governance',
+      provider: 'MIT Professional Education',
+      rating: '4.9 ★',
+      duration: '6 Weeks',
+      logo: '⚖️',
+      skills: ['AI Governance', 'Safety & Alignment', 'Model Evaluation', 'Compliance'],
+      url: 'https://professional.mit.edu/programs/short-programs/ethics-ai',
+    },
   ];
 
-  // Expert Panelists
+  // Expert Panelists (15 Verified Technical Panelists)
   const INTERVIEW_PANEL = [
     {
       id: 'p-1',
@@ -218,6 +328,116 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
       experience: '10+ yrs exp • 160+ Interviews',
       rating: '4.9 ★',
       slots: 'Monday, 6:30 PM',
+    },
+    {
+      id: 'p-5',
+      name: 'Vikramaditya Singhania',
+      avatar: 'VS',
+      role: 'Principal Cloud Architect at AWS',
+      domain: 'Cloud Infrastructure & High-Scale Resilience',
+      experience: '13+ yrs exp • 210+ Interviews',
+      rating: '4.9 ★',
+      slots: 'Wednesday, 6:00 PM',
+    },
+    {
+      id: 'p-6',
+      name: 'Ananya Desai',
+      avatar: 'AD',
+      role: 'Senior Staff Engineer at Meta (ex-Stripe)',
+      domain: 'Frontend Architecture, Web Vitals & Microfrontends',
+      experience: '10+ yrs exp • 175+ Interviews',
+      rating: '5.0 ★',
+      slots: 'Friday, 5:30 PM',
+    },
+    {
+      id: 'p-7',
+      name: 'Karthik Sundaram',
+      avatar: 'KS',
+      role: 'Head of Platform Engineering at Razorpay',
+      domain: 'Fintech Scale, Distributed Caching & Kafka',
+      experience: '12+ yrs exp • 190+ Interviews',
+      rating: '4.9 ★',
+      slots: 'Tomorrow, 4:00 PM',
+    },
+    {
+      id: 'p-8',
+      name: 'Dr. Neha Kapoor',
+      avatar: 'NK',
+      role: 'Principal Research Scientist at Google DeepMind',
+      domain: 'Core ML Algorithms, Transformers & RLHF',
+      experience: '8+ yrs exp • 120+ Interviews',
+      rating: '5.0 ★',
+      slots: 'Tuesday, 6:30 PM',
+    },
+    {
+      id: 'p-9',
+      name: 'Tarun Raghavan',
+      avatar: 'TR',
+      role: 'VP of Mobile Engineering at CRED',
+      domain: 'Mobile Systems, React Native & Team Scaling',
+      experience: '15+ yrs exp • 300+ Interviews',
+      rating: '4.9 ★',
+      slots: 'Saturday, 11:00 AM',
+    },
+    {
+      id: 'p-10',
+      name: 'Meera Nambiar',
+      avatar: 'MN',
+      role: 'Staff Infrastructure Engineer at Uber',
+      domain: 'Low-Latency Golang Services & Kubernetes',
+      experience: '9+ yrs exp • 135+ Interviews',
+      rating: '4.9 ★',
+      slots: 'Thursday, 7:30 PM',
+    },
+    {
+      id: 'p-11',
+      name: 'Siddharth Banerjee',
+      avatar: 'SB',
+      role: 'Principal Site Reliability Lead at Apple',
+      domain: 'Zero-Downtime Deployments & SRE Practices',
+      experience: '11+ yrs exp • 165+ Interviews',
+      rating: '4.8 ★',
+      slots: 'Wednesday, 3:30 PM',
+    },
+    {
+      id: 'p-12',
+      name: 'Pooja Varma',
+      avatar: 'PV',
+      role: 'Director of Data Platforms at Flipkart',
+      domain: 'Big Data Lakes, Apache Flink & Analytics',
+      experience: '13+ yrs exp • 220+ Interviews',
+      rating: '4.9 ★',
+      slots: 'Friday, 4:00 PM',
+    },
+    {
+      id: 'p-13',
+      name: 'Aditya Kulkarni',
+      avatar: 'AK',
+      role: 'Staff Security Architect at Zscaler',
+      domain: 'Cloud Security, Threat Modeling & DevSecOps',
+      experience: '10+ yrs exp • 145+ Interviews',
+      rating: '4.8 ★',
+      slots: 'Monday, 5:00 PM',
+    },
+    {
+      id: 'p-14',
+      name: 'Divya Chawla',
+      avatar: 'DC',
+      role: 'Engineering Lead at Atlassian',
+      domain: 'GraphQL Federation, Node.js & Enterprise Scaling',
+      experience: '8+ yrs exp • 115+ Interviews',
+      rating: '4.9 ★',
+      slots: 'Saturday, 3:00 PM',
+    },
+    {
+      id: 'p-15',
+      name: 'Rajesh Sengupta',
+      avatar: 'RS',
+      role: 'Partner Technical Lead at Microsoft Azure',
+      domain: 'Enterprise Cloud Transformation & Executive Rounds',
+      experience: '16+ yrs exp • 340+ Interviews',
+      rating: '5.0 ★',
+      slots: 'Sunday, 11:30 AM',
     },
   ];
 
@@ -314,18 +534,18 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
               className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-brand-500/20 hover:from-amber-500/30 hover:to-brand-500/30 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-              <span>Unlock 45+ Pro Features</span>
+              <span>Unlock 15 Pro Features</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* TAB 1: 45+ ROLES */}
+      {/* TAB 1: 15 VERIFIED ROLES */}
       {activeTab === 'roles' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1">
             <span>
-              Showing {isPro ? LIVE_ROLES.length : 3} of {LIVE_ROLES.length} Live Opportunities
+              Showing {isPro ? 15 : 5} of 15 Live Opportunities
             </span>
             <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -334,7 +554,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(isPro ? LIVE_ROLES : LIVE_ROLES.slice(0, 3)).map((job) => (
+            {(isPro ? LIVE_ROLES.slice(0, 15) : LIVE_ROLES.slice(0, 5)).map((job) => (
               <div
                 key={job.id}
                 className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-brand-500/40 dark:hover:border-brand-500/30 transition-all flex flex-col justify-between group"
@@ -415,10 +635,10 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                   </div>
                   <div>
                     <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                      Unlock 45+ More Verified Roles
+                      Unlock All 15 Verified Live Roles
                     </h4>
                     <p className="text-xs text-slate-600 dark:text-slate-400 max-w-lg">
-                      Explore exclusive high-paying opportunities directly matching your exact candidate profile in real-time.
+                      Free tier includes 5 opportunities. Pro tier unlocks all 15 top tech roles directly matching your candidate profile in real-time.
                     </p>
                   </div>
                 </div>
@@ -440,8 +660,18 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
       {/* TAB 2: PREFERRED COURSES */}
       {activeTab === 'courses' && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1">
+            <span>
+              Showing {isPro ? 15 : 5} of 15 Specialized Curriculums
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-brand-600 dark:text-brand-400 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+              Industry-Recognized Specializations
+            </span>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(isPro ? COURSES : COURSES.slice(0, 2)).map((course) => (
+            {(isPro ? COURSES.slice(0, 15) : COURSES.slice(0, 5)).map((course) => (
               <div
                 key={course.id}
                 className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-brand-500/40 dark:hover:border-brand-500/30 transition-all flex flex-col justify-between"
@@ -492,10 +722,10 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
             <div className="rounded-2xl p-6 bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-charcoal-900 dark:to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                  Unlock Full Curriculum &amp; Certifications
+                  Unlock All 15 Specialized Curricula &amp; Certifications
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Access 20+ specialized architect tracks from Google, Meta &amp; DeepLearning.AI.
+                  Free tier includes 5 tracks. Access all 15 specialized architect and AI curricula from Google, Meta, Stanford &amp; DeepLearning.AI.
                 </p>
               </div>
               <button
@@ -513,8 +743,18 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
       {/* TAB 3: 1-ON-1 INTERVIEW PANEL */}
       {activeTab === 'interviews' && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1">
+            <span>
+              Showing {isPro ? 15 : 5} of 15 Verified Interview Panelists
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-brand-600 dark:text-brand-400 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+              Priority FAANG &amp; Tech Leader Rounds
+            </span>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(isPro ? INTERVIEW_PANEL : INTERVIEW_PANEL.slice(0, 2)).map((panelist) => {
+            {(isPro ? INTERVIEW_PANEL.slice(0, 15) : INTERVIEW_PANEL.slice(0, 5)).map((panelist) => {
               const isBooked = !!bookedInterviews[panelist.id];
 
               return (
@@ -578,10 +818,10 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
             <div className="rounded-2xl p-6 bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-charcoal-900 dark:to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                  Unlock Full FAANG Interview Panel
+                  Unlock All 15 FAANG Interview Panelists
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Schedule priority 1-on-1 mock technical and behavioral rounds with 15+ Staff Engineers and Directors.
+                  Free tier includes 5 mock interview slots. Pro subscription unlocks all 15 priority 1-on-1 rounds with Staff &amp; Director Engineers across Google, Swiggy, Netflix &amp; Apple.
                 </p>
               </div>
               <button

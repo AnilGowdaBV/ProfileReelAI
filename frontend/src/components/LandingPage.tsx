@@ -166,7 +166,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const faqs = [
     {
       q: 'What is ProfileReel AI?',
-      a: 'ProfileReel AI is a talent intelligence platform that turns any candidate LinkedIn profile into a broadcast-ready 720p narrated video reel, a verified 10-point scorecard, and matches them to 45+ live FAANG career roles in seconds.',
+      a: 'ProfileReel AI is a talent intelligence platform that turns any candidate LinkedIn profile into a broadcast-ready 720p narrated video reel, a verified 10-point scorecard, and matches them to 15 live FAANG career roles in seconds.',
     },
     {
       q: 'How does the 10-Point Candidate Score work?',
@@ -310,7 +310,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <span className="text-slate-800 dark:text-slate-200">Next-Gen AI Talent Intelligence</span>
           <span className="text-brand-400 dark:text-brand-500">•</span>
           <span className="bg-gradient-to-r from-brand-600 to-purple-600 dark:from-brand-400 dark:to-purple-400 bg-clip-text text-transparent">
-            45+ Live Verified FAANG Roles Active
+            15 Live Verified FAANG Roles Active
           </span>
         </div>
 
@@ -324,7 +324,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* Subhead */}
         <p className="text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed mb-10 font-normal">
-          From a single public profile URL to a broadcast-grade 720p narrated video reel, multi-dimensional algorithmic rating, and instant 1-click matches to 45+ elite engineering roles.
+          From a single public profile URL to a broadcast-grade 720p narrated video reel, multi-dimensional algorithmic rating, and instant 1-click matches to 15 elite engineering roles.
         </p>
 
         {/* CTA Buttons */}
@@ -703,7 +703,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     onClick={onOpenLogin}
                     className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-slate-900 to-charcoal-800 dark:from-white dark:to-slate-100 dark:text-slate-900 text-white font-bold text-xs hover:from-brand-600 hover:to-indigo-600 dark:hover:bg-brand-400 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md group"
                   >
-                    <span>1-Click Apply to 45+ Verified Roles</span>
+                    <span>1-Click Apply to 15 Verified Roles</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
@@ -838,11 +838,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
 
-          {/* Bento Card 3: 💼 45+ Verified Live Tech Roles (6 cols) */}
+          {/* Bento Card 3: 💼 15 Verified Live Tech Roles (6 cols) */}
           <div className="md:col-span-6 rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-white via-slate-50 to-blue-50/40 dark:from-[#0c121e] dark:via-[#101726] dark:to-[#0c121e] border border-slate-200 dark:border-white/10 shadow-xl hover:border-blue-500/40 transition-all hover:-translate-y-1">
             <div className="flex items-center justify-between mb-3">
               <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center gap-1.5 border border-blue-500/20">
-                <Briefcase className="w-3.5 h-3.5" /> 45+ Verified Roles
+                <Briefcase className="w-3.5 h-3.5" /> 15 Verified Roles
               </span>
               <span className="text-xs text-emerald-500 font-bold flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> Live Synced
@@ -1017,7 +1017,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <td className="py-4 font-medium text-slate-800 dark:text-slate-200">Career Role Matching</td>
                   <td className="py-4 text-slate-500">Manual searching on job boards</td>
                   <td className="py-4 font-bold text-slate-900 dark:text-white flex items-center gap-1.5 text-brand-600 dark:text-brand-400">
-                    <Check className="w-4 h-4 text-emerald-500" /> 45+ Live Verified FAANG Roles
+                    <Check className="w-4 h-4 text-emerald-500" /> 15 Live Verified FAANG Roles
                   </td>
                 </tr>
                 <tr>

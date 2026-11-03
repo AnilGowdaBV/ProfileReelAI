@@ -44,7 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <nav className="hidden md:flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
             {hasScore && (
               <a href="#career-hub" className="px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 hover:text-brand-600 dark:hover:text-white transition-all">
-                ⚡ 45+ Verified Roles
+                ⚡ 15 Verified Roles
               </a>
             )}
             <a href="#pricing" className="px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 hover:text-brand-600 dark:hover:text-white transition-all">

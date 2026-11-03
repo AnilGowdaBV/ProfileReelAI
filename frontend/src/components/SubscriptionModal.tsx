@@ -143,7 +143,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <Check className="w-2.5 h-2.5" />
             </div>
             <span className="text-slate-700 dark:text-slate-300 leading-tight">
-              <strong className="text-slate-900 dark:text-white">45+ Live Verified Roles:</strong> Instant 1-click apply to top tech companies
+              <strong className="text-slate-900 dark:text-white">15 Live Verified Roles:</strong> Instant 1-click direct apply to top tech companies
             </span>
           </div>
 
@@ -152,7 +152,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <Check className="w-2.5 h-2.5" />
             </div>
             <span className="text-slate-700 dark:text-slate-300 leading-tight">
-              <strong className="text-slate-900 dark:text-white">FAANG Mock Interviews:</strong> Priority 1-on-1 slots with Google &amp; Swiggy Staff Engineers
+              <strong className="text-slate-900 dark:text-white">15 FAANG Mock Interviews:</strong> Priority 1-on-1 slots with Google, Swiggy &amp; Netflix Staff Engineers
             </span>
           </div>
 
@@ -161,7 +161,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <Check className="w-2.5 h-2.5" />
             </div>
             <span className="text-slate-700 dark:text-slate-300 leading-tight">
-              <strong className="text-slate-900 dark:text-white">Complete Learning Pathways:</strong> Meta, Stanford &amp; DeepLearning.AI certified
+              <strong className="text-slate-900 dark:text-white">15 Complete Learning Pathways:</strong> Meta, Stanford &amp; DeepLearning.AI certified
             </span>
           </div>
 
