@@ -3,11 +3,15 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
 import { JobResponseDto } from './dto/job-response.dto';
 import { CreateJobApplicationDto } from './dto/create-job-application.dto';
+import { CourseRecommendationsService } from './course-recommendations.service';
 
 @ApiTags('Jobs')
 @Controller('jobs')
 export class JobsController {
-  constructor(private readonly jobsService: JobsService) {}
+  constructor(
+    private readonly jobsService: JobsService,
+    private readonly courseRecommendations: CourseRecommendationsService,
+  ) {}
 
   @Post('apply')
   @ApiOperation({ summary: 'Submit a candidate job application and persist to DB & Google Sheet' })
@@ -154,6 +158,24 @@ export class JobsController {
     } catch (err) {
       console.error('Failed to fetch live Instahyre jobs:', err);
       return [];
+    }
+  }
+
+  @Get('courses/recommended')
+  @ApiOperation({
+    summary: 'Recommend catalog courses from the candidate skills and interests',
+  })
+  async recommendCourses(
+    @Query('skills') skills?: string,
+    @Query('interests') interests?: string,
+    @Query('limit') limit?: number,
+  ) {
+    const take = Math.min(15, Math.max(1, Number(limit) || 5));
+    try {
+      return await this.courseRecommendations.recommend(skills || '', interests || '', take);
+    } catch (err) {
+      console.error('Failed to recommend courses:', err);
+      return { courses: [], totalMatched: 0, limit: take };
     }
   }
 

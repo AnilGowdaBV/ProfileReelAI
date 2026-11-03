@@ -24,7 +24,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           Flat ₹100 Monthly Subscription
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto mb-10">
-          One single, transparent plan. Unlock all 15 live career roles, 15 priority 1-on-1 FAANG mock interview slots, 15 specialized learning tracks, and unlimited AI video reels.
+          One single, transparent plan. Unlock all 15 live career roles, 15 priority 1-on-1 FAANG mock interview slots, up to 15 profile-matched courses, and unlimited AI video reels.
         </p>
 
         {/* Pricing Cards Grid */}
@@ -67,7 +67,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
                     <Check className="w-3.5 h-3.5" />
                   </div>
-                  <span className="font-medium text-slate-800 dark:text-slate-200">5 Preferred Upskilling Courses</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">5 courses matched to skills and interests</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
@@ -85,7 +85,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center flex-shrink-0 text-[10px]">
                     ✕
                   </div>
-                  <span>15 Complete Courses &amp; Interview Slots</span>
+                  <span>15 profile-matched courses (Pro)</span>
                 </div>
               </div>
             </div>
@@ -116,7 +116,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
               </div>
               
               <p className="text-xs text-slate-600 dark:text-slate-300 mb-6">
-                Complete access to the entire 15 verified tech jobs catalog, 15 FAANG mock interview slots, and 15 expert upskilling tracks.
+                Complete access to the entire 15 verified tech jobs catalog, 15 FAANG mock interview slots, and up to 15 courses matched to the candidate profile.
               </p>
 
               <div className="space-y-3 text-xs text-slate-700 dark:text-slate-200 border-t border-brand-500/20 pt-6 mb-8">
@@ -136,7 +136,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
                   <div className="w-5 h-5 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center flex-shrink-0">
                     <Check className="w-3.5 h-3.5" />
                   </div>
-                  <span className="font-semibold text-slate-900 dark:text-white">15 Specialized Learning Pathways (Meta, Stanford, Google)</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">15 courses matched to skills and interests</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-5 h-5 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400 flex items-center justify-center flex-shrink-0">

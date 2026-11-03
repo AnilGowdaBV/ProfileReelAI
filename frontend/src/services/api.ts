@@ -125,6 +125,28 @@ export const api = {
       identifier ? `/payments/status?identifier=${encodeURIComponent(identifier)}` : '/payments/status',
     ),
 
+  getRecommendedCourses: (
+    skills: string[],
+    interests: string[],
+    limit: number,
+  ) =>
+    request<{
+      courses: Array<{
+        id: string;
+        title: string;
+        provider: string;
+        track: string;
+        level: string;
+        url: string;
+        skills: string[];
+        matchPercentage: number;
+      }>;
+      totalMatched: number;
+      limit: number;
+    }>(
+      `/jobs/courses/recommended?skills=${encodeURIComponent(skills.join(','))}&interests=${encodeURIComponent(interests.join(','))}&limit=${limit}`,
+    ),
+
   getLiveInstahyreJobs: async (skills?: string, limit: number = 20, offset: number = 0): Promise<any[]> => {
     try {
       const skillsParam = skills ? `&skills=${encodeURIComponent(skills)}` : '';

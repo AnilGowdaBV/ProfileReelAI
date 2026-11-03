@@ -105,6 +105,61 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
     fetchMatchedInstahyreJobs(nextOffset);
   };
 
+  const courseLimit = isPro ? 15 : 5;
+  const interestTerms = [
+    candidateHeadline || '',
+    ...(candidateScore?.keyStrengths || []),
+    ...(candidateScore?.recommendedRoles || []),
+  ].filter((term) => term.trim().length > 0);
+  const [recommendedCourses, setRecommendedCourses] = useState<
+    Array<{
+      id: string;
+      title: string;
+      provider: string;
+      track: string;
+      level: string;
+      url: string;
+      skills: string[];
+      matchPercentage: number;
+    }>
+  >([]);
+  const [courseTotal, setCourseTotal] = useState(0);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
+  const [courseError, setCourseError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCourses = async () => {
+      if (candidateSkills.length === 0 && interestTerms.length === 0) {
+        setRecommendedCourses([]);
+        setCourseTotal(0);
+        setIsLoadingCourses(false);
+        return;
+      }
+      setIsLoadingCourses(true);
+      setCourseError('');
+      try {
+        const result = await api.getRecommendedCourses(candidateSkills, interestTerms, courseLimit);
+        if (cancelled) return;
+        setRecommendedCourses(result.courses || []);
+        setCourseTotal(result.totalMatched || 0);
+      } catch (err) {
+        console.warn('Course recommendation error:', err);
+        if (!cancelled) {
+          setRecommendedCourses([]);
+          setCourseTotal(0);
+          setCourseError('Recommendations are unavailable right now.');
+        }
+      } finally {
+        if (!cancelled) setIsLoadingCourses(false);
+      }
+    };
+    loadCourses();
+    return () => {
+      cancelled = true;
+    };
+  }, [candidateSkills.join('|'), interestTerms.join('|'), courseLimit]);
+
   // Direct Job Application State
   const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({});
   const [applyingJob, setApplyingJob] = useState<any | null>(null);
@@ -195,160 +250,6 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
       setIsSubmitting(false);
     }
   };
-
-  // Preferred Courses (15 Specialized Tracks)
-  const COURSES = [
-    {
-      id: 'c-1',
-      title: 'Advanced System Design & Scalable Microservices',
-      provider: 'Meta • Coursera',
-      rating: '4.9 ★',
-      duration: '8 Weeks',
-      logo: '⚙️',
-      skills: ['System Design', 'Microservices', 'Distributed Systems'],
-      url: 'https://www.coursera.org/learn/system-design',
-    },
-    {
-      id: 'c-2',
-      title: 'Generative AI & Agentic Architectures in Production',
-      provider: 'DeepLearning.AI',
-      rating: '4.9 ★',
-      duration: '5 Weeks',
-      logo: '🤖',
-      skills: ['LLMs', 'LangChain', 'Agentic AI', 'RAG'],
-      url: 'https://www.deeplearning.ai/courses/generative-ai-with-llms/',
-    },
-    {
-      id: 'c-3',
-      title: 'Cloud-Native Kubernetes & DevOps Engineering',
-      provider: 'Google Cloud Training',
-      rating: '4.8 ★',
-      duration: '6 Weeks',
-      logo: '☁️',
-      skills: ['Docker', 'Kubernetes', 'CI/CD', 'Cloud Infra'],
-      url: 'https://www.coursera.org/specializations/google-cloud-devops',
-    },
-    {
-      id: 'c-4',
-      title: 'Full-Stack Modern Cloud Architecture & React/Node',
-      provider: 'IBM Skills Network',
-      rating: '4.8 ★',
-      duration: '7 Weeks',
-      logo: '⚡',
-      skills: ['React', 'Node.js', 'Next.js', 'REST APIs'],
-      url: 'https://www.coursera.org/professional-certificates/ibm-full-stack-cloud-developer',
-    },
-    {
-      id: 'c-5',
-      title: 'High-Performance Go for Distributed Cloud Systems',
-      provider: 'Google Open Source • Coursera',
-      rating: '4.9 ★',
-      duration: '6 Weeks',
-      logo: '🚀',
-      skills: ['Golang', 'Concurrency', 'gRPC', 'Distributed Systems'],
-      url: 'https://www.coursera.org/specializations/google-golang',
-    },
-    {
-      id: 'c-6',
-      title: 'Deep Reinforcement Learning & LLM Alignment',
-      provider: 'Stanford Online',
-      rating: '5.0 ★',
-      duration: '10 Weeks',
-      logo: '🧠',
-      skills: ['Reinforcement Learning', 'RLHF', 'PyTorch', 'Model Alignment'],
-      url: 'https://online.stanford.edu/courses/cs234-reinforcement-learning',
-    },
-    {
-      id: 'c-7',
-      title: 'Machine Learning Operations (MLOps) at Scale',
-      provider: 'Databricks Academy',
-      rating: '4.9 ★',
-      duration: '6 Weeks',
-      logo: '📊',
-      skills: ['MLflow', 'Feature Stores', 'CI/CD for ML', 'Model Monitoring'],
-      url: 'https://www.databricks.com/learn/training/mlops',
-    },
-    {
-      id: 'c-8',
-      title: 'Enterprise Distributed Data Engineering with Kafka & Spark',
-      provider: 'AWS Training & Certification',
-      rating: '4.9 ★',
-      duration: '8 Weeks',
-      logo: '🔥',
-      skills: ['Apache Kafka', 'Apache Spark', 'AWS EMR', 'Data Lakes'],
-      url: 'https://aws.amazon.com/training/classroom/data-engineering-on-aws/',
-    },
-    {
-      id: 'c-9',
-      title: 'Advanced React Architecture, State & Concurrency',
-      provider: 'Meta Professional',
-      rating: '4.8 ★',
-      duration: '5 Weeks',
-      logo: '⚛️',
-      skills: ['React 19', 'Server Components', 'Performance', 'Custom Hooks'],
-      url: 'https://www.coursera.org/learn/advanced-react',
-    },
-    {
-      id: 'c-10',
-      title: 'Applied Cloud Cybersecurity & Zero Trust Architecture',
-      provider: 'Microsoft Learn',
-      rating: '4.8 ★',
-      duration: '6 Weeks',
-      logo: '🛡️',
-      skills: ['Zero Trust', 'Cloud Security', 'IAM', 'Network Security'],
-      url: 'https://learn.microsoft.com/training/paths/sc-100-cybersecurity-architect/',
-    },
-    {
-      id: 'c-11',
-      title: 'Large Language Model Orchestration with LangGraph & LlamaIndex',
-      provider: 'DeepLearning.AI',
-      rating: '5.0 ★',
-      duration: '4 Weeks',
-      logo: '🦙',
-      skills: ['LangGraph', 'LlamaIndex', 'Multi-Agent Systems', 'Vector Search'],
-      url: 'https://www.deeplearning.ai/short-courses/building-agentic-rag-with-llamaindex/',
-    },
-    {
-      id: 'c-12',
-      title: 'Linux Kernel & Low-Latency Systems Programming',
-      provider: 'The Linux Foundation',
-      rating: '4.9 ★',
-      duration: '10 Weeks',
-      logo: '🐧',
-      skills: ['Linux Kernel', 'eBPF', 'C', 'Low Latency', 'Memory Management'],
-      url: 'https://training.linuxfoundation.org/training/linux-kernel-internals-and-development/',
-    },
-    {
-      id: 'c-13',
-      title: 'High-Scale Database Internals & PostgreSQL Tuning',
-      provider: 'Carnegie Mellon Online',
-      rating: '5.0 ★',
-      duration: '8 Weeks',
-      logo: '🐘',
-      skills: ['PostgreSQL', 'Query Optimization', 'MVCC', 'Database Internals'],
-      url: 'https://15721.courses.cs.cmu.edu/',
-    },
-    {
-      id: 'c-14',
-      title: 'Cloud-Native Microservices with Spring Boot 3 & Istio',
-      provider: 'VMware Tanzu Academy',
-      rating: '4.8 ★',
-      duration: '6 Weeks',
-      logo: '🌱',
-      skills: ['Spring Boot', 'Service Mesh', 'Istio', 'Observability'],
-      url: 'https://tanzu.academy/',
-    },
-    {
-      id: 'c-15',
-      title: 'AI Ethics, Safety & Autonomous Agent Governance',
-      provider: 'MIT Professional Education',
-      rating: '4.9 ★',
-      duration: '6 Weeks',
-      logo: '⚖️',
-      skills: ['AI Governance', 'Safety & Alignment', 'Model Evaluation', 'Compliance'],
-      url: 'https://professional.mit.edu/programs/short-programs/ethics-ai',
-    },
-  ];
 
   // Expert Panelists (15 Verified Technical Panelists)
   const INTERVIEW_PANEL = [
@@ -785,34 +686,57 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1">
             <span>
-              Showing {isPro ? 15 : 5} of 15 Specialized Curriculums
+              {isLoadingCourses
+                ? 'Matching courses to this profile...'
+                : `Showing ${recommendedCourses.length} of ${courseTotal} courses matched to skills and interests`}
             </span>
             <span className="inline-flex items-center gap-1.5 text-brand-600 dark:text-brand-400 font-semibold">
               <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-              Industry-Recognized Specializations
+              {isPro ? 'Pro · up to 15 matches' : 'Free · up to 5 matches'}
             </span>
           </div>
 
+          {isLoadingCourses && (
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Reading the live catalog for this profile</span>
+            </div>
+          )}
+
+          {!isLoadingCourses && courseError && (
+            <p className="text-sm text-slate-500 px-1">{courseError}</p>
+          )}
+
+          {!isLoadingCourses && !courseError && recommendedCourses.length === 0 && (
+            <p className="text-sm text-slate-500 px-1">
+              No catalog lessons matched this profile yet. Add skills or a headline and the recommendations will follow those, not a fixed list.
+            </p>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(isPro ? COURSES.slice(0, 15) : COURSES.slice(0, 5)).map((course) => (
+            {recommendedCourses.map((course) => (
               <div
                 key={course.id}
                 className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-brand-500/40 dark:hover:border-brand-500/30 transition-all flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="text-2xl">{course.logo}</div>
+                    <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-300 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
                     <div>
                       <h4 className="text-sm font-bold text-slate-900 dark:text-white">{course.title}</h4>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">{course.provider}</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                        {course.provider} · {course.track}
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 mb-3">
-                    <span className="text-amber-500 dark:text-amber-400 font-semibold">{course.rating}</span>
+                    <span className="text-amber-500 dark:text-amber-400 font-semibold">{course.matchPercentage}% match</span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {course.duration}
+                      <Clock className="w-3 h-3" /> {course.level}
                     </span>
                   </div>
 
@@ -834,21 +758,21 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                   rel="noreferrer"
                   className="py-2 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-600 hover:text-white text-brand-700 dark:text-brand-300 dark:hover:bg-brand-500 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
                 >
-                  <span>Enroll in Specialization</span>
+                  <span>Open lesson</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
             ))}
           </div>
 
-          {!isPro && (
+          {!isPro && courseTotal > recommendedCourses.length && (
             <div className="rounded-2xl p-6 bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-charcoal-900 dark:to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                  Unlock All 15 Specialized Curricula &amp; Certifications
+                  {courseTotal - recommendedCourses.length} more courses match this profile
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Free tier includes 5 tracks. Access all 15 specialized architect and AI curricula from Google, Meta, Stanford &amp; DeepLearning.AI.
+                  Free shows 5. Pro shows up to 15, still chosen from the same skills and interests.
                 </p>
               </div>
               <button
