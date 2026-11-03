@@ -133,6 +133,9 @@ export const DashboardPage: React.FC = () => {
     .filter((f) => f.category === 'skills')
     .map((f) => f.factText);
 
+  const candidateHeadline = (selectedCandidate?.facts || [])
+    .find((f) => f.category === 'headline')?.factText || '';
+
   if (isInitialLoading) {
     return (
       <FullPageSpinner
@@ -252,6 +255,7 @@ export const DashboardPage: React.FC = () => {
             candidateName={selectedCandidate.displayName}
             candidateLinkedinUrl={selectedCandidate.normalizedProfileUrl}
             candidateScore={candidateScore}
+            candidateHeadline={candidateHeadline}
           />
         )}
 
