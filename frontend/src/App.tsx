@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardPage } from './pages/DashboardPage';
+import { MockTestPage } from './pages/MockTestPage';
 import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/LoginModal';
 import { FullPageSpinner } from './components/FullPageSpinner';
@@ -69,6 +70,39 @@ const DashboardRoute: React.FC = () => {
   return <DashboardPage />;
 };
 
+const TestRoute: React.FC = () => {
+  const { isLoggedIn, authTransition } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  if (authTransition.isActive) {
+    return (
+      <FullPageSpinner
+        title={authTransition.title}
+        subtitle={authTransition.subtitle}
+        badge={authTransition.badge}
+        variant={authTransition.variant}
+      />
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <LandingPage onOpenLogin={() => setIsLoginModalOpen(true)} />
+        <LoginModal
+          isOpen={true}
+          onClose={() => setIsLoginModalOpen(false)}
+          onSuccess={() => {
+            window.location.href = '/dashboard';
+          }}
+        />
+      </>
+    );
+  }
+
+  return <MockTestPage />;
+};
+
 const AppContent: React.FC = () => {
   const { authTransition } = useAuth();
 
@@ -88,6 +122,7 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/" element={<LandingRoute />} />
           <Route path="/dashboard" element={<DashboardRoute />} />
+          <Route path="/test/:setId" element={<TestRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

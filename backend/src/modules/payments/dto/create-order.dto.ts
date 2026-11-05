@@ -4,6 +4,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export enum SubscriptionPlan {
   MONTHLY = 'monthly',
   ANNUAL = 'annual',
+  MOCK_TEST = 'mock_test',
 }
 
 export class CreatePaymentOrderDto {
@@ -35,4 +36,9 @@ export class CreatePaymentOrderDto {
   @IsOptional()
   @IsString()
   userId?: string;
+
+  @ApiPropertyOptional({ description: 'Mock test id when plan is mock_test' })
+  @IsOptional()
+  @IsString()
+  testId?: string;
 }

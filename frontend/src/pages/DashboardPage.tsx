@@ -7,6 +7,7 @@ import {
 } from '../components/CandidateSubmissionCard';
 import { CandidateDetailsCard } from '../components/CandidateDetailsCard';
 import { CareerHubSection } from '../components/CareerHubSection';
+import { MockTestsSection } from '../components/MockTestsSection';
 import { PricingSection } from '../components/PricingSection';
 import { SubscriptionModal } from '../components/SubscriptionModal';
 import { PolicyModals, PolicyType } from '../components/PolicyModals';
@@ -15,6 +16,7 @@ import { Candidate, HealthStatus, CandidateScore } from '../types/candidate';
 import { api, ApiError } from '../services/api';
 import { Sparkles, Database, ShieldCheck, Zap } from 'lucide-react';
 import { FullPageSpinner } from '../components/FullPageSpinner';
+import { MOCK_TEST_PAID_MESSAGE, markMockTestPaid } from '../lib/mockTestAccess';
 
 export const DashboardPage: React.FC = () => {
   const [health, setHealth] = useState<HealthStatus | undefined>(undefined);
@@ -40,12 +42,21 @@ export const DashboardPage: React.FC = () => {
 
     // 1. Check URL parameters (e.g. redirected from Razorpay checkout/callback)
     const urlParams = new URLSearchParams(window.location.search);
+    const paidMockTestId = urlParams.get('mock_test');
     if (urlParams.get('payment_success') === 'true' || urlParams.get('pro') === 'true') {
       setIsPro(true);
       setIsSubModalOpen(false);
-      // Clean query parameters from address bar without reloading
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, '', cleanUrl);
+    }
+    if (paidMockTestId) {
+      markMockTestPaid(paidMockTestId);
+    }
+    if (urlParams.toString()) {
+      window.history.replaceState({}, '', `${window.location.pathname}#mock-tests`);
+    }
+    if (paidMockTestId) {
+      requestAnimationFrame(() => {
+        document.getElementById('mock-tests')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     }
 
     // 2. Real-time postMessage listener from Razorpay checkout tabs or popups
@@ -53,6 +64,10 @@ export const DashboardPage: React.FC = () => {
       if (event.data?.type === 'PROFILEREEL_PAYMENT_SUCCESS') {
         setIsPro(true);
         setIsSubModalOpen(false);
+      }
+      if (event.data?.type === MOCK_TEST_PAID_MESSAGE && event.data.testId) {
+        markMockTestPaid(event.data.testId);
+        document.getElementById('mock-tests')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     };
     window.addEventListener('message', handlePaymentMessage);
@@ -258,6 +273,8 @@ export const DashboardPage: React.FC = () => {
             candidateHeadline={candidateHeadline}
           />
         )}
+
+        <MockTestsSection />
 
         {/* Transparent Razorpay Pricing & Subscription Section */}
         <PricingSection

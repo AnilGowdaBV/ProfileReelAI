@@ -66,8 +66,9 @@ export class PaymentsService {
    * Create official Razorpay Order & hosted Payment Link
    */
   async createPaymentOrder(dto: CreatePaymentOrderDto) {
-    const amountInRupees = 100; // Single subscription model: flat ₹100 / month
-    const amountInPaise = amountInRupees * 100; // 10000 paise
+    const isMockTest = dto.plan === SubscriptionPlan.MOCK_TEST;
+    const amountInRupees = isMockTest ? 10 : 100;
+    const amountInPaise = amountInRupees * 100;
     const currency = 'INR';
 
     this.logger.log(
@@ -82,8 +83,9 @@ export class PaymentsService {
         payment_capture: 1,
         receipt: `rcpt_${Date.now()}_${Math.random().toString(36).substring(7)}`,
         notes: {
-          product: 'ProfileReel AI Pro',
+          product: isMockTest ? 'ProfileReel AI Mock Test' : 'ProfileReel AI Pro',
           plan: dto.plan,
+          testId: dto.testId || '',
           customerName: dto.customerName || 'Subscriber',
           customerEmail: dto.customerEmail || '',
           userId: dto.userId || '',
@@ -102,7 +104,9 @@ export class PaymentsService {
           amount: amountInPaise,
           currency,
           accept_partial: false,
-          description: 'ProfileReel AI Pro Monthly Subscription (₹100/mo)',
+          description: isMockTest
+            ? 'ProfileReel AI Mock Interview Test (₹10)'
+            : 'ProfileReel AI Pro Monthly Subscription (₹100/mo)',
           customer: {
             name: dto.customerName || 'ProfileReel Subscriber',
             email: dto.customerEmail || 'subscriber@profilereel.ai',
@@ -116,11 +120,12 @@ export class PaymentsService {
           notes: {
             orderId: order.id,
             plan: dto.plan,
+            testId: dto.testId || '',
             userId: dto.userId || '',
             customerEmail: dto.customerEmail || '',
             candidateProfileUrl: dto.candidateProfileUrl || '',
           },
-          callback_url: `${baseUrl}/api/payments/callback-success?orderId=${order.id}`,
+          callback_url: `${baseUrl}/api/payments/callback-success?orderId=${order.id}&plan=${encodeURIComponent(dto.plan)}&testId=${encodeURIComponent(dto.testId || '')}`,
           callback_method: 'get',
         });
         paymentLinkUrl = link.short_url;
@@ -136,7 +141,7 @@ export class PaymentsService {
         currency,
         keyId: this.keyId,
         paymentLinkUrl,
-        checkoutPath: `/payments/checkout?orderId=${order.id}&plan=${dto.plan}&amount=${amountInRupees}&candidateProfileUrl=${encodeURIComponent(dto.candidateProfileUrl || '')}`,
+        checkoutPath: `/payments/checkout?orderId=${order.id}&plan=${dto.plan}&amount=${amountInRupees}&testId=${encodeURIComponent(dto.testId || '')}&candidateProfileUrl=${encodeURIComponent(dto.candidateProfileUrl || '')}`,
         plan: dto.plan,
       };
     } catch (err: any) {
@@ -168,6 +173,7 @@ export class PaymentsService {
       throw new BadRequestException('Invalid Razorpay payment signature.');
     }
 
+    const isMockTest = dto.plan === 'mock_test';
     const durationDays = dto.plan === 'annual' ? 365 : 30;
     const now = Date.now();
     const expiresAt = now + durationDays * 24 * 60 * 60 * 1000;
@@ -176,7 +182,7 @@ export class PaymentsService {
       paymentId: dto.razorpayPaymentId,
       orderId: dto.razorpayOrderId,
       plan: dto.plan,
-      amount: dto.plan === 'annual' ? 2 : 1,
+      amount: isMockTest ? 10 : dto.plan === 'annual' ? 2 : 1,
       currency: 'INR',
       candidateProfileUrl: dto.candidateProfileUrl,
       status: 'active',
@@ -187,16 +193,16 @@ export class PaymentsService {
     // Store by paymentId, orderId, latest, and candidateProfileUrl
     this.activeSubscriptions.set(dto.razorpayPaymentId, record);
     this.activeSubscriptions.set(dto.razorpayOrderId, record);
-    this.activeSubscriptions.set('latest', record);
-    if (dto.candidateProfileUrl) {
+    if (!isMockTest) this.activeSubscriptions.set('latest', record);
+    if (!isMockTest && dto.candidateProfileUrl) {
       this.activeSubscriptions.set(dto.candidateProfileUrl, record);
       const clean = dto.candidateProfileUrl.replace(/\/+$/, '');
       this.activeSubscriptions.set(clean, record);
       this.activeSubscriptions.set(clean + '/', record);
     }
 
-    // Persist Pro status to database user account
-    if (dto.userId || dto.userEmail) {
+    // A ₹10 mock test must not activate the monthly Pro plan.
+    if (!isMockTest && (dto.userId || dto.userEmail)) {
       try {
         const user = await this.userRepository.findOne({
           where: [{ id: dto.userId }, { email: dto.userEmail }],
@@ -218,7 +224,7 @@ export class PaymentsService {
     return {
       success: true,
       verified: true,
-      isPremium: true,
+      isPremium: !isMockTest,
       plan: dto.plan,
       paymentId: dto.razorpayPaymentId,
       activatedAt: new Date(now).toISOString(),
@@ -253,6 +259,10 @@ export class PaymentsService {
       const orderId = paymentEntity?.order_id || body.payload?.order?.entity?.id;
       const paymentId = paymentEntity?.id;
       const plan = notes.plan || 'monthly';
+      if (plan === 'mock_test') {
+        this.logger.log(`Webhook recorded mock test payment ${paymentId}`);
+        return { success: true };
+      }
       const candidateProfileUrl = notes.candidateProfileUrl;
 
       const now = Date.now();
@@ -429,8 +439,8 @@ export class PaymentsService {
       }
     }
 
-    // Update database user record directly
-    if (resolvedUserId || resolvedUserEmail) {
+    // Update database user record directly. Mock tests stay separate from Pro.
+    if (params.plan !== 'mock_test' && (resolvedUserId || resolvedUserEmail)) {
       try {
         const user = await this.userRepository.findOne({
           where: [{ id: resolvedUserId }, { email: resolvedUserEmail }],

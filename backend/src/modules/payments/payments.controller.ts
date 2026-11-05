@@ -86,6 +86,7 @@ export class PaymentsController {
     @Query('candidateProfileUrl') candidateProfileUrl: string,
     @Query('userId') userId: string,
     @Query('userEmail') userEmail: string,
+    @Query('testId') testId: string,
     @Res() res: Response,
   ) {
     let activeOrderId = orderId;
@@ -96,6 +97,9 @@ export class PaymentsController {
         const order = await this.paymentsService.createPaymentOrder({
           plan: (plan as SubscriptionPlan) || SubscriptionPlan.MONTHLY,
           candidateProfileUrl,
+          testId,
+          userId,
+          customerEmail: userEmail,
         });
         activeOrderId = order.orderId;
       } catch (err: any) {
@@ -103,8 +107,9 @@ export class PaymentsController {
       }
     }
 
-    const numAmount = 100;
-    const amountInPaise = 10000;
+    const isMockTest = plan === 'mock_test';
+    const numAmount = isMockTest ? 10 : 100;
+    const amountInPaise = numAmount * 100;
     const keyId = this.paymentsService.getPublicKey();
 
     res.setHeader('Content-Type', 'text/html');
@@ -167,16 +172,16 @@ export class PaymentsController {
       <body>
         <div class="card" id="main-card">
           <div class="badge">🔒 OFFICIAL RAZORPAY GATEWAY</div>
-          <h1>ProfileReel AI Pro</h1>
-          <p>Pay securely via <strong>Razorpay</strong>. Instant Pro activation upon confirmation.</p>
+          <h1>${isMockTest ? 'Mock Interview Test' : 'ProfileReel AI Pro'}</h1>
+          <p>Pay securely via <strong>Razorpay</strong>. ${isMockTest ? 'This ₹10 payment unlocks this one test.' : 'Instant Pro activation upon confirmation.'}</p>
           <div class="amount-box">
             <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">TOTAL AMOUNT DUE</div>
-            <div class="amount-val">₹100</div>
-            <div class="order-ref">${activeOrderId && activeOrderId !== 'undefined' ? `Order: ${activeOrderId} • ` : ''}Monthly Pro Subscription</div>
+            <div class="amount-val">₹${numAmount}</div>
+            <div class="order-ref">${activeOrderId && activeOrderId !== 'undefined' ? `Order: ${activeOrderId} • ` : ''}${isMockTest ? 'One mock test' : 'Monthly Pro Subscription'}</div>
           </div>
           <div style="background: rgba(37, 99, 235, 0.15); border: 1px dashed rgba(59, 130, 246, 0.4); border-radius: 8px; padding: 10px; margin-bottom: 18px; font-size: 11.5px; color: #93c5fd; text-align: left; line-height: 1.4;">
             💡 <strong>Payment Instructions:</strong><br>
-            Click the button below to pay ₹100 via UPI QR, Google Pay, PhonePe, Cards, or Netbanking. Subscriptions are non-refundable once activated.
+            Click the button below to pay ₹${numAmount} via UPI QR, Google Pay, PhonePe, Cards, or Netbanking.
           </div>
           <button class="btn-pay" id="rzp-button">💳 Open Razorpay Checkout</button>
           <div class="footer-note">Tracked directly in your Razorpay Dashboard</div>
@@ -188,7 +193,7 @@ export class PaymentsController {
             amount: ${amountInPaise},
             currency: "INR",
             name: "ProfileReel AI",
-            description: "ProfileReel AI Pro Monthly (₹100/mo)",
+            description: "${isMockTest ? 'ProfileReel AI Mock Interview Test (₹10)' : 'ProfileReel AI Pro Monthly (₹100/mo)'}",
             ${activeOrderId && activeOrderId !== 'undefined' ? `order_id: "${activeOrderId}",` : ''}
             prefill: {
               name: "Subscriber",
@@ -218,9 +223,9 @@ export class PaymentsController {
                   userEmail: "${userEmail || ''}"
                 })
               }).then(function(r) { return r.json(); }).then(function(data) {
-                window.location.href = '/api/payments/callback-success?orderId=' + encodeURIComponent(response.razorpay_order_id);
+                window.location.href = '/api/payments/callback-success?orderId=' + encodeURIComponent(response.razorpay_order_id) + '&plan=${plan || 'monthly'}&testId=${encodeURIComponent(testId || '')}';
               }).catch(function(err) {
-                window.location.href = '/api/payments/callback-success?orderId=' + encodeURIComponent(response.razorpay_order_id);
+                window.location.href = '/api/payments/callback-success?orderId=' + encodeURIComponent(response.razorpay_order_id) + '&plan=${plan || 'monthly'}&testId=${encodeURIComponent(testId || '')}';
               });
             }
           };
@@ -247,6 +252,8 @@ export class PaymentsController {
     @Query('razorpay_payment_id') paymentId: string,
     @Query('razorpay_payment_link_id') paymentLinkId: string,
     @Query('razorpay_payment_link_status') paymentLinkStatus: string,
+    @Query('plan') plan: string,
+    @Query('testId') testId: string,
     @Res() res: Response,
   ) {
     const activePaymentId = paymentId || (paymentLinkId ? `link_${paymentLinkId}` : `pay_${Date.now()}`);
@@ -256,6 +263,7 @@ export class PaymentsController {
       await this.paymentsService.recordSuccessfulPayment({
         paymentId: activePaymentId,
         orderId: activeOrderId,
+        plan: plan || 'monthly',
       });
     } catch (e: any) {
       // Safe fallback
@@ -264,7 +272,9 @@ export class PaymentsController {
     const frontendUrl =
       process.env.FRONTEND_URL ||
       'https://profile-reel-ai.vercel.app';
-    const redirectUrl = `${frontendUrl.replace(/\/+$/, '')}/?payment_success=true&orderId=${encodeURIComponent(activeOrderId)}`;
+    const redirectUrl = plan === 'mock_test'
+      ? `${frontendUrl.replace(/\/+$/, '')}/dashboard?mock_test=${encodeURIComponent(testId || '')}#mock-tests`
+      : `${frontendUrl.replace(/\/+$/, '')}/?payment_success=true&orderId=${encodeURIComponent(activeOrderId)}`;
 
     res.setHeader('Content-Type', 'text/html');
     return res.send(`
@@ -351,10 +361,10 @@ export class PaymentsController {
       <body>
         <div class="card">
           <div class="icon-badge">✓</div>
-          <div class="pill">👑 PRO ACTIVE • 30 DAYS</div>
+          <div class="pill">${plan === 'mock_test' ? 'MOCK TEST UNLOCKED' : '👑 PRO ACTIVE • 30 DAYS'}</div>
           <h1>Payment Confirmed!</h1>
-          <p>Your <strong>ProfileReel AI Pro</strong> subscription has been successfully verified. 45+ verified roles and AI features are now unlocked!</p>
-          <a href="${redirectUrl}" id="return-link" class="btn">🚀 Open ProfileReel AI (Pro Unlocked)</a>
+          <p>${plan === 'mock_test' ? 'That one paper is unlocked. You will return to the dashboard — the other tests stay locked until you pay for them.' : 'Your <strong>ProfileReel AI Pro</strong> subscription has been successfully verified. 45+ verified roles and AI features are now unlocked!'}</p>
+          <a href="${redirectUrl}" id="return-link" class="btn">${plan === 'mock_test' ? 'Back to dashboard' : 'Open ProfileReel AI (Pro Unlocked)'}</a>
           <div class="redirect-note" id="redirect-text">Redirecting automatically in 2 seconds...</div>
         </div>
 
@@ -363,9 +373,10 @@ export class PaymentsController {
           if (window.opener && !window.opener.closed) {
             try {
               window.opener.postMessage({
-                type: 'PROFILEREEL_PAYMENT_SUCCESS',
+                type: '${plan === 'mock_test' ? 'PROFILEREEL_MOCK_TEST_PAID' : 'PROFILEREEL_PAYMENT_SUCCESS'}',
                 orderId: '${activeOrderId}',
                 paymentId: '${activePaymentId}',
+                testId: '${testId || ''}',
                 status: 'active'
               }, '*');
             } catch (e) {
@@ -375,13 +386,17 @@ export class PaymentsController {
 
           // 2. Set localStorage on this domain as well
           try {
-            localStorage.setItem('profilereel_pro_active', 'true');
+            ${plan === 'mock_test' ? `var paidId = '${testId || ''}'; var allowed = ['set-1','set-2','set-3']; if (allowed.indexOf(paidId) !== -1) { var paid = JSON.parse(localStorage.getItem('profilereel_paid_tests') || '[]'); if (paid.indexOf(paidId) === -1) paid.push(paidId); localStorage.setItem('profilereel_paid_tests', JSON.stringify(paid)); }` : `localStorage.setItem('profilereel_pro_active', 'true');`}
           } catch(e) {}
 
-          // 3. Auto-redirect to frontend application
+          // 3. If this was a popup, close it so the dashboard stays in view. Otherwise redirect there.
           setTimeout(function() {
+            if (window.opener && !window.opener.closed) {
+              window.close();
+              return;
+            }
             window.location.href = "${redirectUrl}";
-          }, 1800);
+          }, 1600);
         </script>
       </body>
       </html>
