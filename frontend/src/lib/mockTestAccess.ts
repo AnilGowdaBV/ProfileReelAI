@@ -110,6 +110,31 @@ export function saveMockTestAttempt(testId: string, attempt: MockTestAttempt): v
   localStorage.setItem(ATTEMPT_KEY, JSON.stringify(all));
 }
 
+type RazorpayInstance = {
+  open: () => void;
+};
+
+type RazorpayConstructor = new (options: Record<string, unknown>) => RazorpayInstance;
+
+function getRazorpay(): RazorpayConstructor | null {
+  return (window as Window & { Razorpay?: RazorpayConstructor }).Razorpay || null;
+}
+
+async function loadRazorpayScript(): Promise<RazorpayConstructor> {
+  const existing = getRazorpay();
+  if (existing) return existing;
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Could not load Razorpay Checkout'));
+    document.body.appendChild(script);
+  });
+  const loaded = getRazorpay();
+  if (!loaded) throw new Error('Razorpay Checkout is unavailable');
+  return loaded;
+}
+
 export async function startMockTestCheckout(opts: {
   testId: string;
   userId?: string;
@@ -117,29 +142,74 @@ export async function startMockTestCheckout(opts: {
   customerName?: string;
 }): Promise<void> {
   if (!isKnownMockTestId(opts.testId)) return;
-  const userParams = `userId=${encodeURIComponent(opts.userId || '')}&userEmail=${encodeURIComponent(opts.userEmail || '')}&testId=${encodeURIComponent(opts.testId)}`;
-  let orderId = '';
 
-  try {
-    const res = await fetch(`${API_BASE}/payments/create-order`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        plan: 'mock_test',
-        testId: opts.testId,
-        customerName: opts.customerName,
-        customerEmail: opts.userEmail,
-        userId: opts.userId,
-      }),
-    });
-    const data = await res.json().catch(() => null);
-    orderId = data?.orderId || '';
-  } catch {
-    // Hosted checkout can still create the ₹10 order.
+  const res = await fetch(`${API_BASE}/payments/create-order`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      plan: 'mock_test',
+      testId: opts.testId,
+      customerName: opts.customerName,
+      customerEmail: opts.userEmail,
+      userId: opts.userId,
+    }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.orderId || !data?.keyId) {
+    throw new Error(data?.message || 'Could not start ₹10 checkout');
   }
 
-  const checkoutUrl = orderId
-    ? `${API_BASE}/payments/checkout?orderId=${encodeURIComponent(orderId)}&plan=mock_test&amount=10&${userParams}`
-    : `${API_BASE}/payments/checkout?plan=mock_test&amount=10&${userParams}`;
-  window.open(checkoutUrl, '_blank', 'width=520,height=720');
+  const Razorpay = await loadRazorpayScript();
+  await new Promise<void>((resolve, reject) => {
+    const checkout = new Razorpay({
+      key: data.keyId,
+      amount: data.amount,
+      currency: data.currency || 'INR',
+      name: 'ProfileReel AI',
+      description: 'Mock Interview Test (₹10)',
+      order_id: data.orderId,
+      prefill: {
+        name: opts.customerName || '',
+        email: opts.userEmail || '',
+      },
+      notes: {
+        plan: 'mock_test',
+        testId: opts.testId,
+        userId: opts.userId || '',
+      },
+      theme: { color: '#059669' },
+      handler: async (response: {
+        razorpay_payment_id: string;
+        razorpay_order_id: string;
+        razorpay_signature: string;
+      }) => {
+        try {
+          const verifyRes = await fetch(`${API_BASE}/payments/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature,
+              plan: 'mock_test',
+              userId: opts.userId,
+              userEmail: opts.userEmail,
+            }),
+          });
+          if (!verifyRes.ok) {
+            throw new Error('Payment verification failed');
+          }
+          markMockTestPaid(opts.testId);
+          document.getElementById('mock-tests')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      },
+      modal: {
+        ondismiss: () => resolve(),
+      },
+    });
+    checkout.open();
+  });
 }

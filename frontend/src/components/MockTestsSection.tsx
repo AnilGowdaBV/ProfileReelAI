@@ -79,6 +79,8 @@ export const MockTestsSection: React.FC = () => {
         userEmail: user?.email,
         customerName: user?.name,
       });
+    } catch (err) {
+      console.error(err);
     } finally {
       setTimeout(() => setPayingId(null), 1500);
     }

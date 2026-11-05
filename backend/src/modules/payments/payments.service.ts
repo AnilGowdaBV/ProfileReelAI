@@ -125,7 +125,9 @@ export class PaymentsService {
             customerEmail: dto.customerEmail || '',
             candidateProfileUrl: dto.candidateProfileUrl || '',
           },
-          callback_url: `${baseUrl}/api/payments/callback-success?orderId=${order.id}&plan=${encodeURIComponent(dto.plan)}&testId=${encodeURIComponent(dto.testId || '')}`,
+          callback_url: isMockTest
+            ? `${(this.configService.get<string>('FRONTEND_URL') || 'https://profile-reel-ai.vercel.app').replace(/\/+$/, '')}/dashboard?mock_test=${encodeURIComponent(dto.testId || '')}`
+            : `${baseUrl}/api/payments/callback-success?orderId=${order.id}&plan=${encodeURIComponent(dto.plan)}&testId=${encodeURIComponent(dto.testId || '')}`,
           callback_method: 'get',
         });
         paymentLinkUrl = link.short_url;
