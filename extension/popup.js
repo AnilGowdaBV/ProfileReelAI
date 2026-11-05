@@ -139,6 +139,7 @@ const applyPhone = document.getElementById('apply-phone');
 const applyCurrentSalary = document.getElementById('apply-current-salary');
 const applyExpectedSalary = document.getElementById('apply-expected-salary');
 const applyLocation = document.getElementById('apply-location');
+const applyInterviewingAt = document.getElementById('apply-interviewing-at');
 const applyResume = document.getElementById('apply-resume');
 const resumeFileName = document.getElementById('resume-file-name');
 const applyStatusMessage = document.getElementById('apply-status-message');
@@ -1336,6 +1337,7 @@ if (formJobApply) {
         currentSalary: applyCurrentSalary?.value.trim() || '',
         expectedSalary: applyExpectedSalary?.value.trim() || '',
         location: applyLocation?.value.trim() || '',
+        interviewingAt: applyInterviewingAt?.value.trim() || '',
         resumeFileName: file ? file.name : '',
         resumeData: resumeData || '',
       };

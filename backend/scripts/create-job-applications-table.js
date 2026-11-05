@@ -22,6 +22,7 @@ async function createTable() {
       current_salary VARCHAR(100) NULL,
       expected_salary VARCHAR(100) NULL,
       location VARCHAR(255) NULL,
+      interviewing_at VARCHAR(255) NULL,
       resume_file_name VARCHAR(255) NULL,
       resume_data LONGTEXT NULL,
       status VARCHAR(50) DEFAULT 'applied',

@@ -45,15 +45,17 @@ function doPost(e) {
         "Expected Salary",
         "Location",
         "Resume (Click to Open)",
-        "Status"
+        "Status",
+        "Where are you interviewing at"
       ]);
       // Format header row
-      sheet.getRange(1, 1, 1, 12).setBackground("#1e293b").setFontColor("#ffffff").setFontWeight("bold");
+      sheet.getRange(1, 1, 1, 13).setBackground("#1e293b").setFontColor("#ffffff").setFontWeight("bold");
       sheet.setFrozenRows(1);
     }
 
     var nowFormatted = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss");
     var fileName = data.resumeFileName || "Resume.pdf";
+    var interviewCol = ensureInterviewingAtColumn(sheet);
     var nextRow = sheet.getLastRow() + 1;
 
     // Append new candidate application row
@@ -71,6 +73,8 @@ function doPost(e) {
       fileName,
       data.status || "Applied"
     ]);
+
+    sheet.getRange(nextRow, interviewCol).setValue(data.interviewingAt || "");
 
     // If resumeUrl was uploaded to Supabase, turn Column K into a clickable Hyperlink
     if (data.resumeUrl && data.resumeUrl.toString().trim().length > 0) {
@@ -118,6 +122,24 @@ function fixExistingResumeLinks() {
       cell.setFontColor("#1d4ed8").setFontLine("underline");
     }
   }
+}
+
+/**
+ * Adds "Where are you interviewing at" at the end of row 1.
+ * Existing columns, including the resume link in column K, stay where they are.
+ */
+function ensureInterviewingAtColumn(sheet) {
+  var header = "Where are you interviewing at";
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  for (var i = 0; i < headers.length; i++) {
+    if (String(headers[i]).trim() === header) return i + 1;
+  }
+  var col = lastCol + 1;
+  var cell = sheet.getRange(1, col);
+  cell.setValue(header);
+  cell.setBackground("#1e293b").setFontColor("#ffffff").setFontWeight("bold");
+  return col;
 }
 
 function doGet(e) {

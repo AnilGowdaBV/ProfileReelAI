@@ -44,6 +44,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
   const [formCurrentSalary, setFormCurrentSalary] = useState('');
   const [formExpectedSalary, setFormExpectedSalary] = useState('');
   const [formLocation, setFormLocation] = useState('');
+  const [formInterviewingAt, setFormInterviewingAt] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{
@@ -106,6 +107,7 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
         currentSalary: formCurrentSalary.trim(),
         expectedSalary: formExpectedSalary.trim(),
         location: formLocation.trim(),
+        interviewingAt: formInterviewingAt.trim(),
         resumeFileName: resumeFile?.name,
         resumeData,
         applicationType: 'Express Interest',
@@ -373,6 +375,20 @@ export const BestSuitedRolesCard: React.FC<BestSuitedRolesCardProps> = ({
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Where are you interviewing at? *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formInterviewingAt}
+                  onChange={(e) => setFormInterviewingAt(e.target.value)}
+                  placeholder="Company name, e.g. Google"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                />
               </div>
 
               <div>

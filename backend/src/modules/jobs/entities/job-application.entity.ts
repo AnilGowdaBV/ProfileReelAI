@@ -40,6 +40,9 @@ export class JobApplication {
   @Column({ name: 'location', length: 255, nullable: true })
   location?: string;
 
+  @Column({ name: 'interviewing_at', length: 255, nullable: true })
+  interviewingAt?: string;
+
   @Column({ name: 'resume_file_name', length: 255, nullable: true })
   resumeFileName?: string;
 

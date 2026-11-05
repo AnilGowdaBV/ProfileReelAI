@@ -101,6 +101,7 @@ export const api = {
     currentSalary?: string;
     expectedSalary?: string;
     location?: string;
+    interviewingAt: string;
     resumeFileName?: string;
     resumeData?: string;
     applicationType?: string;

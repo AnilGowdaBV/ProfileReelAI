@@ -170,6 +170,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
   const [formCurrentSalary, setFormCurrentSalary] = useState('');
   const [formExpectedSalary, setFormExpectedSalary] = useState('');
   const [formLocation, setFormLocation] = useState('');
+  const [formInterviewingAt, setFormInterviewingAt] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -228,6 +229,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
         currentSalary: formCurrentSalary.trim(),
         expectedSalary: formExpectedSalary.trim(),
         location: formLocation.trim(),
+        interviewingAt: formInterviewingAt.trim(),
         resumeFileName: resumeFile?.name,
         resumeData,
       });
@@ -998,6 +1000,21 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-charcoal-900/90 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-charcoal-900 transition-all"
                   />
                 </div>
+              </div>
+
+              {/* Where they are interviewing */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Where are you interviewing at? <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formInterviewingAt}
+                  onChange={(e) => setFormInterviewingAt(e.target.value)}
+                  placeholder="Company name, e.g. Google"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-charcoal-900/90 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-brand-500 focus:bg-white dark:focus:bg-charcoal-900 transition-all"
+                />
               </div>
 
               {/* Location */}
