@@ -140,14 +140,44 @@ export type MockTestAttempt = {
   questionIds: string[];
 };
 
-export function isLeetCodeSubmissionUrl(raw?: string): boolean {
+export type LeetCodePathInfo = {
+  slug: string;
+  isSubmissions: boolean;
+};
+
+export function parseLeetCodeProblemPath(raw?: string): LeetCodePathInfo | null {
   try {
     const parsed = new URL(String(raw || '').trim());
     const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
-    return host === 'leetcode.com' && /submissions/i.test(parsed.pathname);
+    if (host !== 'leetcode.com') return null;
+    const parts = parsed.pathname.toLowerCase().split('/').filter(Boolean);
+    const problemsIdx = parts.indexOf('problems');
+    const slug = problemsIdx >= 0 ? parts[problemsIdx + 1] : '';
+    if (!slug || slug === 'submissions') return null;
+    const rest = parts.slice(problemsIdx + 2);
+    return { slug, isSubmissions: rest.includes('submissions') };
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function isLeetCodeSubmissionUrl(raw?: string, expectedSlug?: string): boolean {
+  const parsed = parseLeetCodeProblemPath(raw);
+  if (!parsed?.isSubmissions) return false;
+  if (!expectedSlug) return true;
+  return parsed.slug === expectedSlug.toLowerCase();
+}
+
+export function leetCodeSubmissionUrlIssue(raw?: string, expectedSlug?: string): string | null {
+  const value = String(raw || '').trim();
+  if (!value) return null;
+  const parsed = parseLeetCodeProblemPath(value);
+  if (!parsed) return 'Paste a LeetCode submissions link for this question.';
+  if (!parsed.isSubmissions) return 'Paste the LeetCode submissions link, not the problem page.';
+  if (expectedSlug && parsed.slug !== expectedSlug.toLowerCase()) {
+    return 'This submissions link is for a different question. Use this problem’s submissions URL.';
+  }
+  return null;
 }
 
 export function getMockTestAttempt(testId?: string | null): MockTestAttempt | null {

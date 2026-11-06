@@ -15,6 +15,8 @@ import {
   getUsedQuestionIds,
   rememberUsedQuestionIds,
   isLeetCodeSubmissionUrl,
+  leetCodeSubmissionUrlIssue,
+  parseLeetCodeProblemPath,
   isMockTestCompleted,
   isMockTestPaid,
   markMockTestCompleted,
@@ -230,8 +232,13 @@ export const MockTestPage: React.FC = () => {
   }
 
   const paperQuestions = questions.length ? questions : questionsFromIds(savedResult?.questionIds);
-  const isQuestionDone = (questionId: string) =>
-    Boolean(screenshots[questionId]) && isLeetCodeSubmissionUrl(submissionUrls[questionId]);
+  const isQuestionDone = (questionId: string) => {
+    const question = paperQuestions.find((item) => item.id === questionId);
+    return (
+      Boolean(screenshots[questionId]) &&
+      isLeetCodeSubmissionUrl(submissionUrls[questionId], question?.leetcodeSlug)
+    );
+  };
   const uploadedCount = paperQuestions.filter((question) => isQuestionDone(question.id)).length;
   const resultUploaded = savedResult?.uploaded ?? uploadedCount;
   const resultTotal = savedResult?.total ?? (paperQuestions.length || test.questionCount);
@@ -394,7 +401,9 @@ export const MockTestPage: React.FC = () => {
         )}
 
         <div className="glass-panel p-6 rounded-2xl border border-slate-200 dark:border-white/10 space-y-8">
-          {paperQuestions.map((question, index) => (
+          {paperQuestions.map((question, index) => {
+            const linkIssue = leetCodeSubmissionUrlIssue(submissionUrls[question.id], question.leetcodeSlug);
+            return (
             <article key={question.id} className="rounded-xl">
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -425,15 +434,15 @@ export const MockTestPage: React.FC = () => {
                   type="url"
                   value={submissionUrls[question.id] || ''}
                   disabled={submitted}
-                  placeholder="https://leetcode.com/problems/.../submissions/..."
+                  placeholder={`https://leetcode.com/problems/${question.leetcodeSlug}/submissions/`}
                   onChange={(event) =>
                     setSubmissionUrls((prev) => ({ ...prev, [question.id]: event.target.value }))
                   }
                   className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-charcoal-950 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-70"
                 />
-                {submissionUrls[question.id] && !isLeetCodeSubmissionUrl(submissionUrls[question.id]) && (
+                {linkIssue && (
                   <span className="mt-1 block text-[11px] text-rose-600 dark:text-rose-300">
-                    Paste the LeetCode submissions link, not the problem page.
+                    {linkIssue}
                   </span>
                 )}
               </label>
@@ -452,7 +461,8 @@ export const MockTestPage: React.FC = () => {
                 }
               />
             </article>
-          ))}
+            );
+          })}
         </div>
 
         <div className="flex items-center justify-between gap-3 pb-8">
@@ -464,7 +474,14 @@ export const MockTestPage: React.FC = () => {
                 onClick={async () => {
                   const incomplete = paperQuestions.some((question) => !isQuestionDone(question.id));
                   if (incomplete) {
-                    setSubmitError('Add the submitted-answer link and snapshot for all 3 questions.');
+                    setSubmitError('Add the matching submissions link and snapshot for all 3 questions.');
+                    return;
+                  }
+                  const slugs = paperQuestions
+                    .map((question) => parseLeetCodeProblemPath(submissionUrls[question.id])?.slug)
+                    .filter(Boolean);
+                  if (new Set(slugs).size !== slugs.length) {
+                    setSubmitError('Each question needs its own submissions link. Do not paste the same link on all 3.');
                     return;
                   }
                   if (!user?.email) {

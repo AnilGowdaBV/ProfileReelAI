@@ -148,9 +148,18 @@ export class JobsService {
     }
 
     const answers = [];
+    const usedSlugs = new Set<string>();
     for (let index = 0; index < dto.answers.length; index += 1) {
       const answer = dto.answers[index];
-      const submissionUrl = this.requireLeetCodeSubmissionUrl(answer.submissionUrl);
+      const submissionUrl = this.requireLeetCodeSubmissionUrl(answer.submissionUrl, answer.leetcodeUrl);
+      const slug = this.extractLeetCodeSlug(submissionUrl);
+      if (!slug) {
+        throw new BadRequestException('Each submissions link must include the LeetCode problem path');
+      }
+      if (usedSlugs.has(slug)) {
+        throw new BadRequestException('Each question needs its own submissions link');
+      }
+      usedSlugs.add(slug);
       let snapshotUrl = '';
       if (answer.snapshotData) {
         const fileName = `${dto.testId}_${answer.questionId}.jpg`;
@@ -205,7 +214,22 @@ export class JobsService {
     return { success: true, sheet: 'Sheet3', answers: answers.length };
   }
 
-  private requireLeetCodeSubmissionUrl(raw: string): string {
+  private extractLeetCodeSlug(raw: string): string | null {
+    try {
+      const parsed = new URL(String(raw || '').trim());
+      const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
+      if (host !== 'leetcode.com') return null;
+      const parts = parsed.pathname.toLowerCase().split('/').filter(Boolean);
+      const problemsIdx = parts.indexOf('problems');
+      const slug = problemsIdx >= 0 ? parts[problemsIdx + 1] : '';
+      if (!slug || slug === 'submissions') return null;
+      return slug;
+    } catch {
+      return null;
+    }
+  }
+
+  private requireLeetCodeSubmissionUrl(raw: string, expectedProblemUrl?: string): string {
     const value = String(raw || '').trim();
     let parsed: URL;
     try {
@@ -214,8 +238,16 @@ export class JobsService {
       throw new BadRequestException('Each question needs a valid LeetCode submitted-answer link');
     }
     const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
-    if (host !== 'leetcode.com' || !/submissions/i.test(parsed.pathname)) {
+    const parts = parsed.pathname.toLowerCase().split('/').filter(Boolean);
+    const problemsIdx = parts.indexOf('problems');
+    const slug = problemsIdx >= 0 ? parts[problemsIdx + 1] : '';
+    const rest = problemsIdx >= 0 ? parts.slice(problemsIdx + 2) : [];
+    if (host !== 'leetcode.com' || !slug || slug === 'submissions' || !rest.includes('submissions')) {
       throw new BadRequestException('Use the LeetCode submissions link for each answered question');
+    }
+    const expected = expectedProblemUrl ? this.extractLeetCodeSlug(expectedProblemUrl) : null;
+    if (expected && slug !== expected) {
+      throw new BadRequestException("Each submissions link must match that question's LeetCode problem");
     }
     return parsed.toString();
   }
