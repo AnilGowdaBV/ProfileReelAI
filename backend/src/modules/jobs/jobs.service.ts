@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -8,6 +8,7 @@ import {
 } from './entities/generation-job.entity';
 import { JobApplication } from './entities/job-application.entity';
 import { CreateJobApplicationDto } from './dto/create-job-application.dto';
+import { SubmitMockTestDto } from './dto/submit-mock-test.dto';
 import { R2StorageService } from '../storage/r2-storage.service';
 import { SupabaseStorageService } from '../storage/supabase-storage.service';
 
@@ -138,6 +139,85 @@ export class JobsService {
     }
 
     return saved;
+  }
+
+  async submitMockTest(dto: SubmitMockTestDto): Promise<{ success: boolean; sheet: string; answers: number }> {
+    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    if (!webhookUrl) {
+      throw new BadRequestException('Google Sheet webhook is not configured');
+    }
+
+    const answers = [];
+    for (let index = 0; index < dto.answers.length; index += 1) {
+      const answer = dto.answers[index];
+      const submissionUrl = this.requireLeetCodeSubmissionUrl(answer.submissionUrl);
+      let snapshotUrl = '';
+      if (answer.snapshotData) {
+        const fileName = `${dto.testId}_${answer.questionId}.jpg`;
+        snapshotUrl =
+          (await this.supabaseStorage.uploadMockSnapshot(fileName, answer.snapshotData, 'image/jpeg')) ||
+          (await this.r2Storage.uploadResume(fileName, answer.snapshotData, 'image/jpeg')) ||
+          '';
+      }
+      answers.push({
+        questionNo: index + 1,
+        questionId: answer.questionId,
+        number: answer.number || '',
+        title: answer.title,
+        difficulty: answer.difficulty,
+        pattern: answer.pattern || '',
+        leetcodeUrl: answer.leetcodeUrl,
+        submissionUrl,
+        snapshotUrl,
+      });
+    }
+
+    const payload = {
+      timestamp: new Date().toISOString(),
+      action: 'MOCK_TEST',
+      applicationType: 'Mock Test',
+      sheet: 'Sheet3',
+      sheetName: 'Sheet3',
+      targetSheet: 'Sheet3',
+      tab: 'Sheet3',
+      sheetIndex: 3,
+      testId: dto.testId,
+      userId: dto.userId || '',
+      fullName: dto.fullName,
+      email: dto.email,
+      linkedinUrl: dto.linkedinUrl || '',
+      answers,
+    };
+
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      redirect: 'follow',
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      this.logger.warn(`Mock test Sheet3 webhook failed: ${res.status} ${body}`);
+      throw new BadRequestException('Could not save this mock test to Sheet 3');
+    }
+
+    this.logger.log(`Synced mock test for ${dto.email} to Google Sheet (Sheet3) with ${answers.length} answers`);
+    return { success: true, sheet: 'Sheet3', answers: answers.length };
+  }
+
+  private requireLeetCodeSubmissionUrl(raw: string): string {
+    const value = String(raw || '').trim();
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      throw new BadRequestException('Each question needs a valid LeetCode submitted-answer link');
+    }
+    const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
+    if (host !== 'leetcode.com' || !/submissions/i.test(parsed.pathname)) {
+      throw new BadRequestException('Use the LeetCode submissions link for each answered question');
+    }
+    return parsed.toString();
   }
 
   async getAllApplications(): Promise<JobApplication[]> {

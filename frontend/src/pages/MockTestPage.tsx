@@ -1,13 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Difficulty, MOCK_TESTS, Question, QuestionKind } from '../data/mockTests';
+import { ArrowLeft, CheckCircle2, ExternalLink, ImagePlus, Trash2 } from 'lucide-react';
+import { Difficulty, MOCK_TESTS, type DsaQuestion } from '../data/mockTests';
+import { pickFocusPaper, questionsFromIds } from '../data/leetcodeCompanyBank';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
+import { readProofImage } from '../lib/proofImage';
 import {
+  MOCK_TEST_JUST_SUBMITTED_KEY,
   MOCK_TEST_PAID_EVENT,
   MOCK_TEST_PAID_MESSAGE,
   getMockTestAttempt,
   getMockTestResult,
+  getUsedQuestionIds,
+  rememberUsedQuestionIds,
+  isLeetCodeSubmissionUrl,
   isMockTestCompleted,
   isMockTestPaid,
   markMockTestCompleted,
@@ -22,146 +29,85 @@ const difficultyTone: Record<Difficulty, string> = {
   Hard: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20',
 };
 
-const kindTone: Record<QuestionKind, string> = {
-  MCQ: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-400/30',
-  'Complete the code': 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20',
-  'Write the code': 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20',
-};
-
-type CompilerLanguage = 'python' | 'c' | 'cpp' | 'java';
-
-const COMPILER_LANGUAGES: { id: CompilerLanguage; label: string }[] = [
-  { id: 'python', label: 'Python' },
-  { id: 'c', label: 'C' },
-  { id: 'cpp', label: 'C++' },
-  { id: 'java', label: 'Java' },
-];
-
-const JUDGE0_LANGUAGE_ID: Record<CompilerLanguage, number> = {
-  python: 71,
-  c: 50,
-  cpp: 54,
-  java: 62,
-};
-
-function formatRunOutput(data: any, ok: boolean): string {
-  if (!ok) {
-    return data?.error || data?.message || 'Compiler rejected this run. Try again.';
-  }
-  const status = String(data?.status?.description || '').trim();
-  const compile = String(data?.compile_output || '').trim();
-  const stderr = String(data?.stderr || '').trim();
-  const stdout = String(data?.stdout || data?.run?.stdout || '').trim();
-  const message = String(data?.message || '').trim();
-  const parts = [status && status !== 'Accepted' ? status : '', compile, stderr, stdout, !stdout && message ? message : ''].filter(
-    Boolean,
-  );
-  if (parts.length) return parts.join('\n');
-  if (status === 'Accepted') return 'Program ran. No printed output.';
-  return 'Could not run this code.';
-}
-
-function startersFor(question: Question): Record<CompilerLanguage, string> {
-  const task = question.prompt;
-  const hint = question.snippet ? `\n${question.snippet.split('\n').map((line) => `  ${line}`).join('\n')}\n` : '';
-  if (question.kind === 'Complete the code') {
-    return {
-      python: `# ${task}\n# Fill in the missing part, then run.\n${question.snippet ? `# Idea:\n# ${question.snippet.replace(/\n/g, '\n# ')}\n` : ''}\ndef solve():\n    # write the completed code here\n    return None\n\nprint(solve())\n`,
-      c: `/* ${task} */\n#include <stdio.h>\n\nint main() {\n    /* complete the code here */${hint}\n    return 0;\n}\n`,
-      cpp: `/* ${task} */\n#include <iostream>\nusing namespace std;\n\nint main() {\n    // complete the code here${hint}\n    return 0;\n}\n`,
-      java: `// ${task}\nclass Main {\n    public static void main(String[] args) {\n        // complete the code here\n    }\n}\n`,
-    };
-  }
-  return {
-    python: `# ${task}\n# Write your program here.\n\nprint("")\n`,
-    c: `/* ${task} */\n#include <stdio.h>\n\nint main() {\n    /* write your code here */\n    return 0;\n}\n`,
-    cpp: `/* ${task} */\n#include <iostream>\nusing namespace std;\n\nint main() {\n    // write your code here\n    return 0;\n}\n`,
-    java: `// ${task}\nclass Main {\n    public static void main(String[] args) {\n        // write your code here\n    }\n}\n`,
-  };
-}
-
-const QuestionCompiler: React.FC<{
-  question: Question;
+const SnapshotUpload: React.FC<{
+  question: DsaQuestion;
+  preview?: string;
   disabled?: boolean;
-  onCodeChange: (code: string, language: CompilerLanguage) => void;
-}> = ({ question, disabled, onCodeChange }) => {
-  const initial = startersFor(question);
-  const [language, setLanguage] = useState<CompilerLanguage>('python');
-  const [files, setFiles] = useState<Record<CompilerLanguage, string>>(initial);
-  const [output, setOutput] = useState('Choose Python, C, C++ or Java. Type in this box, then Run.');
-  const [running, setRunning] = useState(false);
+  error?: string;
+  onUpload: (dataUrl: string) => void;
+  onRemove: () => void;
+}> = ({ question, preview, disabled, error, onUpload, onRemove }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
 
-  const setLangCode = (next: CompilerLanguage, code: string) => {
-    setFiles((prev) => ({ ...prev, [next]: code }));
-    onCodeChange(code, next);
-  };
-
-  const runCode = async () => {
-    setRunning(true);
-    setOutput('Running...');
+  const handleFile = async (file?: File) => {
+    if (!file || disabled) return;
+    setBusy(true);
     try {
-      const res = await fetch('https://ce.judge0.com/submissions?base64_encoded=false&wait=true', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source_code: files[language],
-          language_id: JUDGE0_LANGUAGE_ID[language],
-          stdin: '',
-        }),
-      });
-      const data = await res.json().catch(() => null);
-      setOutput(formatRunOutput(data, res.ok));
-    } catch {
-      setOutput('Compiler is unavailable right now. Try again.');
+      onUpload(await readProofImage(file));
+    } catch (err) {
+      console.error(err);
+      onUpload('');
     } finally {
-      setRunning(false);
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
   return (
-    <div className="mt-3 rounded-2xl border border-indigo-200/80 dark:border-indigo-500/20 p-3 bg-indigo-50/40 dark:bg-charcoal-900/50">
+    <div className="mt-3 rounded-2xl border border-slate-200 dark:border-white/10 p-3 bg-white/60 dark:bg-charcoal-900/50">
       <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-2">
-        Do this question here. Pick one language, type the code in the box, then press Run.
+        Upload a snapshot of your accepted LeetCode solution.
       </p>
-      <div className="flex flex-wrap gap-1.5 mb-2">
-        {COMPILER_LANGUAGES.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            disabled={disabled}
-            onClick={() => {
-              setLanguage(item.id);
-              onCodeChange(files[item.id], item.id);
-            }}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
-              language === item.id
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent'
-                : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-      <textarea
-        value={files[language]}
-        disabled={disabled}
-        onChange={(e) => setLangCode(language, e.target.value)}
-        spellCheck={false}
-        className="w-full h-40 p-3 rounded-xl bg-slate-900 text-slate-100 font-mono text-[11px] leading-5 border border-white/10 focus:outline-none disabled:opacity-70"
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/jpg"
+        className="hidden"
+        disabled={disabled || busy}
+        onChange={(event) => void handleFile(event.target.files?.[0])}
       />
-      <button
-        type="button"
-        onClick={runCode}
-        disabled={running || disabled}
-        className="mt-2 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold disabled:opacity-60"
-      >
-        {running ? 'Running...' : `Run ${COMPILER_LANGUAGES.find((item) => item.id === language)?.label}`}
-      </button>
-      <p className="mt-2 mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">Output</p>
-      <pre className="p-3 rounded-xl bg-white dark:bg-charcoal-950 text-[11px] text-slate-700 dark:text-slate-300 min-h-[56px] overflow-x-auto whitespace-pre-wrap">
-        {output}
-      </pre>
+      {preview ? (
+        <div className="space-y-2">
+          <img
+            src={preview}
+            alt={`${question.title} snapshot`}
+            className="w-full max-h-72 object-contain rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-charcoal-950"
+          />
+          {!disabled && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-bold"
+              >
+                Replace snapshot
+              </button>
+              <button
+                type="button"
+                onClick={onRemove}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-[11px] font-bold text-slate-600 dark:text-slate-300"
+              >
+                <Trash2 className="w-3 h-3" />
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={disabled || busy}
+          onClick={() => inputRef.current?.click()}
+          className="w-full py-8 rounded-xl border border-dashed border-slate-300 dark:border-white/15 text-slate-500 dark:text-slate-400 text-xs font-semibold hover:border-emerald-500/50 hover:text-emerald-700 dark:hover:text-emerald-300 disabled:opacity-60"
+        >
+          <span className="inline-flex items-center gap-2">
+            <ImagePlus className="w-4 h-4" />
+            {busy ? 'Reading snapshot...' : 'Upload snapshot'}
+          </span>
+        </button>
+      )}
+      {error && <p className="mt-2 text-[11px] text-rose-600 dark:text-rose-300">{error}</p>}
     </div>
   );
 };
@@ -171,9 +117,14 @@ export const MockTestPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const test = MOCK_TESTS.find((item) => item.id === setId);
-  const [mcqAnswers, setMcqAnswers] = useState<Record<number, number>>({});
-  const [codeAnswers, setCodeAnswers] = useState<Record<number, string>>({});
+  const [questions, setQuestions] = useState<DsaQuestion[]>([]);
+  const [screenshots, setScreenshots] = useState<Record<string, string>>({});
+  const [submissionUrls, setSubmissionUrls] = useState<Record<string, string>>({});
+  const [uploadError, setUploadError] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showSubmittedPopup, setShowSubmittedPopup] = useState(false);
   const [hasAccess, setHasAccess] = useState(() => isMockTestPaid(setId));
   const [alreadyTaken, setAlreadyTaken] = useState(() => isMockTestCompleted(setId));
   const [paying, setPaying] = useState(false);
@@ -183,26 +134,60 @@ export const MockTestPage: React.FC = () => {
   useEffect(() => {
     setAttemptReady(false);
     if (isMockTestCompleted(setId)) {
+      setQuestions(questionsFromIds(getMockTestResult(setId)?.questionIds));
       setAlreadyTaken(true);
       setSubmitted(true);
       setAttemptReady(true);
       return;
     }
     const attempt = getMockTestAttempt(setId);
-    setMcqAnswers(attempt?.mcqAnswers || {});
-    setCodeAnswers(attempt?.codeAnswers || {});
+    let paper = questionsFromIds(attempt?.questionIds);
+    if (paper.length !== (test?.questionCount || 3)) {
+      paper = pickFocusPaper(undefined, getUsedQuestionIds());
+      rememberUsedQuestionIds(paper.map((question) => question.id));
+    }
+    const allowed = new Set(paper.map((question) => question.id));
+    const shots = Object.fromEntries(
+      Object.entries(attempt?.screenshots || {}).filter(([id]) => allowed.has(id)),
+    );
+    const links = Object.fromEntries(
+      Object.entries(attempt?.submissionUrls || {}).filter(([id]) => allowed.has(id)),
+    );
+    setQuestions(paper);
+    setScreenshots(shots);
+    setSubmissionUrls(links);
     setSubmitted(false);
     setAlreadyTaken(false);
-    if (!attempt && isMockTestPaid(setId) && setId) {
-      saveMockTestAttempt(setId, { mcqAnswers: {}, codeAnswers: {} });
+    if (isMockTestPaid(setId) && setId) {
+      saveMockTestAttempt(setId, {
+        screenshots: shots,
+        submissionUrls: links,
+        questionIds: paper.map((question) => question.id),
+      });
     }
     setAttemptReady(true);
   }, [setId]);
 
   useEffect(() => {
     if (!attemptReady || !setId || alreadyTaken || submitted || !isMockTestPaid(setId)) return;
-    saveMockTestAttempt(setId, { mcqAnswers, codeAnswers });
-  }, [attemptReady, setId, mcqAnswers, codeAnswers, alreadyTaken, submitted]);
+    try {
+      saveMockTestAttempt(setId, {
+        screenshots,
+        submissionUrls,
+        questionIds: questions.map((question) => question.id),
+      });
+    } catch {
+      setUploadError((prev) => ({ ...prev, persist: 'Could not save snapshots on this device.' }));
+    }
+  }, [attemptReady, setId, screenshots, submissionUrls, questions, alreadyTaken, submitted]);
+
+  useEffect(() => {
+    if (!showSubmittedPopup) return;
+    const timer = window.setTimeout(() => {
+      navigate('/dashboard#mock-tests', { state: { mockTestSubmitted: true } });
+    }, 1800);
+    return () => window.clearTimeout(timer);
+  }, [showSubmittedPopup, navigate]);
 
   useEffect(() => {
     if (!setId) return;
@@ -244,26 +229,42 @@ export const MockTestPage: React.FC = () => {
     );
   }
 
+  const paperQuestions = questions.length ? questions : questionsFromIds(savedResult?.questionIds);
+  const isQuestionDone = (questionId: string) =>
+    Boolean(screenshots[questionId]) && isLeetCodeSubmissionUrl(submissionUrls[questionId]);
+  const uploadedCount = paperQuestions.filter((question) => isQuestionDone(question.id)).length;
+  const resultUploaded = savedResult?.uploaded ?? uploadedCount;
+  const resultTotal = savedResult?.total ?? (paperQuestions.length || test.questionCount);
+
   if (alreadyTaken) {
     const result = savedResult;
+    const resultShots = result?.screenshots || {};
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4 py-10">
         <div className="max-w-md w-full rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white/80 dark:bg-charcoal-900/80 text-center">
           <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">Attempt used</p>
           <h1 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">{test.title}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">
             You already took this paper. One ₹10 payment allows one attempt only.
           </p>
-          {result && (
-            <div className="grid grid-cols-2 gap-2 mb-5 text-left">
-              <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3">
-                <div className="text-[10px] uppercase font-bold text-slate-500">MCQ score</div>
-                <div className="text-lg font-extrabold">{result.mcqScore}/{result.mcqTotal}</div>
-              </div>
-              <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3">
-                <div className="text-[10px] uppercase font-bold text-slate-500">Code attempted</div>
-                <div className="text-lg font-extrabold">{result.codeAttempted}/{result.codeTotal}</div>
-              </div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3 mb-5 text-left">
+            <div className="text-[10px] uppercase font-bold text-slate-500">Snapshots uploaded</div>
+            <div className="text-lg font-extrabold">
+              {resultUploaded}/{resultTotal}
+            </div>
+          </div>
+          {paperQuestions.some((question) => resultShots[question.id]) && (
+            <div className="space-y-2 mb-5 text-left">
+              {paperQuestions.map((question) =>
+                resultShots[question.id] ? (
+                  <img
+                    key={question.id}
+                    src={resultShots[question.id]}
+                    alt={`${question.title} snapshot`}
+                    className="w-full max-h-40 object-contain rounded-lg border border-slate-200 dark:border-white/10"
+                  />
+                ) : null,
+              )}
             </div>
           )}
           <button type="button" onClick={() => navigate('/dashboard')} className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold">
@@ -313,20 +314,22 @@ export const MockTestPage: React.FC = () => {
     );
   }
 
-  const mcqItems = test.questions
-    .map((question, index) => ({ question, index }))
-    .filter(({ question }) => question.kind === 'MCQ');
-  const codeItems = test.questions
-    .map((question, index) => ({ question, index }))
-    .filter(({ question }) => question.kind !== 'MCQ');
-  const mcqScore = mcqItems.filter(
-    ({ question, index }) => typeof question.answer === 'number' && mcqAnswers[index] === question.answer,
-  ).length;
-  const codeAttempted = codeItems.filter(({ index }) => (codeAnswers[index] || '').trim().length > 0).length;
-  const answeredCount = Object.keys(mcqAnswers).length + codeAttempted;
-  const totalQuestions = test.questions.length;
-  const leftCount = Math.max(0, totalQuestions - answeredCount);
-  const progressPct = totalQuestions ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+  const totalQuestions = paperQuestions.length || test.questionCount;
+  const leftCount = Math.max(0, totalQuestions - uploadedCount);
+  const progressPct = totalQuestions ? Math.round((uploadedCount / totalQuestions) * 100) : 0;
+
+  const setShot = (questionId: string, dataUrl: string) => {
+    if (!dataUrl) {
+      setUploadError((prev) => ({ ...prev, [questionId]: 'Could not read that screenshot. Try a PNG or JPG.' }));
+      return;
+    }
+    setUploadError((prev) => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+    setScreenshots((prev) => ({ ...prev, [questionId]: dataUrl }));
+  };
 
   return (
     <div className="min-h-screen bg-transparent dark:bg-charcoal-950 text-slate-800 dark:text-slate-100">
@@ -343,7 +346,7 @@ export const MockTestPage: React.FC = () => {
           <div className="text-sm font-extrabold text-center truncate">{test.title}</div>
           <div className="flex items-center gap-3 shrink-0">
             <div className="text-right">
-              <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-none">{answeredCount}</div>
+              <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-none">{uploadedCount}</div>
               <div className="text-[10px] uppercase tracking-wide font-bold text-slate-500 mt-0.5">Attempted</div>
             </div>
             <div className="h-8 w-px bg-slate-200 dark:bg-white/10" />
@@ -362,7 +365,7 @@ export const MockTestPage: React.FC = () => {
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3 bg-white/70 dark:bg-charcoal-900/60">
             <div className="text-[10px] uppercase font-bold text-slate-500">Attempted</div>
-            <div className="text-lg font-extrabold">{answeredCount}</div>
+            <div className="text-lg font-extrabold">{uploadedCount}</div>
           </div>
           <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3 bg-white/70 dark:bg-charcoal-900/60">
             <div className="text-[10px] uppercase font-bold text-slate-500">Left</div>
@@ -376,118 +379,152 @@ export const MockTestPage: React.FC = () => {
 
         <div className="rounded-2xl border border-slate-200 dark:border-white/10 p-4 text-sm text-slate-600 dark:text-slate-300">
           <p className="font-bold text-slate-900 dark:text-white mb-1">How this paper works</p>
-          <p><strong>MCQ</strong> — pick one option.</p>
-          <p><strong>Complete the code</strong> — the compiler is under that question. Choose Python, C, C++ or Java, fill the missing part, and press Run.</p>
-          <p><strong>Write the code</strong> — write the program in that same compiler box under the question.</p>
+          <p>
+            Open each mapped LeetCode question, solve it there, paste the submitted-answer link, and upload a snapshot. Both are saved to Sheet 3. Submit once — this is your only attempt.
+          </p>
         </div>
 
         {submitted && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3">
-              <div className="text-[10px] uppercase font-bold text-slate-500">MCQ score</div>
-              <div className="text-lg font-extrabold">{mcqScore}/{mcqItems.length}</div>
+          <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3">
+            <div className="text-[10px] uppercase font-bold text-slate-500">Snapshots uploaded</div>
+            <div className="text-lg font-extrabold">
+              {uploadedCount}/{totalQuestions}
             </div>
-            <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3">
-              <div className="text-[10px] uppercase font-bold text-slate-500">Code attempted</div>
-              <div className="text-lg font-extrabold">{codeAttempted}/{codeItems.length}</div>
-            </div>
-            {(['Easy', 'Medium', 'Hard'] as Difficulty[]).slice(0, 0).map((level) => (
-              <div key={level} />
-            ))}
           </div>
         )}
 
         <div className="glass-panel p-6 rounded-2xl border border-slate-200 dark:border-white/10 space-y-8">
-          {test.questions.map((question, index) => {
-            const chosen = mcqAnswers[index];
-            const isCorrect = chosen === question.answer;
-            const isCode = question.kind !== 'MCQ';
-            return (
-              <fieldset key={`${test.id}-${index}`} className="rounded-xl">
-                <legend className="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2 flex flex-wrap items-center gap-2">
-                  <span>
-                    {index + 1}. {question.prompt}
+          {paperQuestions.map((question, index) => (
+            <article key={question.id} className="rounded-xl">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  {index + 1}. {question.title}
+                </h2>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${difficultyTone[question.difficulty]}`}>
+                  {question.difficulty}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold border border-slate-200 dark:border-white/10 text-slate-500">
+                  {question.pattern}
+                </span>
+              </div>
+              {question.companies.length > 0 && (
+                <p className="text-[11px] text-slate-500 mb-3">Asked at {question.companies.join(', ')}</p>
+              )}
+              <a
+                href={question.leetcodeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold"
+              >
+                Open on LeetCode
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <label className="block mt-3">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Submitted answer link</span>
+                <input
+                  type="url"
+                  value={submissionUrls[question.id] || ''}
+                  disabled={submitted}
+                  placeholder="https://leetcode.com/problems/.../submissions/..."
+                  onChange={(event) =>
+                    setSubmissionUrls((prev) => ({ ...prev, [question.id]: event.target.value }))
+                  }
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-charcoal-950 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-70"
+                />
+                {submissionUrls[question.id] && !isLeetCodeSubmissionUrl(submissionUrls[question.id]) && (
+                  <span className="mt-1 block text-[11px] text-rose-600 dark:text-rose-300">
+                    Paste the LeetCode submissions link, not the problem page.
                   </span>
-                  <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${kindTone[question.kind]}`}>
-                    {question.kind}
-                  </span>
-                  <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${difficultyTone[question.difficulty]}`}>
-                    {question.difficulty}
-                  </span>
-                </legend>
-
-                {!isCode && question.options && (
-                  <div className="space-y-1.5">
-                    {question.options.map((option, optionIndex) => {
-                      const picked = chosen === optionIndex;
-                      const mark = submitted && optionIndex === question.answer;
-                      const wrongPick = submitted && picked && !isCorrect;
-                      return (
-                        <label
-                          key={`${index}-${optionIndex}`}
-                          className={`flex items-start gap-2 text-xs ${
-                            mark
-                              ? 'text-emerald-700 dark:text-emerald-300 font-semibold'
-                              : wrongPick
-                                ? 'text-rose-600 dark:text-rose-300'
-                                : 'text-slate-700 dark:text-slate-300'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            className="mt-0.5"
-                            name={`${test.id}-${index}`}
-                            checked={picked}
-                            disabled={submitted}
-                            onChange={() => setMcqAnswers((prev) => ({ ...prev, [index]: optionIndex }))}
-                          />
-                          {option}
-                          {submitted && mark ? ' ✓' : ''}
-                          {submitted && wrongPick ? ' ✕' : ''}
-                        </label>
-                      );
-                    })}
-                  </div>
                 )}
-
-                {isCode && (
-                  <>
-                    {question.snippet && (
-                      <pre className="mb-2 p-3 rounded-xl bg-slate-900 text-slate-100 text-[11px] overflow-x-auto">
-                        <code>{question.snippet}</code>
-                      </pre>
-                    )}
-                    <QuestionCompiler
-                      question={question}
-                      disabled={submitted}
-                      onCodeChange={(code) => setCodeAnswers((prev) => ({ ...prev, [index]: code }))}
-                    />
-                  </>
-                )}
-              </fieldset>
-            );
-          })}
+              </label>
+              <SnapshotUpload
+                question={question}
+                preview={screenshots[question.id]}
+                disabled={submitted}
+                error={uploadError[question.id]}
+                onUpload={(dataUrl) => setShot(question.id, dataUrl)}
+                onRemove={() =>
+                  setScreenshots((prev) => {
+                    const next = { ...prev };
+                    delete next[question.id];
+                    return next;
+                  })
+                }
+              />
+            </article>
+          ))}
         </div>
 
         <div className="flex items-center justify-between gap-3 pb-8">
           {!submitted ? (
-            <button
-              type="button"
-              onClick={() => {
-                markMockTestCompleted(test.id, {
-                  mcqScore,
-                  mcqTotal: mcqItems.length,
-                  codeAttempted,
-                  codeTotal: codeItems.length,
-                  submittedAt: new Date().toISOString(),
-                });
-                setSubmitted(true);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold"
-            >
-              Submit all answers
-            </button>
+            <div className="space-y-2">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={async () => {
+                  const incomplete = paperQuestions.some((question) => !isQuestionDone(question.id));
+                  if (incomplete) {
+                    setSubmitError('Add the submitted-answer link and snapshot for all 3 questions.');
+                    return;
+                  }
+                  if (!user?.email) {
+                    setSubmitError('Log in so this paper can be saved to Sheet 3.');
+                    return;
+                  }
+                  setSubmitting(true);
+                  setSubmitError('');
+                  try {
+                    const kept: Record<string, string> = {};
+                    const links: Record<string, string> = {};
+                    paperQuestions.forEach((question) => {
+                      if (screenshots[question.id]) kept[question.id] = screenshots[question.id];
+                      if (submissionUrls[question.id]) links[question.id] = submissionUrls[question.id].trim();
+                    });
+                    await api.submitMockTest({
+                      testId: test.id,
+                      userId: user.id,
+                      fullName: user.name || 'Candidate',
+                      email: user.email,
+                      linkedinUrl: user.linkedinUrl,
+                      answers: paperQuestions.map((question) => ({
+                        questionId: question.id,
+                        number: String(question.number),
+                        title: question.title,
+                        difficulty: question.difficulty,
+                        pattern: question.pattern,
+                        leetcodeUrl: question.leetcodeUrl,
+                        submissionUrl: links[question.id],
+                        snapshotData: kept[question.id],
+                      })),
+                    });
+                    markMockTestCompleted(test.id, {
+                      uploaded: Object.keys(kept).length,
+                      total: paperQuestions.length,
+                      submittedAt: new Date().toISOString(),
+                      screenshots: kept,
+                      submissionUrls: links,
+                      questionIds: paperQuestions.map((question) => question.id),
+                    });
+                    setSubmitted(true);
+                    setShowSubmittedPopup(true);
+                    try {
+                      sessionStorage.setItem(MOCK_TEST_JUST_SUBMITTED_KEY, '1');
+                    } catch {
+                      /* ignore */
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    setSubmitError('Could not save this paper to Sheet 3. Try again.');
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold disabled:opacity-60"
+              >
+                {submitting ? 'Saving to Sheet 3...' : 'Submit paper'}
+              </button>
+              {submitError && <p className="text-[11px] text-rose-600 dark:text-rose-300">{submitError}</p>}
+            </div>
           ) : (
             <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
               This was your only attempt. You cannot retake this paper.
@@ -498,6 +535,27 @@ export const MockTestPage: React.FC = () => {
           </button>
         </div>
       </main>
+
+      {showSubmittedPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-2xl border border-emerald-500/30 bg-white dark:bg-charcoal-900 p-6 text-center shadow-2xl">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">Paper submitted</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              Your submitted links and snapshots were saved. Taking you back to the dashboard.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard#mock-tests', { state: { mockTestSubmitted: true } })}
+              className="mt-5 w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold"
+            >
+              Back to dashboard
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

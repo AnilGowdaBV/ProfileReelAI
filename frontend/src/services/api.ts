@@ -112,6 +112,28 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  submitMockTest: (data: {
+    testId: string;
+    userId?: string;
+    fullName: string;
+    email: string;
+    linkedinUrl?: string;
+    answers: Array<{
+      questionId: string;
+      number?: string;
+      title: string;
+      difficulty: string;
+      pattern?: string;
+      leetcodeUrl: string;
+      submissionUrl: string;
+      snapshotData?: string;
+    }>;
+  }) =>
+    request<{ success: boolean; message: string; sheet: string; answers: number }>('/jobs/mock-test', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   updateProfilePicture: (candidateId: string, profilePictureUrl: string) =>
     request<{ candidateId: string; displayName: string; profilePictureUrl: string; message: string }>(
       `/candidates/${candidateId}/profile-picture`,

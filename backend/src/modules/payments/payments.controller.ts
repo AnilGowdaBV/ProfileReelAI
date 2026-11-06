@@ -363,7 +363,7 @@ export class PaymentsController {
           <div class="icon-badge">✓</div>
           <div class="pill">${plan === 'mock_test' ? 'MOCK TEST UNLOCKED' : '👑 PRO ACTIVE • 30 DAYS'}</div>
           <h1>Payment Confirmed!</h1>
-          <p>${plan === 'mock_test' ? 'That one paper is unlocked. You will return to the dashboard — the other tests stay locked until you pay for them.' : 'Your <strong>ProfileReel AI Pro</strong> subscription has been successfully verified. 45+ verified roles and AI features are now unlocked!'}</p>
+          <p>${plan === 'mock_test' ? 'The mock test is unlocked. You will return to the dashboard. After you submit, pay ₹10 again for a new paper.' : 'Your <strong>ProfileReel AI Pro</strong> subscription has been successfully verified. 45+ verified roles and AI features are now unlocked!'}</p>
           <a href="${redirectUrl}" id="return-link" class="btn">${plan === 'mock_test' ? 'Back to dashboard' : 'Open ProfileReel AI (Pro Unlocked)'}</a>
           <div class="redirect-note" id="redirect-text">Redirecting automatically in 2 seconds...</div>
         </div>
@@ -386,7 +386,7 @@ export class PaymentsController {
 
           // 2. Set localStorage on this domain as well
           try {
-            ${plan === 'mock_test' ? `var paidId = '${testId || ''}'; var allowed = ['set-1','set-2','set-3']; if (allowed.indexOf(paidId) !== -1) { var paid = JSON.parse(localStorage.getItem('profilereel_paid_tests') || '[]'); if (paid.indexOf(paidId) === -1) paid.push(paidId); localStorage.setItem('profilereel_paid_tests', JSON.stringify(paid)); }` : `localStorage.setItem('profilereel_pro_active', 'true');`}
+            ${plan === 'mock_test' ? `var paidId = '${testId || ''}'; var allowed = ['set-1']; if (allowed.indexOf(paidId) !== -1) { var paid = JSON.parse(localStorage.getItem('profilereel_paid_tests') || '[]'); if (paid.indexOf(paidId) === -1) paid.push(paidId); localStorage.setItem('profilereel_paid_tests', JSON.stringify(paid)); }` : `localStorage.setItem('profilereel_pro_active', 'true');`}
           } catch(e) {}
 
           // 3. If this was a popup, close it so the dashboard stays in view. Otherwise redirect there.

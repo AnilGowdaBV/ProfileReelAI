@@ -5,17 +5,27 @@ const STORAGE_KEY = 'profilereel_paid_tests';
 const COMPLETED_KEY = 'profilereel_completed_tests';
 const RESULTS_KEY = 'profilereel_test_results';
 const ATTEMPT_KEY = 'profilereel_test_attempts';
+const USED_QUESTIONS_KEY = 'profilereel_used_leetcode_ids';
 export const MOCK_TEST_PAID_EVENT = 'profilereel-mock-test-paid';
 export const MOCK_TEST_COMPLETED_EVENT = 'profilereel-mock-test-completed';
 export const MOCK_TEST_PAID_MESSAGE = 'PROFILEREEL_MOCK_TEST_PAID';
+export const MOCK_TEST_JUST_SUBMITTED_KEY = 'profilereel_mock_just_submitted';
 const KNOWN_TEST_IDS = new Set(MOCK_TESTS.map((test) => test.id));
 
+/** Flip back to true when ₹10 Razorpay should gate the paper again. */
+export const MOCK_TEST_PAYWALL_ENABLED = true;
+
 export type MockTestResult = {
-  mcqScore: number;
-  mcqTotal: number;
-  codeAttempted: number;
-  codeTotal: number;
+  uploaded: number;
+  total: number;
   submittedAt: string;
+  screenshots?: Record<string, string>;
+  submissionUrls?: Record<string, string>;
+  questionIds?: string[];
+  mcqScore?: number;
+  mcqTotal?: number;
+  codeAttempted?: number;
+  codeTotal?: number;
 };
 
 export function getPaidMockTests(): string[] {
@@ -34,11 +44,15 @@ export function isKnownMockTestId(testId?: string | null): boolean {
 
 export function isMockTestPaid(testId?: string | null): boolean {
   if (!isKnownMockTestId(testId)) return false;
+  if (!MOCK_TEST_PAYWALL_ENABLED) return true;
   return getPaidMockTests().includes(testId as string);
 }
 
 export function markMockTestPaid(testId: string): void {
   if (!isKnownMockTestId(testId)) return;
+  if (getCompletedMockTests().includes(testId)) {
+    startFreshMockTestAttempt(testId);
+  }
   const paid = getPaidMockTests();
   if (!paid.includes(testId)) {
     paid.push(testId);
@@ -63,6 +77,7 @@ export function getCompletedMockTests(): string[] {
 
 export function isMockTestCompleted(testId?: string | null): boolean {
   if (!isKnownMockTestId(testId)) return false;
+  if (!MOCK_TEST_PAYWALL_ENABLED) return false;
   return getCompletedMockTests().includes(testId as string);
 }
 
@@ -82,21 +97,69 @@ export function markMockTestCompleted(testId: string, result: MockTestResult): v
   const all = readJson<Record<string, MockTestResult>>(RESULTS_KEY, {});
   all[testId] = result;
   localStorage.setItem(RESULTS_KEY, JSON.stringify(all));
+  if (result.questionIds?.length) rememberUsedQuestionIds(result.questionIds);
   const attempts = readJson<Record<string, unknown>>(ATTEMPT_KEY, {});
   delete attempts[testId];
   localStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempts));
   window.dispatchEvent(new CustomEvent(MOCK_TEST_COMPLETED_EVENT, { detail: { testId } }));
 }
 
+export function getUsedQuestionIds(): string[] {
+  const parsed = readJson<unknown>(USED_QUESTIONS_KEY, []);
+  return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string' && id.length > 0) : [];
+}
+
+export function rememberUsedQuestionIds(ids: string[]): void {
+  const used = new Set(getUsedQuestionIds());
+  ids.forEach((id) => {
+    if (id) used.add(id);
+  });
+  localStorage.setItem(USED_QUESTIONS_KEY, JSON.stringify([...used]));
+}
+
+/** After a new ₹10 payment, drop the finished attempt so the next paper can be drawn. */
+export function startFreshMockTestAttempt(testId: string): void {
+  if (!isKnownMockTestId(testId)) return;
+  const result = getMockTestResult(testId);
+  if (result?.questionIds?.length) rememberUsedQuestionIds(result.questionIds);
+  localStorage.setItem(
+    COMPLETED_KEY,
+    JSON.stringify(getCompletedMockTests().filter((id) => id !== testId)),
+  );
+  const attempts = readJson<Record<string, unknown>>(ATTEMPT_KEY, {});
+  delete attempts[testId];
+  localStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempts));
+  const results = readJson<Record<string, MockTestResult>>(RESULTS_KEY, {});
+  delete results[testId];
+  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+}
+
 export type MockTestAttempt = {
-  mcqAnswers: Record<number, number>;
-  codeAnswers: Record<number, string>;
+  screenshots: Record<string, string>;
+  submissionUrls: Record<string, string>;
+  questionIds: string[];
 };
+
+export function isLeetCodeSubmissionUrl(raw?: string): boolean {
+  try {
+    const parsed = new URL(String(raw || '').trim());
+    const host = parsed.hostname.replace(/^www\./i, '').toLowerCase();
+    return host === 'leetcode.com' && /submissions/i.test(parsed.pathname);
+  } catch {
+    return false;
+  }
+}
 
 export function getMockTestAttempt(testId?: string | null): MockTestAttempt | null {
   if (!isKnownMockTestId(testId)) return null;
-  const all = readJson<Record<string, MockTestAttempt>>(ATTEMPT_KEY, {});
-  return all[testId as string] || null;
+  const all = readJson<Record<string, Partial<MockTestAttempt>>>(ATTEMPT_KEY, {});
+  const raw = all[testId as string];
+  if (!raw) return null;
+  return {
+    screenshots: raw.screenshots && typeof raw.screenshots === 'object' ? raw.screenshots : {},
+    submissionUrls: raw.submissionUrls && typeof raw.submissionUrls === 'object' ? raw.submissionUrls : {},
+    questionIds: Array.isArray(raw.questionIds) ? raw.questionIds.filter((id) => typeof id === 'string') : [],
+  };
 }
 
 export function hasOpenMockTestAttempt(testId?: string | null): boolean {
@@ -106,7 +169,11 @@ export function hasOpenMockTestAttempt(testId?: string | null): boolean {
 export function saveMockTestAttempt(testId: string, attempt: MockTestAttempt): void {
   if (!isKnownMockTestId(testId) || isMockTestCompleted(testId)) return;
   const all = readJson<Record<string, MockTestAttempt>>(ATTEMPT_KEY, {});
-  all[testId] = attempt;
+  all[testId] = {
+    screenshots: attempt.screenshots || {},
+    submissionUrls: attempt.submissionUrls || {},
+    questionIds: attempt.questionIds || [],
+  };
   localStorage.setItem(ATTEMPT_KEY, JSON.stringify(all));
 }
 

@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
 import { JobResponseDto } from './dto/job-response.dto';
 import { CreateJobApplicationDto } from './dto/create-job-application.dto';
+import { SubmitMockTestDto } from './dto/submit-mock-test.dto';
 import { CourseRecommendationsService } from './course-recommendations.service';
 
 @ApiTags('Jobs')
@@ -21,6 +22,17 @@ export class JobsController {
       success: true,
       message: 'Application submitted successfully',
       application,
+    };
+  }
+
+  @Post('mock-test')
+  @ApiOperation({ summary: 'Submit a mock test paper (answer links + snapshots) to Google Sheet 3' })
+  async submitMockTest(@Body() dto: SubmitMockTestDto) {
+    const result = await this.jobsService.submitMockTest(dto);
+    return {
+      success: true,
+      message: 'Mock test saved to Sheet 3',
+      ...result,
     };
   }
 
