@@ -17,6 +17,11 @@
  *   Sheet2  = express interest
  *   Sheet3  = mock test submitted links + snapshots
  *
+ * FIRST RUN AFTER PASTING:
+ * In Apps Script, choose "setupSheets" in the toolbar function dropdown and click ▶ Run.
+ * That creates Sheet2 and Sheet3 if they are missing, and moves old Express Interest
+ * rows off Sheet1 onto Sheet2.
+ *
  * TO FIX ALL EXISTING ROWS (Rows 2 to 7):
  * In Apps Script, choose "fixExistingResumeLinks" in the toolbar function dropdown
  * and click the "▶ Run" button. All existing rows will instantly turn into clickable links!
@@ -34,8 +39,10 @@ function doPost(e) {
       data = e.parameter;
     }
 
-    var sheet = resolveTargetSheet(data);
-    if (isMockTestPayload(data)) {
+    var tabs = ensureAllTabs();
+    var kind = classifyPayload(data);
+    var sheet = kind === "mock" ? tabs.sheet3 : kind === "interest" ? tabs.sheet2 : tabs.sheet1;
+    if (kind === "mock") {
       writeMockTestRows(sheet, data);
       return jsonOut({ success: true, message: "Mock test recorded on Sheet3", sheet: sheet.getName() });
     }
@@ -43,8 +50,9 @@ function doPost(e) {
     writeApplicationRow(sheet, data);
     return jsonOut({
       success: true,
-      message: "Application recorded with clickable resume link!",
-      sheet: sheet.getName()
+      message: kind === "interest" ? "Express interest recorded on Sheet2" : "Application recorded on Sheet1",
+      sheet: sheet.getName(),
+      kind: kind
     });
   } catch (error) {
     return jsonOut({ success: false, error: error.toString() });
@@ -53,58 +61,134 @@ function doPost(e) {
   }
 }
 
-function isMockTestPayload(data) {
-  var action = String(data.action || data.applicationType || "").toUpperCase();
+function classifyPayload(data) {
+  var action = String(data.action || data.applicationType || data.status || "").toUpperCase();
   var sheetName = String(data.sheetName || data.sheet || data.targetSheet || data.tab || "").toUpperCase().replace(/\s+/g, "");
-  return action.indexOf("MOCK") >= 0 || sheetName === "SHEET3" || Number(data.sheetIndex) === 3 || (data.answers && data.answers.length);
+  if (action.indexOf("MOCK") >= 0 || sheetName === "SHEET3" || Number(data.sheetIndex) === 3 || (data.answers && data.answers.length)) {
+    return "mock";
+  }
+  if (action.indexOf("INTEREST") >= 0 || sheetName === "SHEET2" || Number(data.sheetIndex) === 2) {
+    return "interest";
+  }
+  return "apply";
 }
 
-function resolveTargetSheet(data) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var action = String(data.action || data.applicationType || "").toUpperCase();
-  var requested = String(data.sheetName || data.sheet || data.targetSheet || data.tab || "").trim();
-  var name = requested;
-
-  if (!name) {
-    if (action.indexOf("MOCK") >= 0 || Number(data.sheetIndex) === 3) name = "Sheet3";
-    else if (action.indexOf("INTEREST") >= 0 || Number(data.sheetIndex) === 2) name = "Sheet2";
-    else name = "Sheet1";
-  }
-
-  var compact = name.replace(/\s+/g, "");
-  var candidates = [name, compact];
-  if (/sheet3/i.test(compact)) candidates.push("Sheet3", "Sheet 3", "sheet 3");
-  if (/sheet2/i.test(compact)) candidates.push("Sheet2", "Sheet 2");
-  if (/sheet1/i.test(compact)) candidates.push("Sheet1", "Sheet 1");
-
-  for (var i = 0; i < candidates.length; i++) {
-    var found = ss.getSheetByName(candidates[i]);
+function namedSheet(ss, names, createAs) {
+  for (var i = 0; i < names.length; i++) {
+    var found = ss.getSheetByName(names[i]);
     if (found) return found;
   }
+  return ss.insertSheet(createAs);
+}
 
-  return ss.insertSheet(compact || name || "Sheet3");
+function ensureAllTabs() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet1 = namedSheet(ss, ["Sheet1", "Sheet 1"], "Sheet1");
+  var sheet2 = namedSheet(ss, ["Sheet2", "Sheet 2", "sheet 2"], "Sheet2");
+  var sheet3 = namedSheet(ss, ["Sheet3", "Sheet 3", "sheet 3"], "Sheet3");
+  ensureApplicationHeaders(sheet1, "#1e293b");
+  ensureApplicationHeaders(sheet2, "#1d4ed8");
+  ensureMockTestHeaders(sheet3);
+  try { sheet1.setTabColor("#1e293b"); } catch (e1) {}
+  try { sheet2.setTabColor("#1d4ed8"); } catch (e2) {}
+  try { sheet3.setTabColor("#065f46"); } catch (e3) {}
+  return { sheet1: sheet1, sheet2: sheet2, sheet3: sheet3 };
+}
+
+/** Run this once in Apps Script after pasting: creates Sheet2 + Sheet3 and moves old Express Interest rows. */
+function setupSheets() {
+  var tabs = ensureAllTabs();
+  var moved = moveExpressInterestToSheet2();
+  return {
+    sheet1: tabs.sheet1.getName(),
+    sheet2: tabs.sheet2.getName(),
+    sheet3: tabs.sheet3.getName(),
+    movedExpressInterestRows: moved
+  };
+}
+
+function applicationHeaders() {
+  return [
+    "Applied Timestamp",
+    "Job Title",
+    "Company Name",
+    "Candidate Name",
+    "Email Address",
+    "Phone Number",
+    "LinkedIn URL",
+    "Current Salary",
+    "Expected Salary",
+    "Location",
+    "Resume (Click to Open)",
+    "Status",
+    "Where are you interviewing at"
+  ];
+}
+
+function ensureApplicationHeaders(sheet, color) {
+  var headers = applicationHeaders();
+  if (sheet.getLastRow() === 0 || !String(sheet.getRange(1, 1).getValue() || "").trim()) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length).setBackground(color || "#1e293b").setFontColor("#ffffff").setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  ensureInterviewingAtColumn(sheet);
+}
+
+function mockTestHeaders() {
+  return [
+    "Submitted Timestamp",
+    "Candidate Name",
+    "Email Address",
+    "LinkedIn URL",
+    "Test ID",
+    "Question No",
+    "Difficulty",
+    "Question Title",
+    "Pattern",
+    "LeetCode Problem",
+    "Submitted Answer Link",
+    "Snapshot",
+    "Status"
+  ];
+}
+
+function ensureMockTestHeaders(sheet) {
+  var headers = mockTestHeaders();
+  if (sheet.getLastRow() === 0 || !String(sheet.getRange(1, 1).getValue() || "").trim()) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length).setBackground("#065f46").setFontColor("#ffffff").setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+}
+
+function moveExpressInterestToSheet2() {
+  var tabs = ensureAllTabs();
+  var source = tabs.sheet1;
+  var dest = tabs.sheet2;
+  var lastRow = source.getLastRow();
+  if (lastRow < 2) return 0;
+  var lastCol = Math.max(source.getLastColumn(), 13);
+  var values = source.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var formulas = source.getRange(2, 1, lastRow - 1, lastCol).getFormulas();
+  var moved = 0;
+  for (var i = values.length - 1; i >= 0; i--) {
+    var status = String(values[i][11] || "").toUpperCase();
+    var title = String(values[i][1] || "").toUpperCase();
+    if (status.indexOf("INTEREST") === -1 && title.indexOf("INTEREST") === -1) continue;
+    dest.appendRow(values[i]);
+    var destRow = dest.getLastRow();
+    for (var c = 0; c < formulas[i].length; c++) {
+      if (formulas[i][c]) dest.getRange(destRow, c + 1).setFormula(formulas[i][c]);
+    }
+    source.deleteRow(i + 2);
+    moved++;
+  }
+  return moved;
 }
 
 function writeApplicationRow(sheet, data) {
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      "Applied Timestamp",
-      "Job Title",
-      "Company Name",
-      "Candidate Name",
-      "Email Address",
-      "Phone Number",
-      "LinkedIn URL",
-      "Current Salary",
-      "Expected Salary",
-      "Location",
-      "Resume (Click to Open)",
-      "Status",
-      "Where are you interviewing at"
-    ]);
-    sheet.getRange(1, 1, 1, 13).setBackground("#1e293b").setFontColor("#ffffff").setFontWeight("bold");
-    sheet.setFrozenRows(1);
-  }
+  ensureApplicationHeaders(sheet, sheet.getName().replace(/\s+/g, "") === "Sheet2" ? "#1d4ed8" : "#1e293b");
 
   var nowFormatted = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss");
   var fileName = data.resumeFileName || "Resume.pdf";
@@ -136,27 +220,7 @@ function writeApplicationRow(sheet, data) {
 }
 
 function writeMockTestRows(sheet, data) {
-  var headers = [
-    "Submitted Timestamp",
-    "Candidate Name",
-    "Email Address",
-    "LinkedIn URL",
-    "Test ID",
-    "Question No",
-    "Difficulty",
-    "Question Title",
-    "Pattern",
-    "LeetCode Problem",
-    "Submitted Answer Link",
-    "Snapshot",
-    "Status"
-  ];
-
-  if (sheet.getLastRow() === 0 || !String(sheet.getRange(1, 1).getValue() || "").trim()) {
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sheet.getRange(1, 1, 1, headers.length).setBackground("#065f46").setFontColor("#ffffff").setFontWeight("bold");
-    sheet.setFrozenRows(1);
-  }
+  ensureMockTestHeaders(sheet);
 
   var nowFormatted = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss");
   var answers = data.answers || [];
