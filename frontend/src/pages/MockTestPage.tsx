@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, ExternalLink, ImagePlus, Trash2 } from 'lucide
 import { Difficulty, MOCK_TESTS, type DsaQuestion } from '../data/mockTests';
 import { pickFocusPaper, questionsFromIds } from '../data/leetcodeCompanyBank';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { ApiError, api } from '../services/api';
 import { readProofImage } from '../lib/proofImage';
 import {
   MOCK_TEST_JUST_SUBMITTED_KEY,
@@ -472,6 +472,13 @@ export const MockTestPage: React.FC = () => {
                 type="button"
                 disabled={submitting}
                 onClick={async () => {
+                  const firstIssue = paperQuestions
+                    .map((question) => leetCodeSubmissionUrlIssue(submissionUrls[question.id], question.leetcodeSlug))
+                    .find(Boolean);
+                  if (firstIssue) {
+                    setSubmitError(firstIssue);
+                    return;
+                  }
                   const incomplete = paperQuestions.some((question) => !isQuestionDone(question.id));
                   if (incomplete) {
                     setSubmitError('Add the matching submissions link and snapshot for all 3 questions.');
@@ -485,7 +492,7 @@ export const MockTestPage: React.FC = () => {
                     return;
                   }
                   if (!user?.email) {
-                    setSubmitError('Log in so this paper can be saved to Sheet 3.');
+                    setSubmitError('Log in so this paper can be saved.');
                     return;
                   }
                   setSubmitting(true);
@@ -531,7 +538,11 @@ export const MockTestPage: React.FC = () => {
                     }
                   } catch (err) {
                     console.error(err);
-                    setSubmitError('Could not save this paper to Sheet 3. Try again.');
+                    const message =
+                      err instanceof ApiError || err instanceof Error
+                        ? err.message
+                        : 'Could not save this paper. Try again.';
+                    setSubmitError(message);
                   } finally {
                     setSubmitting(false);
                   }
