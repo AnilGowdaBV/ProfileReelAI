@@ -52,10 +52,10 @@ export class CreateJobApplicationDto {
   @IsString()
   location?: string;
 
-  @ApiProperty({ description: 'Company where the candidate is currently interviewing' })
+  @ApiPropertyOptional({ description: 'Company where the candidate is currently interviewing' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  interviewingAt: string;
+  interviewingAt?: string;
 
   @ApiPropertyOptional({ description: 'Original Resume File Name' })
   @IsOptional()

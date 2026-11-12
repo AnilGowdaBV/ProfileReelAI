@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, ExternalLink, ImagePlus, Trash2 } from 'lucide-react';
 import { Difficulty, MOCK_TESTS, type DsaQuestion } from '../data/mockTests';
-import { pickFocusPaper, questionsFromIds } from '../data/leetcodeCompanyBank';
+import { pickRolePaper, questionsFromIds, ROLE_HARD_BANK } from '../data/leetcodeCompanyBank';
 import { useAuth } from '../context/AuthContext';
 import { ApiError, api } from '../services/api';
 import { readProofImage } from '../lib/proofImage';
@@ -10,9 +10,12 @@ import {
   MOCK_TEST_JUST_SUBMITTED_KEY,
   MOCK_TEST_PAID_EVENT,
   MOCK_TEST_PAID_MESSAGE,
+  beginMockTestClock,
+  expireMockTestUnlock,
   getMockTestAttempt,
+  getMockTestRemainingMs,
   getMockTestResult,
-  getUsedQuestionIds,
+  getBlockedQuestionIds,
   rememberUsedQuestionIds,
   isLeetCodeSubmissionUrl,
   leetCodeSubmissionUrlIssue,
@@ -131,6 +134,8 @@ export const MockTestPage: React.FC = () => {
   const [alreadyTaken, setAlreadyTaken] = useState(() => isMockTestCompleted(setId));
   const [paying, setPaying] = useState(false);
   const [attemptReady, setAttemptReady] = useState(false);
+  const [timeLeftMs, setTimeLeftMs] = useState(() => getMockTestRemainingMs(setId, test?.minutes));
+  const [timeOver, setTimeOver] = useState(false);
   const savedResult = getMockTestResult(setId);
 
   useEffect(() => {
@@ -143,9 +148,15 @@ export const MockTestPage: React.FC = () => {
       return;
     }
     const attempt = getMockTestAttempt(setId);
+    const roleIds = new Set(
+      ROLE_HARD_BANK.filter((item) => item.role === test?.role).map((item) => `lc-${item.number}`),
+    );
     let paper = questionsFromIds(attempt?.questionIds);
-    if (paper.length !== (test?.questionCount || 3)) {
-      paper = pickFocusPaper(undefined, getUsedQuestionIds());
+    const paperMatchesRole =
+      paper.length === (test?.questionCount || 3) &&
+      paper.every((question) => question.difficulty === 'Hard' && roleIds.has(question.id));
+    if (!paperMatchesRole && test?.role) {
+      paper = pickRolePaper(test.role, getBlockedQuestionIds(setId));
       rememberUsedQuestionIds(paper.map((question) => question.id));
     }
     const allowed = new Set(paper.map((question) => question.id));
@@ -169,6 +180,22 @@ export const MockTestPage: React.FC = () => {
     }
     setAttemptReady(true);
   }, [setId]);
+
+  useEffect(() => {
+    if (!setId || !hasAccess || alreadyTaken) return;
+    beginMockTestClock(setId);
+    const tick = () => {
+      const left = getMockTestRemainingMs(setId, test?.minutes);
+      setTimeLeftMs(left);
+      if (left <= 0) {
+        setTimeOver(true);
+        expireMockTestUnlock(setId);
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [setId, hasAccess, alreadyTaken, test?.minutes]);
 
   useEffect(() => {
     if (!attemptReady || !setId || alreadyTaken || submitted || !isMockTestPaid(setId)) return;
@@ -351,6 +378,9 @@ export const MockTestPage: React.FC = () => {
             Dashboard
           </button>
           <div className="text-sm font-extrabold text-center truncate">{test.title}</div>
+          <div className={`px-3 py-1.5 rounded-xl text-sm font-extrabold tabular-nums ${timeLeftMs <= 5 * 60 * 1000 ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'}`}>
+            {String(Math.floor(timeLeftMs / 60000)).padStart(2, '0')}:{String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, '0')}
+          </div>
           <div className="flex items-center gap-3 shrink-0">
             <div className="text-right">
               <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-none">{uploadedCount}</div>
@@ -472,6 +502,12 @@ export const MockTestPage: React.FC = () => {
                 type="button"
                 disabled={submitting}
                 onClick={async () => {
+                  if (timeOver || getMockTestRemainingMs(setId, test.minutes) <= 0) {
+                    setTimeOver(true);
+                    if (setId) expireMockTestUnlock(setId);
+                    setSubmitError('Time is over. This paper is not counted.');
+                    return;
+                  }
                   const firstIssue = paperQuestions
                     .map((question) => leetCodeSubmissionUrlIssue(submissionUrls[question.id], question.leetcodeSlug))
                     .find(Boolean);
@@ -563,6 +599,18 @@ export const MockTestPage: React.FC = () => {
           </button>
         </div>
       </main>
+
+      {timeOver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-charcoal-900 p-6 text-center shadow-2xl">
+            <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">Time is over</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">75 minutes are done. This paper is closed and will not be counted.</p>
+            <button type="button" onClick={() => navigate('/dashboard#mock-tests')} className="mt-5 w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold">
+              Back to dashboard
+            </button>
+          </div>
+        </div>
+      )}
 
       {showSubmittedPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/80 backdrop-blur-md">

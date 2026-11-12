@@ -98,3 +98,12 @@ html.dark ::-webkit-scrollbar-thumb {
 html.dark ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
+
+@keyframes notice-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.notice-blink {
+  animation: notice-blink 1s step-end infinite;
+}

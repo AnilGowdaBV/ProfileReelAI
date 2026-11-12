@@ -2,6 +2,10 @@ import { API_BASE } from '../services/api';
 import { MOCK_TESTS } from '../data/mockTests';
 
 const STORAGE_KEY = 'profilereel_paid_tests';
+const UNLOCK_UNTIL_KEY = 'profilereel_test_unlock_until';
+const EXAM_START_KEY = 'profilereel_test_exam_started';
+export const MOCK_TEST_UNLOCK_MS = 60 * 60 * 1000;
+export const MOCK_TEST_MINUTES = 75;
 const COMPLETED_KEY = 'profilereel_completed_tests';
 const RESULTS_KEY = 'profilereel_test_results';
 const ATTEMPT_KEY = 'profilereel_test_attempts';
@@ -42,10 +46,35 @@ export function isKnownMockTestId(testId?: string | null): boolean {
   return Boolean(testId && KNOWN_TEST_IDS.has(testId));
 }
 
+function readUnlockMap(): Record<string, number> {
+  const parsed = readJson<Record<string, number>>(UNLOCK_UNTIL_KEY, {});
+  return parsed && typeof parsed === 'object' ? parsed : {};
+}
+
+export function getMockTestUnlockRemaining(testId?: string | null): number {
+  if (!testId) return 0;
+  const until = readUnlockMap()[testId] || 0;
+  return Math.max(0, until - Date.now());
+}
+
 export function isMockTestPaid(testId?: string | null): boolean {
   if (!isKnownMockTestId(testId)) return false;
   if (!MOCK_TEST_PAYWALL_ENABLED) return true;
-  return getPaidMockTests().includes(testId as string);
+  if (!getPaidMockTests().includes(testId as string)) return false;
+  if (getMockTestUnlockRemaining(testId) > 0) return true;
+  expireMockTestUnlock(testId as string);
+  return false;
+}
+
+export function expireMockTestUnlock(testId: string): void {
+  const paid = getPaidMockTests().filter((id) => id !== testId);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(paid));
+  const unlocks = readUnlockMap();
+  delete unlocks[testId];
+  localStorage.setItem(UNLOCK_UNTIL_KEY, JSON.stringify(unlocks));
+  const clocks = readJson<Record<string, number>>(EXAM_START_KEY, {});
+  delete clocks[testId];
+  localStorage.setItem(EXAM_START_KEY, JSON.stringify(clocks));
 }
 
 export function markMockTestPaid(testId: string): void {
@@ -58,7 +87,30 @@ export function markMockTestPaid(testId: string): void {
     paid.push(testId);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(paid));
   }
+  const unlocks = readUnlockMap();
+  unlocks[testId] = Date.now() + MOCK_TEST_UNLOCK_MS;
+  localStorage.setItem(UNLOCK_UNTIL_KEY, JSON.stringify(unlocks));
+  const clocks = readJson<Record<string, number>>(EXAM_START_KEY, {});
+  delete clocks[testId];
+  localStorage.setItem(EXAM_START_KEY, JSON.stringify(clocks));
   window.dispatchEvent(new CustomEvent(MOCK_TEST_PAID_EVENT, { detail: { testId } }));
+}
+
+export function beginMockTestClock(testId: string): number {
+  const clocks = readJson<Record<string, number>>(EXAM_START_KEY, {});
+  if (!clocks[testId]) {
+    clocks[testId] = Date.now();
+    localStorage.setItem(EXAM_START_KEY, JSON.stringify(clocks));
+  }
+  return clocks[testId];
+}
+
+export function getMockTestRemainingMs(testId?: string | null, minutes = MOCK_TEST_MINUTES): number {
+  if (!testId) return minutes * 60 * 1000;
+  const clocks = readJson<Record<string, number>>(EXAM_START_KEY, {});
+  const started = clocks[testId];
+  if (!started) return minutes * 60 * 1000;
+  return Math.max(0, started + minutes * 60 * 1000 - Date.now());
 }
 
 function readJson<T>(key: string, fallback: T): T {
@@ -129,6 +181,9 @@ export function startFreshMockTestAttempt(testId: string): void {
   const attempts = readJson<Record<string, unknown>>(ATTEMPT_KEY, {});
   delete attempts[testId];
   localStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempts));
+  const clocks = readJson<Record<string, number>>(EXAM_START_KEY, {});
+  delete clocks[testId];
+  localStorage.setItem(EXAM_START_KEY, JSON.stringify(clocks));
   const results = readJson<Record<string, MockTestResult>>(RESULTS_KEY, {});
   delete results[testId];
   localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
@@ -178,6 +233,18 @@ export function leetCodeSubmissionUrlIssue(raw?: string, expectedSlug?: string):
     return 'This submissions link is for a different question. Use this problem’s submissions URL.';
   }
   return null;
+}
+
+export function getBlockedQuestionIds(exceptTestId?: string | null): string[] {
+  const blocked = new Set(getUsedQuestionIds());
+  const attempts = readJson<Record<string, Partial<MockTestAttempt>>>(ATTEMPT_KEY, {});
+  Object.entries(attempts).forEach(([id, attempt]) => {
+    if (id === exceptTestId) return;
+    (attempt?.questionIds || []).forEach((questionId) => {
+      if (questionId) blocked.add(questionId);
+    });
+  });
+  return [...blocked];
 }
 
 export function getMockTestAttempt(testId?: string | null): MockTestAttempt | null {

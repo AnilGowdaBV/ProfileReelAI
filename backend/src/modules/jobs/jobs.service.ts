@@ -83,7 +83,7 @@ export class JobsService {
       currentSalary: dto.currentSalary || '',
       expectedSalary: dto.expectedSalary || '',
       location: dto.location || '',
-      interviewingAt: dto.interviewingAt.trim(),
+      interviewingAt: dto.interviewingAt?.trim() || '',
       resumeFileName: dto.resumeFileName || '',
       resumeUrl: resumeUrl || '',
       resumeData: dto.resumeData || null,

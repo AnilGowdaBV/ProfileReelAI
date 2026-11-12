@@ -85,9 +85,24 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
         }),
       });
 
-      const data = await res.json();
+      const raw = await res.text();
+      let data: any = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        data = null;
+      }
       if (!res.ok) {
-        throw new Error(data.message || 'Authentication failed. Please verify credentials.');
+        const message = Array.isArray(data?.message) ? data.message.join(', ') : data?.message;
+        throw new Error(
+          message ||
+            (res.status >= 500
+              ? 'Server is not responding. Start the backend and try again.'
+              : 'Authentication failed. Please verify credentials.'),
+        );
+      }
+      if (!data?.user?.id) {
+        throw new Error('Login did not return a user. Please try again.');
       }
 
       loginWithCredentials({

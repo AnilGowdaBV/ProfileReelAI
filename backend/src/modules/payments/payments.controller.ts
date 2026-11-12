@@ -386,7 +386,7 @@ export class PaymentsController {
 
           // 2. Set localStorage on this domain as well
           try {
-            ${plan === 'mock_test' ? `var paidId = '${testId || ''}'; var allowed = ['set-1']; if (allowed.indexOf(paidId) !== -1) { var paid = JSON.parse(localStorage.getItem('profilereel_paid_tests') || '[]'); if (paid.indexOf(paidId) === -1) paid.push(paidId); localStorage.setItem('profilereel_paid_tests', JSON.stringify(paid)); }` : `localStorage.setItem('profilereel_pro_active', 'true');`}
+            ${plan === 'mock_test' ? `var paidId = '${testId || ''}'; var allowed = ['set-1', 'set-2', 'set-3']; if (allowed.indexOf(paidId) !== -1) { var paid = JSON.parse(localStorage.getItem('profilereel_paid_tests') || '[]'); if (paid.indexOf(paidId) === -1) paid.push(paidId); localStorage.setItem('profilereel_paid_tests', JSON.stringify(paid)); }` : `localStorage.setItem('profilereel_pro_active', 'true');`}
           } catch(e) {}
 
           // 3. If this was a popup, close it so the dashboard stays in view. Otherwise redirect there.
