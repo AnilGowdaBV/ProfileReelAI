@@ -110,20 +110,20 @@ export const BeInterviewerModal: React.FC<{ open: boolean; onClose: () => void }
           </div>
         ) : (
           <form onSubmit={(event) => void submit(event)} className="px-6 py-5 space-y-3">
-            {[
+            {([
               ['Name', fullName, setFullName, 'text'],
               ['LinkedIn URL', linkedinUrl, setLinkedinUrl, 'url'],
               ['Currently working at', currentCompany, setCurrentCompany, 'text'],
               ['Email', email, setEmail, 'email'],
               ['Phone number', phone, setPhone, 'tel'],
-            ].map(([label, value, setter, type]) => (
-              <label key={String(label)} className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+            ] as [string, string, (next: string) => void, string][]).map(([label, value, setter, type]) => (
+              <label key={label} className="block text-xs font-bold text-slate-600 dark:text-slate-300">
                 {label}
                 <input
                   required
-                  type={String(type)}
-                  value={String(value)}
-                  onChange={(event) => (setter as (next: string) => void)(event.target.value)}
+                  type={type}
+                  value={value}
+                  onChange={(event) => setter(event.target.value)}
                   className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-charcoal-950 px-3 py-2 text-sm font-medium"
                 />
               </label>
