@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CheckCircle2, ClipboardCheck, Loader2, Upload, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MOCK_TESTS } from '../data/mockTests';
+import { PracticeCourseCards } from './PracticeCourseCards';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import {
@@ -11,6 +12,7 @@ import {
   MOCK_TEST_PAID_MESSAGE,
   MOCK_TEST_PAYWALL_ENABLED,
   getCompletedMockTests,
+  getMockTestResult,
   getMockTestUnlockRemaining,
   getPaidMockTests,
   hasOpenMockTestAttempt,
@@ -116,7 +118,7 @@ export const MockTestsSection: React.FC = () => {
 
   const handleStart = async (testId: string) => {
     if (!MOCK_TEST_PAYWALL_ENABLED) {
-      openDetailsForm(testId);
+      navigate(`/test/${testId}`);
       return;
     }
     if (isMockTestPaid(testId) || paidIds.includes(testId)) {
@@ -154,6 +156,7 @@ export const MockTestsSection: React.FC = () => {
               { name: 'Swiggy', domain: 'swiggy.com' },
               { name: 'Flipkart', domain: 'flipkart.com' },
               { name: 'Zepto', domain: 'zeptonow.com' },
+              { name: 'Uber', domain: 'uber.com' },
             ].map((company) => (
               <img
                 key={company.name}
@@ -166,8 +169,8 @@ export const MockTestsSection: React.FC = () => {
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
             {MOCK_TEST_PAYWALL_ENABLED
-              ? '3 hard LeetCode questions for React, Java, or Golang. Solve there, paste the submitted-answer link, and upload a snapshot. ₹10 for this attempt.'
-              : '3 hard LeetCode questions for React, Java, or Golang. Solve there, paste the submitted-answer link, and upload a snapshot. Payment is paused while we review the test.'}
+              ? 'Four coding questions for React, Java, or Golang. You solve them on this page. ₹10 for this attempt.'
+              : 'Four coding questions for React, Java, or Golang. You solve them on this page. Payment is paused while we review the test.'}
           </p>
         </div>
 
@@ -206,6 +209,7 @@ export const MockTestsSection: React.FC = () => {
                           { name: 'Swiggy', domain: 'swiggy.com' },
                           { name: 'Flipkart', domain: 'flipkart.com' },
                           { name: 'Zepto', domain: 'zeptonow.com' },
+                          { name: 'Uber', domain: 'uber.com' },
                         ].map((company) => (
                           <img
                             key={company.name}
@@ -224,7 +228,7 @@ export const MockTestsSection: React.FC = () => {
                   </div>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">{test.blurb}</p>
                   <p className="text-[11px] text-slate-500 mt-3">
-                    {test.minutes} min · {test.questionCount} hard questions
+                    {test.minutes} min · {test.questionCount} questions · solved here
                     {MOCK_TEST_PAYWALL_ENABLED
                       ? unlocked
                         ? ` · open for ${Math.max(1, Math.ceil(getMockTestUnlockRemaining(test.id) / 60000))} min`
@@ -252,6 +256,11 @@ export const MockTestsSection: React.FC = () => {
             );
           })}
         </div>
+        {completedIds.some((id) => getMockTestResult(id)?.verdict === 'Failed') && (
+          <div className="mt-5">
+            <PracticeCourseCards heading="Because a paper was failed" />
+          </div>
+        )}
       </div>
 
       {detailsTestId && (
@@ -308,7 +317,7 @@ export const MockTestsSection: React.FC = () => {
                       await api.applyForJob({
                         jobId: detailsTestId,
                         jobTitle: test?.title || 'Mock Test',
-                        companyName: 'Swiggy, Flipkart, Zepto',
+                        companyName: 'Swiggy, Flipkart, Zepto, Uber',
                         fullName: fullName.trim(),
                         linkedinUrl: linkedinUrl.trim(),
                         email: email.trim(),

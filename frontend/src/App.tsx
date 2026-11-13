@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardPage } from './pages/DashboardPage';
+import { AdminLoginPage, AdminPage } from './pages/AdminLoginPage';
 import { MockTestPage } from './pages/MockTestPage';
 import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/LoginModal';
@@ -123,6 +124,8 @@ const AppContent: React.FC = () => {
           <Route path="/" element={<LandingRoute />} />
           <Route path="/dashboard" element={<DashboardRoute />} />
           <Route path="/test/:setId" element={<TestRoute />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

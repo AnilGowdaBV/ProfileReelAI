@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Body, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Headers, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { AdminService } from '../admin/admin.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
 import { JobResponseDto } from './dto/job-response.dto';
 import { CreateJobApplicationDto } from './dto/create-job-application.dto';
 import { SubmitMockTestDto } from './dto/submit-mock-test.dto';
+import { CodeRunnerService } from './code-runner.service';
 import { CourseRecommendationsService } from './course-recommendations.service';
+import { RunCodeDto } from './dto/run-code.dto';
 
 @ApiTags('Jobs')
 @Controller('jobs')
@@ -12,7 +15,21 @@ export class JobsController {
   constructor(
     private readonly jobsService: JobsService,
     private readonly courseRecommendations: CourseRecommendationsService,
+    private readonly codeRunner: CodeRunnerService,
+    private readonly admin: AdminService,
   ) {}
+
+  @Post('run-code')
+  @ApiOperation({ summary: 'Run a mock-test solution in the selected language' })
+  async runCode(@Body() dto: RunCodeDto) {
+    let tests: { args: unknown[]; output: unknown; hidden?: boolean }[] = [];
+    try {
+      tests = JSON.parse(dto.testsJson);
+    } catch {
+      tests = [];
+    }
+    return this.codeRunner.run(dto.language, dto.source, tests);
+  }
 
   @Post('apply')
   @ApiOperation({ summary: 'Submit a candidate job application and persist to DB & Google Sheet' })
@@ -23,6 +40,12 @@ export class JobsController {
       message: 'Application submitted successfully',
       application,
     };
+  }
+
+  @Get('mock-test-results')
+  mockTestResults(@Headers('authorization') authorization?: string) {
+    this.admin.session(authorization);
+    return this.jobsService.listMockTests();
   }
 
   @Post('mock-test')
@@ -40,6 +63,18 @@ export class JobsController {
   @ApiOperation({ summary: 'Sync all database applications to Google Sheet' })
   async syncToSheet(@Body('webhookUrl') webhookUrl?: string) {
     return this.jobsService.syncAllToGoogleSheet(webhookUrl);
+  }
+
+  @Get('applications/admin/:id/resume')
+  adminResume(@Headers('authorization') authorization: string | undefined, @Param('id', new ParseUUIDPipe()) id: string) {
+    this.admin.session(authorization);
+    return this.jobsService.resumeForAdmin(id);
+  }
+
+  @Get('applications/admin')
+  adminApplications(@Headers('authorization') authorization: string | undefined, @Query('kind') kind?: string) {
+    this.admin.session(authorization);
+    return this.jobsService.listApplications(kind === 'interest' ? 'expressed_interest' : 'applied');
   }
 
   @Get('applications')

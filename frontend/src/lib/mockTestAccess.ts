@@ -30,6 +30,8 @@ export type MockTestResult = {
   mcqTotal?: number;
   codeAttempted?: number;
   codeTotal?: number;
+  verdict?: string;
+  verdictReason?: string;
 };
 
 export function getPaidMockTests(): string[] {

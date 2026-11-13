@@ -45,6 +45,51 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
+export type JobApplicationRow = {
+  id: string;
+  jobTitle: string;
+  companyName: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  linkedinUrl?: string;
+  location?: string;
+  currentSalary?: string;
+  expectedSalary?: string;
+  interviewingAt?: string;
+  resumeFileName?: string;
+  hasResume?: boolean;
+  status: string;
+  createdAt: string;
+};
+
+export type MockTestResultRow = {
+  id: string;
+  fullName: string;
+  email: string;
+  linkedinUrl: string;
+  testId: string;
+  questionNo: number;
+  difficulty: string;
+  title: string;
+  pattern: string;
+  submissionUrl: string;
+  status: string;
+  createdAt: string;
+};
+
+export type InterviewerApplicationRow = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  linkedinUrl: string;
+  currentCompany: string;
+  previousCompanies: string;
+  status: string;
+  createdAt: string;
+};
+
 export const api = {
   getHealth: () => request<HealthStatus>('/health'),
 
@@ -112,21 +157,98 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  adminLogin: (username: string, password: string) =>
+    request<{ token: string; username: string }>('/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+
+  adminSession: (token: string) =>
+    request<{ username: string }>('/admin/session', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  applicationResume: (token: string, id: string) =>
+    request<{ fileName: string; resumeUrl: string; resumeData: string }>(`/jobs/applications/admin/${id}/resume`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  jobApplications: (token: string, kind: 'jobs' | 'interest') =>
+    request<JobApplicationRow[]>(`/jobs/applications/admin?kind=${kind}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  mockTestResults: (token: string) =>
+    request<MockTestResultRow[]>('/jobs/mock-test-results', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  interviewerApplications: (token: string) =>
+    request<InterviewerApplicationRow[]>('/interviewers/applications', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  setInterviewerStatus: (token: string, id: string, status: string) =>
+    request<InterviewerApplicationRow>(`/interviewers/applications/${id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status }),
+    }),
+
+  interviewerStatus: (email: string) =>
+    request<{ found: boolean; status?: string; fullName?: string }>(
+      `/interviewers/mine?email=${encodeURIComponent(email)}`,
+    ),
+
+  applyInterviewer: (data: {
+    fullName: string;
+    email: string;
+    phone: string;
+    linkedinUrl: string;
+    currentCompany: string;
+  }) =>
+    request<{ success: boolean; message: string; previousCompanies: string[] }>('/interviewers/apply', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  runCode: (data: { language: string; source: string; testsJson: string }) =>
+    request<{
+      passedCases: number;
+      total: number;
+      passed: boolean;
+      note: string;
+      output?: string;
+      status?: string;
+      time?: string;
+      memory?: number;
+      cases: Array<{ index: number; hidden: boolean; passed: boolean; message: string }>;
+    }>('/jobs/run-code', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   submitMockTest: (data: {
     testId: string;
     userId?: string;
     fullName: string;
     email: string;
     linkedinUrl?: string;
+    verdict?: string;
+    verdictReason?: string;
+    tabWarnings?: string;
+    pasteWarnings?: string;
     answers: Array<{
       questionId: string;
       number?: string;
       title: string;
       difficulty: string;
       pattern?: string;
-      leetcodeUrl: string;
-      submissionUrl: string;
+      leetcodeUrl?: string;
+      submissionUrl?: string;
       snapshotData?: string;
+      caseNote?: string;
+      code?: string;
     }>;
   }) =>
     request<{ success: boolean; message: string; sheet: string; answers: number }>('/jobs/mock-test', {

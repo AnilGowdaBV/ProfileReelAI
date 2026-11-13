@@ -84,6 +84,6 @@ class SmartHybridProfileDataProvider implements IProfileDataProvider {
     },
     ProfileRetrievalService,
   ],
-  exports: [ProfileRetrievalService, PROFILE_DATA_PROVIDER],
+  exports: [ProfileRetrievalService, PROFILE_DATA_PROVIDER, ApifyProfileDataProvider],
 })
 export class ProfileRetrievalModule {}

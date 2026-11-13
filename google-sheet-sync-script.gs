@@ -16,6 +16,7 @@
  *   Sheet1  = job applications
  *   Sheet2  = express interest
  *   Sheet3  = mock test submitted links + snapshots
+ *   Sheet4  = be an interviewer applications
  *
  * FIRST RUN AFTER PASTING:
  * In Apps Script, choose "setupSheets" in the toolbar function dropdown and click ▶ Run.
@@ -41,7 +42,11 @@ function doPost(e) {
 
     var tabs = ensureAllTabs();
     var kind = classifyPayload(data);
-    var sheet = kind === "mock" ? tabs.sheet3 : kind === "interest" ? tabs.sheet2 : tabs.sheet1;
+    var sheet = kind === "interviewer" ? tabs.sheet4 : kind === "mock" ? tabs.sheet3 : kind === "interest" ? tabs.sheet2 : tabs.sheet1;
+    if (kind === "interviewer") {
+      writeInterviewerRow(sheet, data);
+      return jsonOut({ success: true, message: "Interviewer application recorded on Sheet4", sheet: sheet.getName() });
+    }
     if (kind === "mock") {
       writeMockTestRows(sheet, data);
       return jsonOut({ success: true, message: "Mock test recorded on Sheet3", sheet: sheet.getName() });
@@ -64,6 +69,9 @@ function doPost(e) {
 function classifyPayload(data) {
   var action = String(data.action || data.applicationType || data.status || "").toUpperCase();
   var sheetName = String(data.sheetName || data.sheet || data.targetSheet || data.tab || "").toUpperCase().replace(/\s+/g, "");
+  if (action.indexOf("INTERVIEWER") >= 0 || sheetName === "SHEET4" || Number(data.sheetIndex) === 4) {
+    return "interviewer";
+  }
   if (action.indexOf("MOCK") >= 0 || sheetName === "SHEET3" || Number(data.sheetIndex) === 3 || (data.answers && data.answers.length)) {
     return "mock";
   }
@@ -86,13 +94,16 @@ function ensureAllTabs() {
   var sheet1 = namedSheet(ss, ["Sheet1", "Sheet 1"], "Sheet1");
   var sheet2 = namedSheet(ss, ["Sheet2", "Sheet 2", "sheet 2"], "Sheet2");
   var sheet3 = namedSheet(ss, ["Sheet3", "Sheet 3", "sheet 3"], "Sheet3");
+  var sheet4 = namedSheet(ss, ["Sheet4", "Sheet 4", "sheet 4"], "Sheet4");
   ensureApplicationHeaders(sheet1, "#1e293b");
   ensureApplicationHeaders(sheet2, "#1d4ed8");
   ensureMockTestHeaders(sheet3);
+  ensureInterviewerHeaders(sheet4);
   try { sheet1.setTabColor("#1e293b"); } catch (e1) {}
   try { sheet2.setTabColor("#1d4ed8"); } catch (e2) {}
   try { sheet3.setTabColor("#065f46"); } catch (e3) {}
-  return { sheet1: sheet1, sheet2: sheet2, sheet3: sheet3 };
+  try { sheet4.setTabColor("#7c3aed"); } catch (e4) {}
+  return { sheet1: sheet1, sheet2: sheet2, sheet3: sheet3, sheet4: sheet4 };
 }
 
 /** Run this once in Apps Script after pasting: creates Sheet2 + Sheet3 and moves old Express Interest rows. */
@@ -148,18 +159,30 @@ function mockTestHeaders() {
     "Pattern",
     "LeetCode Problem",
     "Submitted Answer Link",
-    "Snapshot",
-    "Status"
+    "Status",
+    "Cases",
+    "Tab switches",
+    "Copy-paste",
+    "What happened"
   ];
 }
 
 function ensureMockTestHeaders(sheet) {
   var headers = mockTestHeaders();
-  if (sheet.getLastRow() === 0 || !String(sheet.getRange(1, 1).getValue() || "").trim()) {
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sheet.getRange(1, 1, 1, headers.length).setBackground("#065f46").setFontColor("#ffffff").setFontWeight("bold");
-    sheet.setFrozenRows(1);
-  }
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setBackground("#065f46").setFontColor("#ffffff").setFontWeight("bold");
+  sheet.setFrozenRows(1);
+}
+
+function mockStatus(data) {
+  var tabs = Number(data.tabWarnings || 0);
+  var pastes = Number(data.pasteWarnings || 0);
+  var verdict = data.verdict || "Submitted";
+  var notes = [];
+  if (pastes > 0) notes.push("tried copy paste " + pastes);
+  if (tabs > 0) notes.push("tried switching tab " + tabs);
+  if (!notes.length) return verdict;
+  return verdict + " — " + notes.join(", ");
 }
 
 function moveExpressInterestToSheet2() {
@@ -219,6 +242,36 @@ function writeApplicationRow(sheet, data) {
   }
 }
 
+function interviewerHeaders() {
+  return ["Submitted Timestamp", "Name", "Email", "Phone", "LinkedIn", "Current Company", "Previous Companies", "Status"];
+}
+
+function ensureInterviewerHeaders(sheet) {
+  var headers = interviewerHeaders();
+  if (sheet.getLastRow() === 0 || !String(sheet.getRange(1, 1).getValue() || "").trim()) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length).setBackground("#7c3aed").setFontColor("#ffffff").setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+}
+
+function writeInterviewerRow(sheet, data) {
+  ensureInterviewerHeaders(sheet);
+  var nowFormatted = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss");
+  var nextRow = sheet.getLastRow() + 1;
+  sheet.appendRow([
+    nowFormatted,
+    data.fullName || "",
+    data.email || "",
+    data.phone || "",
+    data.linkedinUrl || "",
+    data.currentCompany || "",
+    data.previousCompanies || "",
+    data.status || "Under review"
+  ]);
+  setLink(sheet, nextRow, 5, data.linkedinUrl, "Open LinkedIn");
+}
+
 function writeMockTestRows(sheet, data) {
   ensureMockTestHeaders(sheet);
 
@@ -251,13 +304,15 @@ function writeMockTestRows(sheet, data) {
       answer.pattern || "",
       answer.leetcodeUrl || "",
       answer.submissionUrl || "",
-      "Snapshot",
-      "Submitted"
+      mockStatus(data),
+      answer.caseNote || "",
+      data.tabWarnings || "0",
+      data.pasteWarnings || "0",
+      data.verdictReason || ""
     ]);
 
     setLink(sheet, nextRow, 10, answer.leetcodeUrl, "Open problem");
     setLink(sheet, nextRow, 11, answer.submissionUrl, "Open submitted answer");
-    setLink(sheet, nextRow, 12, answer.snapshotUrl, "Open snapshot");
   }
 }
 

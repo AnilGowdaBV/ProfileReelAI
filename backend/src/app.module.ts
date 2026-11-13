@@ -9,6 +9,8 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { ScriptGenerationModule } from './modules/script-generation/script-generation.module';
 import { VideoGenerationModule } from './modules/video-generation/video-generation.module';
 import { ProfileScoringModule } from './modules/profile-scoring/profile-scoring.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { InterviewersModule } from './modules/interviewers/interviewers.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { StorageModule } from './modules/storage/storage.module';
 
@@ -29,6 +31,8 @@ import { StorageModule } from './modules/storage/storage.module';
     VideoGenerationModule,
     ProfileScoringModule,
     PaymentsModule,
+    InterviewersModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

@@ -7,6 +7,7 @@ import {
   JobStage,
 } from './entities/generation-job.entity';
 import { JobApplication } from './entities/job-application.entity';
+import { MockTestResult } from './entities/mock-test-result.entity';
 import { CreateJobApplicationDto } from './dto/create-job-application.dto';
 import { SubmitMockTestDto } from './dto/submit-mock-test.dto';
 import { R2StorageService } from '../storage/r2-storage.service';
@@ -15,15 +16,20 @@ import { SupabaseStorageService } from '../storage/supabase-storage.service';
 @Injectable()
 export class JobsService {
   private readonly logger = new Logger(JobsService.name);
+  private mockTableReady: Promise<void>;
 
   constructor(
     @InjectRepository(GenerationJob)
     private readonly jobRepo: Repository<GenerationJob>,
     @InjectRepository(JobApplication)
     private readonly applicationRepo: Repository<JobApplication>,
+    @InjectRepository(MockTestResult)
+    private readonly mockResults: Repository<MockTestResult>,
     private readonly r2Storage: R2StorageService,
     private readonly supabaseStorage: SupabaseStorageService,
-  ) {}
+  ) {
+    this.mockTableReady = this.ensureMockTestTable();
+  }
 
   async createJob(candidateId: string): Promise<GenerationJob> {
     const job = this.jobRepo.create({
@@ -141,6 +147,11 @@ export class JobsService {
     return saved;
   }
 
+  async listMockTests() {
+    await this.mockTableReady;
+    return this.mockResults.find({ order: { createdAt: 'DESC' } });
+  }
+
   async submitMockTest(dto: SubmitMockTestDto): Promise<{ success: boolean; sheet: string; answers: number }> {
     const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
     if (!webhookUrl) {
@@ -151,15 +162,20 @@ export class JobsService {
     const usedSlugs = new Set<string>();
     for (let index = 0; index < dto.answers.length; index += 1) {
       const answer = dto.answers[index];
-      const submissionUrl = this.requireLeetCodeSubmissionUrl(answer.submissionUrl, answer.leetcodeUrl);
-      const slug = this.extractLeetCodeSlug(submissionUrl);
-      if (!slug) {
-        throw new BadRequestException('Each submissions link must include the LeetCode problem path');
+      const onPlatform = Boolean(answer.code?.trim()) && !answer.submissionUrl?.trim();
+      const submissionUrl = onPlatform
+        ? 'Solved on platform'
+        : this.requireLeetCodeSubmissionUrl(answer.submissionUrl || '', answer.leetcodeUrl || '');
+      if (!onPlatform) {
+        const slug = this.extractLeetCodeSlug(submissionUrl);
+        if (!slug) {
+          throw new BadRequestException('Each submissions link must include the LeetCode problem path');
+        }
+        if (usedSlugs.has(slug)) {
+          throw new BadRequestException('Each question needs its own submissions link');
+        }
+        usedSlugs.add(slug);
       }
-      if (usedSlugs.has(slug)) {
-        throw new BadRequestException('Each question needs its own submissions link');
-      }
-      usedSlugs.add(slug);
       let snapshotUrl = '';
       if (answer.snapshotData) {
         const fileName = `${dto.testId}_${answer.questionId}.jpg`;
@@ -178,6 +194,7 @@ export class JobsService {
         leetcodeUrl: answer.leetcodeUrl,
         submissionUrl,
         snapshotUrl,
+        caseNote: answer.caseNote || '',
       });
     }
 
@@ -191,12 +208,45 @@ export class JobsService {
       tab: 'Sheet3',
       sheetIndex: 3,
       testId: dto.testId,
+      verdict: dto.verdict || '',
+      verdictReason: dto.verdictReason || '',
+      tabWarnings: dto.tabWarnings || '0',
+      pasteWarnings: dto.pasteWarnings || '0',
       userId: dto.userId || '',
       fullName: dto.fullName,
       email: dto.email,
       linkedinUrl: dto.linkedinUrl || '',
       answers,
     };
+
+    const tabs = Number(dto.tabWarnings || 0);
+    const pastes = Number(dto.pasteWarnings || 0);
+    const notes = [
+      pastes > 0 ? `tried copy paste ${pastes}` : '',
+      tabs > 0 ? `tried switching tab ${tabs}` : '',
+    ].filter(Boolean);
+    const status = notes.length ? `${dto.verdict || 'Submitted'} — ${notes.join(', ')}` : dto.verdict || 'Submitted';
+    await this.mockTableReady;
+    await this.mockResults.save(
+      answers.map((answer) =>
+        this.mockResults.create({
+          fullName: dto.fullName,
+          email: dto.email,
+          linkedinUrl: dto.linkedinUrl || '',
+          testId: dto.testId,
+          questionNo: answer.questionNo,
+          questionId: answer.questionId,
+          difficulty: answer.difficulty,
+          title: answer.title,
+          pattern: answer.pattern,
+          leetcodeUrl: answer.leetcodeUrl || '',
+          submissionUrl: answer.submissionUrl,
+          status,
+          code: dto.answers.find((item) => item.questionId === answer.questionId)?.code || '',
+          caseNote: answer.caseNote,
+        }),
+      ),
+    );
 
     const res = await fetch(webhookUrl, {
       method: 'POST',
@@ -212,6 +262,29 @@ export class JobsService {
 
     this.logger.log(`Synced mock test for ${dto.email} to Google Sheet (Sheet3) with ${answers.length} answers`);
     return { success: true, sheet: 'Sheet3', answers: answers.length };
+  }
+
+  private async ensureMockTestTable() {
+    await this.mockResults.query(`
+      CREATE TABLE IF NOT EXISTS mock_test_results (
+        id varchar(36) NOT NULL PRIMARY KEY,
+        full_name varchar(255) NOT NULL,
+        email varchar(255) NOT NULL,
+        linkedin_url varchar(500) NOT NULL DEFAULT '',
+        test_id varchar(40) NOT NULL,
+        question_no int NOT NULL,
+        question_id varchar(80) NOT NULL,
+        difficulty varchar(40) NOT NULL,
+        title varchar(255) NOT NULL,
+        pattern varchar(120) NOT NULL DEFAULT '',
+        leetcode_url varchar(500) NOT NULL DEFAULT '',
+        submission_url varchar(500) NOT NULL DEFAULT '',
+        status text NOT NULL,
+        code text,
+        case_note text,
+        created_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+      )
+    `);
   }
 
   private extractLeetCodeSlug(raw: string): string | null {
@@ -250,6 +323,55 @@ export class JobsService {
       throw new BadRequestException("Each submissions link must match that question's LeetCode problem");
     }
     return parsed.toString();
+  }
+
+  async listApplications(status: 'applied' | 'expressed_interest') {
+    const rows = await this.applicationRepo.find({
+      where: { status },
+      order: { createdAt: 'DESC' },
+      select: [
+        'id',
+        'jobTitle',
+        'companyName',
+        'fullName',
+        'email',
+        'phone',
+        'linkedinUrl',
+        'location',
+        'currentSalary',
+        'expectedSalary',
+        'interviewingAt',
+        'resumeFileName',
+        'status',
+        'createdAt',
+      ],
+    });
+    const flags = await this.applicationRepo
+      .createQueryBuilder('app')
+      .select('app.id', 'id')
+      .addSelect(
+        "(app.resume_data IS NOT NULL AND app.resume_data <> '') OR (app.resume_url IS NOT NULL AND app.resume_url <> '')",
+        'hasResume',
+      )
+      .where('app.status = :status', { status })
+      .getRawMany<{ id: string; hasResume: number | string }>();
+    const withResume = new Set(flags.filter((row) => Number(row.hasResume) === 1).map((row) => row.id));
+    return rows.map((row) => ({ ...row, hasResume: withResume.has(row.id) }));
+  }
+
+  async resumeForAdmin(id: string) {
+    const row = await this.applicationRepo.findOne({
+      where: { id },
+      select: ['id', 'resumeFileName', 'resumeUrl', 'resumeData'],
+    });
+    if (!row || (!row.resumeData && !row.resumeUrl)) {
+      throw new NotFoundException('No resume saved for this application');
+    }
+    return {
+      fileName: row.resumeFileName || 'Resume.pdf',
+      resumeUrl: row.resumeUrl || '',
+      resumeData: row.resumeData || '',
+    };
   }
 
   async getAllApplications(): Promise<JobApplication[]> {

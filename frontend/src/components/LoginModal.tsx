@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Shield, ArrowRight, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { API_BASE } from '../services/api';
+import { API_BASE, ApiError, api } from '../services/api';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -71,6 +71,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
 
     setIsSubmitting(true);
     setErrorMsg(null);
+
+    if (!isRegisterMode) {
+      try {
+        const admin = await api.adminLogin(email.trim(), password);
+        sessionStorage.setItem('profilereel_admin_token', admin.token);
+        window.location.href = '/admin';
+        return;
+      } catch (err) {
+        const denied = err instanceof ApiError && err.status === 401;
+        if (denied && !email.includes('@')) {
+          setErrorMsg(err instanceof Error ? err.message : 'Wrong username or password.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+    }
 
     const endpoint = isRegisterMode ? `${API_BASE}/auth/register` : `${API_BASE}/auth/login`;
 
@@ -237,16 +253,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
 
             <div>
               <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Email Address
+                Email or username
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
+                  placeholder="name@company.com or admin"
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-800 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
                 />
               </div>

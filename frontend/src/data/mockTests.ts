@@ -1,8 +1,8 @@
-import type { Difficulty, DsaQuestion, InterviewRole } from './leetcodeCompanyBank';
+import type { InterviewRole } from './platformQuestions';
 
-export type { Difficulty, DsaQuestion };
+export type { InterviewRole };
 
-export const MOCK_TEST_QUESTION_COUNT = 3;
+export const MOCK_TEST_QUESTION_COUNT = 4;
 
 export type MockTest = {
   id: string;
@@ -19,7 +19,7 @@ export const MOCK_TESTS: MockTest[] = [
     role: 'react',
     title: 'React',
     minutes: 75,
-    blurb: '3 hard LeetCode questions asked in React interviews.',
+    blurb: '4 coding questions, solved inside this test.',
     questionCount: MOCK_TEST_QUESTION_COUNT,
   },
   {
@@ -27,7 +27,7 @@ export const MOCK_TESTS: MockTest[] = [
     role: 'java',
     title: 'Java',
     minutes: 75,
-    blurb: '3 hard LeetCode questions asked in Java interviews.',
+    blurb: '4 coding questions, solved inside this test.',
     questionCount: MOCK_TEST_QUESTION_COUNT,
   },
   {
@@ -35,7 +35,7 @@ export const MOCK_TESTS: MockTest[] = [
     role: 'golang',
     title: 'Golang',
     minutes: 75,
-    blurb: '3 hard LeetCode questions asked in Golang interviews.',
+    blurb: '4 coding questions, solved inside this test.',
     questionCount: MOCK_TEST_QUESTION_COUNT,
   },
 ];

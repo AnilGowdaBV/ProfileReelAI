@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { BeInterviewerModal } from './BeInterviewerModal';
 import { Film, Database, CheckCircle, AlertCircle, Zap, Sun, Moon, LogOut } from 'lucide-react';
 import { HealthStatus } from '../types/candidate';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const [interviewerOpen, setInterviewerOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/90 dark:border-white/5 bg-white/90 dark:bg-charcoal-950/80 backdrop-blur-xl transition-colors duration-200 shadow-xs">
@@ -41,6 +43,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Navigation Links, Theme Toggle & Pro Action */}
         <div className="flex items-center gap-2.5 sm:gap-4">
+          <button type="button" onClick={() => setInterviewerOpen(true)} className="md:hidden px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10">
+            Interviewer
+          </button>
           <nav className="hidden md:flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
             {hasScore && (
               <a href="#career-hub" className="px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 hover:text-brand-600 dark:hover:text-white transition-all">
@@ -50,6 +55,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <a href="#pricing" className="px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 hover:text-brand-600 dark:hover:text-white transition-all">
               Pricing Plans
             </a>
+            <button type="button" onClick={() => setInterviewerOpen(true)} className="px-3 py-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-500/10 text-violet-700 dark:text-violet-300 transition-all">
+              Be an interviewer
+            </button>
           </nav>
 
           {/* Database Health Pill */}
@@ -131,6 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
       </div>
+      <BeInterviewerModal open={interviewerOpen} onClose={() => setInterviewerOpen(false)} />
     </header>
   );
 };

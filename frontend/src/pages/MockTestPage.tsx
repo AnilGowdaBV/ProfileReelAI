@@ -1,188 +1,143 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, ExternalLink, ImagePlus, Trash2 } from 'lucide-react';
-import { Difficulty, MOCK_TESTS, type DsaQuestion } from '../data/mockTests';
-import { pickRolePaper, questionsFromIds, ROLE_HARD_BANK } from '../data/leetcodeCompanyBank';
+import { CheckCircle2 } from 'lucide-react';
+import { MOCK_TESTS } from '../data/mockTests';
+import { PracticeCourseCards } from '../components/PracticeCourseCards';
+import { questionsForRole } from '../data/platformQuestions';
+import { paperVerdict } from '../lib/mockTestVerdict';
+import { CODE_LANGUAGES, starterFor } from '../lib/languages';
+import { runQuestion, type QuestionRun } from '../lib/runPlatformCode';
 import { useAuth } from '../context/AuthContext';
 import { ApiError, api } from '../services/api';
-import { readProofImage } from '../lib/proofImage';
 import {
   MOCK_TEST_JUST_SUBMITTED_KEY,
-  MOCK_TEST_PAID_EVENT,
-  MOCK_TEST_PAID_MESSAGE,
   beginMockTestClock,
   expireMockTestUnlock,
-  getMockTestAttempt,
   getMockTestRemainingMs,
-  getMockTestResult,
-  getBlockedQuestionIds,
-  rememberUsedQuestionIds,
-  isLeetCodeSubmissionUrl,
-  leetCodeSubmissionUrlIssue,
-  parseLeetCodeProblemPath,
-  isMockTestCompleted,
-  isMockTestPaid,
   markMockTestCompleted,
-  markMockTestPaid,
-  saveMockTestAttempt,
-  startMockTestCheckout,
 } from '../lib/mockTestAccess';
 
-const difficultyTone: Record<Difficulty, string> = {
-  Easy: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
-  Medium: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
-  Hard: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20',
-};
-
-const SnapshotUpload: React.FC<{
-  question: DsaQuestion;
-  preview?: string;
-  disabled?: boolean;
-  error?: string;
-  onUpload: (dataUrl: string) => void;
-  onRemove: () => void;
-}> = ({ question, preview, disabled, error, onUpload, onRemove }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-
-  const handleFile = async (file?: File) => {
-    if (!file || disabled) return;
-    setBusy(true);
-    try {
-      onUpload(await readProofImage(file));
-    } catch (err) {
-      console.error(err);
-      onUpload('');
-    } finally {
-      setBusy(false);
-      if (inputRef.current) inputRef.current.value = '';
-    }
-  };
-
-  return (
-    <div className="mt-3 rounded-2xl border border-slate-200 dark:border-white/10 p-3 bg-white/60 dark:bg-charcoal-900/50">
-      <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-2">
-        Upload a snapshot of your accepted LeetCode solution.
-      </p>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp,image/jpg"
-        className="hidden"
-        disabled={disabled || busy}
-        onChange={(event) => void handleFile(event.target.files?.[0])}
-      />
-      {preview ? (
-        <div className="space-y-2">
-          <img
-            src={preview}
-            alt={`${question.title} snapshot`}
-            className="w-full max-h-72 object-contain rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-charcoal-950"
-          />
-          {!disabled && (
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-bold"
-              >
-                Replace snapshot
-              </button>
-              <button
-                type="button"
-                onClick={onRemove}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-[11px] font-bold text-slate-600 dark:text-slate-300"
-              >
-                <Trash2 className="w-3 h-3" />
-                Remove
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <button
-          type="button"
-          disabled={disabled || busy}
-          onClick={() => inputRef.current?.click()}
-          className="w-full py-8 rounded-xl border border-dashed border-slate-300 dark:border-white/15 text-slate-500 dark:text-slate-400 text-xs font-semibold hover:border-emerald-500/50 hover:text-emerald-700 dark:hover:text-emerald-300 disabled:opacity-60"
-        >
-          <span className="inline-flex items-center gap-2">
-            <ImagePlus className="w-4 h-4" />
-            {busy ? 'Reading snapshot...' : 'Upload snapshot'}
-          </span>
-        </button>
-      )}
-      {error && <p className="mt-2 text-[11px] text-rose-600 dark:text-rose-300">{error}</p>}
-    </div>
-  );
-};
+function withWarnings(
+  verdict: { verdict: 'Passed' | 'Failed'; reason: string },
+  tabCount: number,
+  pasteCount: number,
+) {
+  const note = `Tab switches ${tabCount}. Copy-paste ${pasteCount}.`;
+  if (tabCount > 0 || pasteCount > 0) {
+    return { verdict: 'Failed' as const, reason: `${verdict.reason} ${note}` };
+  }
+  return { verdict: verdict.verdict, reason: `${verdict.reason} ${note}` };
+}
 
 export const MockTestPage: React.FC = () => {
   const { setId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const test = MOCK_TESTS.find((item) => item.id === setId);
-  const [questions, setQuestions] = useState<DsaQuestion[]>([]);
-  const [screenshots, setScreenshots] = useState<Record<string, string>>({});
-  const [submissionUrls, setSubmissionUrls] = useState<Record<string, string>>({});
-  const [uploadError, setUploadError] = useState<Record<string, string>>({});
-  const [submitError, setSubmitError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [showSubmittedPopup, setShowSubmittedPopup] = useState(false);
-  const [hasAccess, setHasAccess] = useState(() => isMockTestPaid(setId));
-  const [alreadyTaken, setAlreadyTaken] = useState(() => isMockTestCompleted(setId));
-  const [paying, setPaying] = useState(false);
-  const [attemptReady, setAttemptReady] = useState(false);
+  const questions = test ? questionsForRole(test.role) : [];
+  const [activeId, setActiveId] = useState(questions[0]?.id || '');
+  const [language, setLanguage] = useState('javascript');
+  const [running, setRunning] = useState(false);
+  const [code, setCode] = useState<Record<string, string>>(() =>
+    Object.fromEntries(questions.map((question) => [question.id, question.starter])),
+  );
+  const [runs, setRuns] = useState<Record<string, QuestionRun>>({});
+  const [sharing, setSharing] = useState(false);
+  const [shareStopped, setShareStopped] = useState(false);
+  const [shareError, setShareError] = useState('');
+  const [integrityReason, setIntegrityReason] = useState('');
   const [timeLeftMs, setTimeLeftMs] = useState(() => getMockTestRemainingMs(setId, test?.minutes));
   const [timeOver, setTimeOver] = useState(false);
-  const savedResult = getMockTestResult(setId);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [verdictLine, setVerdictLine] = useState('');
+  const [notice, setNotice] = useState('');
+  const noticeTimer = useRef<number | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const shareEndedByUs = useRef(false);
+  const integrityOn = useRef(false);
+  const tabWarningsRef = useRef(0);
+  const pasteWarningsRef = useRef(0);
+  const savedRef = useRef(false);
+  const active = questions.find((question) => question.id === activeId) || questions[0];
 
-  useEffect(() => {
-    setAttemptReady(false);
-    if (isMockTestCompleted(setId)) {
-      setQuestions(questionsFromIds(getMockTestResult(setId)?.questionIds));
-      setAlreadyTaken(true);
-      setSubmitted(true);
-      setAttemptReady(true);
+  const showNotice = (message: string) => {
+    setNotice(message);
+    if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => setNotice(''), 3000);
+  };
+
+  const giveWarning = (kind: 'tab' | 'paste') => {
+    if (!integrityOn.current || integrityReason) return;
+    if (kind === 'tab') {
+      showNotice('Do not switch the tab.');
+      tabWarningsRef.current += 1;
+      if (tabWarningsRef.current >= 3) {
+        integrityOn.current = false;
+        setIntegrityReason('Tab switching limit reached.');
+        if (setId) expireMockTestUnlock(setId);
+      }
       return;
     }
-    const attempt = getMockTestAttempt(setId);
-    const roleIds = new Set(
-      ROLE_HARD_BANK.filter((item) => item.role === test?.role).map((item) => `lc-${item.number}`),
-    );
-    let paper = questionsFromIds(attempt?.questionIds);
-    const paperMatchesRole =
-      paper.length === (test?.questionCount || 3) &&
-      paper.every((question) => question.difficulty === 'Hard' && roleIds.has(question.id));
-    if (!paperMatchesRole && test?.role) {
-      paper = pickRolePaper(test.role, getBlockedQuestionIds(setId));
-      rememberUsedQuestionIds(paper.map((question) => question.id));
+    showNotice('Trying to copy paste. Do not do that.');
+    pasteWarningsRef.current += 1;
+    if (pasteWarningsRef.current >= 3) {
+      integrityOn.current = false;
+      setIntegrityReason('Copy-paste limit reached.');
+      if (setId) expireMockTestUnlock(setId);
     }
-    const allowed = new Set(paper.map((question) => question.id));
-    const shots = Object.fromEntries(
-      Object.entries(attempt?.screenshots || {}).filter(([id]) => allowed.has(id)),
-    );
-    const links = Object.fromEntries(
-      Object.entries(attempt?.submissionUrls || {}).filter(([id]) => allowed.has(id)),
-    );
-    setQuestions(paper);
-    setScreenshots(shots);
-    setSubmissionUrls(links);
-    setSubmitted(false);
-    setAlreadyTaken(false);
-    if (isMockTestPaid(setId) && setId) {
-      saveMockTestAttempt(setId, {
-        screenshots: shots,
-        submissionUrls: links,
-        questionIds: paper.map((question) => question.id),
+  };
+
+  const startScreenShare = async () => {
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      setShareError('This browser cannot share the screen. Use Chrome or Edge.');
+      return;
+    }
+    setShareError('');
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: 'monitor' } as MediaTrackConstraints,
+        audio: false,
       });
+      screenStreamRef.current = stream;
+      stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+        screenStreamRef.current = null;
+        if (shareEndedByUs.current) return;
+        setSharing(false);
+        setShareStopped(true);
+        if (setId) expireMockTestUnlock(setId);
+      });
+      setSharing(true);
+      window.setTimeout(() => {
+        integrityOn.current = true;
+      }, 1500);
+    } catch {
+      setShareError('Share your screen to start this test.');
     }
-    setAttemptReady(true);
-  }, [setId]);
+  };
 
   useEffect(() => {
-    if (!setId || !hasAccess || alreadyTaken) return;
+    if (!sharing || shareStopped || integrityReason) return;
+    const watch = window.setInterval(() => {
+      const track = screenStreamRef.current?.getVideoTracks()[0];
+      if (shareEndedByUs.current || (track && track.readyState !== 'ended')) return;
+      screenStreamRef.current = null;
+      setSharing(false);
+      setShareStopped(true);
+      if (setId) expireMockTestUnlock(setId);
+    }, 1000);
+    return () => window.clearInterval(watch);
+  }, [sharing, shareStopped, integrityReason, setId]);
+
+  useEffect(() => () => {
+    const stream = screenStreamRef.current;
+    if (!stream) return;
+    shareEndedByUs.current = true;
+    stream.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  useEffect(() => {
+    if (!setId || !sharing || integrityReason) return;
     beginMockTestClock(setId);
     const tick = () => {
       const left = getMockTestRemainingMs(setId, test?.minutes);
@@ -195,416 +150,300 @@ export const MockTestPage: React.FC = () => {
     tick();
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
-  }, [setId, hasAccess, alreadyTaken, test?.minutes]);
+  }, [setId, sharing, integrityReason, test?.minutes]);
 
   useEffect(() => {
-    if (!attemptReady || !setId || alreadyTaken || submitted || !isMockTestPaid(setId)) return;
-    try {
-      saveMockTestAttempt(setId, {
-        screenshots,
-        submissionUrls,
-        questionIds: questions.map((question) => question.id),
-      });
-    } catch {
-      setUploadError((prev) => ({ ...prev, persist: 'Could not save snapshots on this device.' }));
-    }
-  }, [attemptReady, setId, screenshots, submissionUrls, questions, alreadyTaken, submitted]);
-
-  useEffect(() => {
-    if (!showSubmittedPopup) return;
-    const timer = window.setTimeout(() => {
-      navigate('/dashboard#mock-tests', { state: { mockTestSubmitted: true } });
-    }, 1800);
-    return () => window.clearTimeout(timer);
-  }, [showSubmittedPopup, navigate]);
-
-  useEffect(() => {
-    if (!setId) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('paid') === '1' || params.get('mock_test') === setId) {
-      markMockTestPaid(setId);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-    const refresh = () => {
-      setHasAccess(isMockTestPaid(setId));
-      setAlreadyTaken(isMockTestCompleted(setId));
+    if (!sharing || integrityReason) return;
+    const onHide = () => {
+      if (document.hidden) giveWarning('tab');
     };
-    refresh();
-    const onPaid = () => refresh();
-    const onMessage = (event: MessageEvent) => {
-      if (event.data?.type === MOCK_TEST_PAID_MESSAGE && event.data.testId === setId) {
-        markMockTestPaid(setId);
-        refresh();
-      }
+    const onClipboard = () => {
+      giveWarning('paste');
     };
-    window.addEventListener(MOCK_TEST_PAID_EVENT, onPaid);
-    window.addEventListener('message', onMessage);
+    document.addEventListener('visibilitychange', onHide);
+    document.addEventListener('copy', onClipboard);
+    document.addEventListener('cut', onClipboard);
+    document.addEventListener('paste', onClipboard);
     return () => {
-      window.removeEventListener(MOCK_TEST_PAID_EVENT, onPaid);
-      window.removeEventListener('message', onMessage);
+      document.removeEventListener('visibilitychange', onHide);
+      document.removeEventListener('copy', onClipboard);
+      document.removeEventListener('cut', onClipboard);
+      document.removeEventListener('paste', onClipboard);
     };
-  }, [setId]);
+  }, [sharing, integrityReason]);
 
-  if (!test) {
+  useEffect(() => {
+    if (!integrityReason || savedRef.current || !user?.email || !test) return;
+    savedRef.current = true;
+    const latest: Record<string, QuestionRun> = {};
+    questions.forEach((question) => {
+      const source = code[`${language}:${question.id}`] ?? starterFor(language, question);
+      latest[question.id] = language === 'javascript'
+        ? runQuestion(question, source)
+        : { passedCases: 0, total: question.tests.length, passed: false, note: `0/${question.tests.length}`, cases: [] };
+    });
+    const reads = questions.map((question) => ({
+      passed: latest[question.id].passed,
+      note: latest[question.id].note,
+    }));
+    const verdict = withWarnings(paperVerdict(reads), tabWarningsRef.current, pasteWarningsRef.current);
+    verdict.verdict = 'Failed';
+    verdict.reason = `${integrityReason} ${verdict.reason}`;
+    void api.submitMockTest({
+      testId: test.id,
+      userId: user.id,
+      fullName: user.name || 'Candidate',
+      email: user.email,
+      linkedinUrl: user.linkedinUrl,
+      verdict: 'Failed',
+      verdictReason: verdict.reason,
+      tabWarnings: String(tabWarningsRef.current),
+      pasteWarnings: String(pasteWarningsRef.current),
+      answers: questions.map((question) => ({
+        questionId: question.id,
+        title: question.title,
+        difficulty: 'Hard',
+        pattern: question.pattern,
+        code: code[`${language}:${question.id}`] ?? starterFor(language, question),
+        caseNote: latest[question.id].note,
+      })),
+    }).catch(() => undefined);
+    setVerdictLine('Failed. This paper is closed and will not be counted.');
+  }, [integrityReason]);
+
+  useEffect(() => {
+    if (!verdictLine?.startsWith('Passed')) return;
+    const timer = window.setTimeout(() => navigate('/dashboard#mock-tests'), 2200);
+    return () => window.clearTimeout(timer);
+  }, [verdictLine, navigate]);
+
+  if (!test || !active) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-slate-600 mb-3">That test set was not found.</p>
-          <button type="button" onClick={() => navigate('/dashboard')} className="text-sm font-bold text-brand-600">
-            Back to dashboard
-          </button>
-        </div>
+        <button type="button" onClick={() => navigate('/dashboard')} className="text-sm font-bold text-brand-600">
+          Back to dashboard
+        </button>
       </div>
     );
   }
 
-  const paperQuestions = questions.length ? questions : questionsFromIds(savedResult?.questionIds);
-  const isQuestionDone = (questionId: string) => {
-    const question = paperQuestions.find((item) => item.id === questionId);
-    return (
-      Boolean(screenshots[questionId]) &&
-      isLeetCodeSubmissionUrl(submissionUrls[questionId], question?.leetcodeSlug)
-    );
+  const clock = `${String(Math.floor(timeLeftMs / 60000)).padStart(2, '0')}:${String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, '0')}`;
+  const run = runs[active.id];
+
+  const sourceFor = (questionId: string, fallback: string) => code[`${language}:${questionId}`] ?? fallback;
+
+  const evaluate = async (question: (typeof questions)[number]) => {
+    const source = sourceFor(question.id, starterFor(language, question));
+    return api.runCode({ language, source, testsJson: JSON.stringify(question.tests) });
   };
-  const uploadedCount = paperQuestions.filter((question) => isQuestionDone(question.id)).length;
-  const resultUploaded = savedResult?.uploaded ?? uploadedCount;
-  const resultTotal = savedResult?.total ?? (paperQuestions.length || test.questionCount);
 
-  if (alreadyTaken) {
-    const result = savedResult;
-    const resultShots = result?.screenshots || {};
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-10">
-        <div className="max-w-md w-full rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white/80 dark:bg-charcoal-900/80 text-center">
-          <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">Attempt used</p>
-          <h1 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">{test.title}</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">
-            You already took this paper. One ₹10 payment allows one attempt only.
-          </p>
-          <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3 mb-5 text-left">
-            <div className="text-[10px] uppercase font-bold text-slate-500">Snapshots uploaded</div>
-            <div className="text-lg font-extrabold">
-              {resultUploaded}/{resultTotal}
-            </div>
-          </div>
-          {paperQuestions.some((question) => resultShots[question.id]) && (
-            <div className="space-y-2 mb-5 text-left">
-              {paperQuestions.map((question) =>
-                resultShots[question.id] ? (
-                  <img
-                    key={question.id}
-                    src={resultShots[question.id]}
-                    alt={`${question.title} snapshot`}
-                    className="w-full max-h-40 object-contain rounded-lg border border-slate-200 dark:border-white/10"
-                  />
-                ) : null,
-              )}
-            </div>
-          )}
-          <button type="button" onClick={() => navigate('/dashboard')} className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold">
-            Back to dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const runActive = async () => {
+    if (running) return;
+    setRunning(true);
+    setSubmitError('');
+    try {
+      const result = await evaluate(active);
+      setRuns((prev) => ({ ...prev, [active.id]: result }));
+      setSubmitError('');
+    } catch (error) {
+      const message = error instanceof ApiError || error instanceof Error ? error.message : 'Could not run this code.';
+      setSubmitError('');
+      setRuns((prev) => ({
+        ...prev,
+        [active.id]: {
+          passedCases: 0,
+          total: active.tests.length,
+          passed: false,
+          note: `0/${active.tests.length}`,
+          output: message,
+          cases: [],
+        },
+      }));
+    } finally {
+      setRunning(false);
+    }
+  };
 
-  if (!hasAccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-md w-full rounded-2xl border border-slate-200 dark:border-white/10 p-6 bg-white/80 dark:bg-charcoal-900/80 text-center">
-          <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-2">₹10 mock test</p>
-          <h1 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">{test.title}</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">
-            Pay ₹10 to unlock this paper. This does not activate ProfileReel Pro.
-          </p>
-          <button
-            type="button"
-            disabled={paying}
-            onClick={async () => {
-              setPaying(true);
-              try {
-                await startMockTestCheckout({
-                  testId: test.id,
-                  userId: user?.id,
-                  userEmail: user?.email,
-                  customerName: user?.name,
-                });
-              } catch (err) {
-                console.error(err);
-              } finally {
-                setTimeout(() => setPaying(false), 1500);
-              }
-            }}
-            className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold disabled:opacity-60"
-          >
-            {paying ? 'Opening Razorpay...' : 'Pay ₹10 to start'}
-          </button>
-          <button type="button" onClick={() => navigate('/dashboard')} className="mt-3 text-xs font-semibold text-slate-500">
-            Back to dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const totalQuestions = paperQuestions.length || test.questionCount;
-  const leftCount = Math.max(0, totalQuestions - uploadedCount);
-  const progressPct = totalQuestions ? Math.round((uploadedCount / totalQuestions) * 100) : 0;
-
-  const setShot = (questionId: string, dataUrl: string) => {
-    if (!dataUrl) {
-      setUploadError((prev) => ({ ...prev, [questionId]: 'Could not read that screenshot. Try a PNG or JPG.' }));
+  const submitPaper = async () => {
+    if (!sharing || shareStopped) {
+      setSubmitError('Screen share has to stay on until you submit.');
       return;
     }
-    setUploadError((prev) => {
-      const next = { ...prev };
-      delete next[questionId];
-      return next;
-    });
-    setScreenshots((prev) => ({ ...prev, [questionId]: dataUrl }));
+    if (timeOver || getMockTestRemainingMs(setId, test.minutes) <= 0) {
+      setSubmitError('Time is over. This paper is not counted.');
+      return;
+    }
+    if (!user?.email) {
+      setSubmitError('Log in so this paper can be saved.');
+      return;
+    }
+    const latest: Record<string, QuestionRun> = {};
+    for (const question of questions) {
+      latest[question.id] = await evaluate(question);
+    }
+    setRuns(latest);
+    const reads = questions.map((question) => ({
+      passed: latest[question.id].passed,
+      note: latest[question.id].note,
+    }));
+    const verdict = withWarnings(paperVerdict(reads), tabWarningsRef.current, pasteWarningsRef.current);
+    savedRef.current = true;
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      await api.submitMockTest({
+        testId: test.id,
+        userId: user.id,
+        fullName: user.name || 'Candidate',
+        email: user.email,
+        linkedinUrl: user.linkedinUrl,
+        verdict: verdict.verdict,
+        verdictReason: verdict.reason,
+        tabWarnings: String(tabWarningsRef.current),
+        pasteWarnings: String(pasteWarningsRef.current),
+        answers: questions.map((question) => ({
+          questionId: question.id,
+          title: question.title,
+          difficulty: 'Hard',
+          pattern: question.pattern,
+          code: sourceFor(question.id, starterFor(language, question)),
+          caseNote: `${latest[question.id].note} · ${language}`,
+        })),
+      });
+      shareEndedByUs.current = true;
+      screenStreamRef.current?.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+      markMockTestCompleted(test.id, {
+        uploaded: questions.filter((question) => latest[question.id].passed).length,
+        total: questions.length,
+        submittedAt: new Date().toISOString(),
+        questionIds: questions.map((question) => question.id),
+        verdict: verdict.verdict,
+        verdictReason: verdict.reason,
+      });
+      try {
+        sessionStorage.setItem(MOCK_TEST_JUST_SUBMITTED_KEY, '1');
+      } catch {
+        /* ignore */
+      }
+      setVerdictLine(verdict.verdict === 'Passed' ? `Passed. ${reads.map((item) => item.note).join(', ')}` : `Failed. ${reads.map((item) => item.note).join(', ')}`);
+    } catch (error) {
+      savedRef.current = false;
+      const message = error instanceof ApiError || error instanceof Error ? error.message : 'Could not save this paper. Try again.';
+      setSubmitError(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-transparent dark:bg-charcoal-950 text-slate-800 dark:text-slate-100">
-      <header className="sticky top-0 z-40 border-b border-slate-200/90 dark:border-white/5 bg-white/90 dark:bg-charcoal-950/80 backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200 shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Dashboard
-          </button>
-          <div className="text-sm font-extrabold text-center truncate">{test.title}</div>
-          <div className={`px-3 py-1.5 rounded-xl text-sm font-extrabold tabular-nums ${timeLeftMs <= 5 * 60 * 1000 ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'}`}>
-            {String(Math.floor(timeLeftMs / 60000)).padStart(2, '0')}:{String(Math.floor((timeLeftMs % 60000) / 1000)).padStart(2, '0')}
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="text-right">
-              <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-none">{uploadedCount}</div>
-              <div className="text-[10px] uppercase tracking-wide font-bold text-slate-500 mt-0.5">Attempted</div>
-            </div>
-            <div className="h-8 w-px bg-slate-200 dark:bg-white/10" />
-            <div className="text-right">
-              <div className="text-sm font-extrabold text-slate-900 dark:text-white leading-none">{leftCount}</div>
-              <div className="text-[10px] uppercase tracking-wide font-bold text-slate-500 mt-0.5">Left</div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-slate-100 dark:bg-charcoal-950 text-slate-900 dark:text-slate-100" onContextMenu={(event) => event.preventDefault()}>
+      {notice && (
+        <div className="fixed top-4 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white shadow-xl">
+          {notice}
         </div>
-        <div className="h-1 bg-slate-100 dark:bg-white/10">
-          <div className="h-full bg-brand-600 transition-all" style={{ width: `${progressPct}%` }} />
-        </div>
+      )}
+      <header className="h-14 px-4 flex items-center justify-between border-b border-slate-200 dark:border-white/10 bg-white dark:bg-charcoal-900">
+        <button type="button" onClick={() => navigate('/dashboard')} className="text-xs font-semibold text-slate-500">
+          Dashboard
+        </button>
+        <div className="text-sm font-extrabold">{test.title}</div>
+        <div className="px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-bold">{clock}</div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3 bg-white/70 dark:bg-charcoal-900/60">
-            <div className="text-[10px] uppercase font-bold text-slate-500">Attempted</div>
-            <div className="text-lg font-extrabold">{uploadedCount}</div>
-          </div>
-          <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3 bg-white/70 dark:bg-charcoal-900/60">
-            <div className="text-[10px] uppercase font-bold text-slate-500">Left</div>
-            <div className="text-lg font-extrabold">{leftCount}</div>
-          </div>
-          <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3 bg-white/70 dark:bg-charcoal-900/60">
-            <div className="text-[10px] uppercase font-bold text-slate-500">Total</div>
-            <div className="text-lg font-extrabold">{totalQuestions}</div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 dark:border-white/10 p-4 text-sm text-slate-600 dark:text-slate-300">
-          <p className="font-bold text-slate-900 dark:text-white mb-1">How this paper works</p>
-          <p>
-            Open each mapped LeetCode question, solve it there, paste the submitted-answer link, and upload a snapshot. Both are saved to Sheet 3. Submit once — this is your only attempt.
-          </p>
-        </div>
-
-        {submitted && (
-          <div className="rounded-xl border border-slate-200 dark:border-white/10 p-3">
-            <div className="text-[10px] uppercase font-bold text-slate-500">Snapshots uploaded</div>
-            <div className="text-lg font-extrabold">
-              {uploadedCount}/{totalQuestions}
-            </div>
-          </div>
-        )}
-
-        <div className="glass-panel p-6 rounded-2xl border border-slate-200 dark:border-white/10 space-y-8">
-          {paperQuestions.map((question, index) => {
-            const linkIssue = leetCodeSubmissionUrlIssue(submissionUrls[question.id], question.leetcodeSlug);
-            return (
-            <article key={question.id} className="rounded-xl">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  {index + 1}. {question.title}
-                </h2>
-                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${difficultyTone[question.difficulty]}`}>
-                  {question.difficulty}
-                </span>
-                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold border border-slate-200 dark:border-white/10 text-slate-500">
-                  {question.pattern}
-                </span>
-              </div>
-              {question.companies.length > 0 && (
-                <p className="text-[11px] text-slate-500 mb-3">Asked at {question.companies.join(', ')}</p>
+      <div className="grid lg:grid-cols-[280px_1fr_320px] min-h-[calc(100vh-56px)]">
+        <aside className="border-r border-slate-200 dark:border-white/10 bg-white/80 dark:bg-charcoal-900 p-3 space-y-2">
+          {questions.map((question, index) => (
+            <button
+              key={question.id}
+              type="button"
+              onClick={() => setActiveId(question.id)}
+              className={`w-full text-left rounded-xl px-3 py-2 border ${question.id === active.id ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-200 dark:border-white/10'}`}
+            >
+              <div className="text-[10px] font-bold text-slate-500">{index + 1}. {question.pattern}</div>
+              <div className="text-xs font-bold">{question.title}</div>
+              {runs[question.id] && (
+                <div className={`text-[10px] font-bold ${runs[question.id].passed ? 'text-emerald-600' : 'text-rose-600'}`}>{runs[question.id].note}</div>
               )}
-              <a
-                href={question.leetcodeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold"
-              >
-                Open on LeetCode
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-              <label className="block mt-3">
-                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Submitted answer link</span>
-                <input
-                  type="url"
-                  value={submissionUrls[question.id] || ''}
-                  disabled={submitted}
-                  placeholder={`https://leetcode.com/problems/${question.leetcodeSlug}/submissions/`}
-                  onChange={(event) =>
-                    setSubmissionUrls((prev) => ({ ...prev, [question.id]: event.target.value }))
-                  }
-                  className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-charcoal-950 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-70"
-                />
-                {linkIssue && (
-                  <span className="mt-1 block text-[11px] text-rose-600 dark:text-rose-300">
-                    {linkIssue}
-                  </span>
-                )}
-              </label>
-              <SnapshotUpload
-                question={question}
-                preview={screenshots[question.id]}
-                disabled={submitted}
-                error={uploadError[question.id]}
-                onUpload={(dataUrl) => setShot(question.id, dataUrl)}
-                onRemove={() =>
-                  setScreenshots((prev) => {
-                    const next = { ...prev };
-                    delete next[question.id];
-                    return next;
-                  })
-                }
-              />
-            </article>
-            );
-          })}
-        </div>
+            </button>
+          ))}
+        </aside>
 
-        <div className="flex items-center justify-between gap-3 pb-8">
-          {!submitted ? (
-            <div className="space-y-2">
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={async () => {
-                  if (timeOver || getMockTestRemainingMs(setId, test.minutes) <= 0) {
-                    setTimeOver(true);
-                    if (setId) expireMockTestUnlock(setId);
-                    setSubmitError('Time is over. This paper is not counted.');
-                    return;
-                  }
-                  const firstIssue = paperQuestions
-                    .map((question) => leetCodeSubmissionUrlIssue(submissionUrls[question.id], question.leetcodeSlug))
-                    .find(Boolean);
-                  if (firstIssue) {
-                    setSubmitError(firstIssue);
-                    return;
-                  }
-                  const incomplete = paperQuestions.some((question) => !isQuestionDone(question.id));
-                  if (incomplete) {
-                    setSubmitError('Add the matching submissions link and snapshot for all 3 questions.');
-                    return;
-                  }
-                  const slugs = paperQuestions
-                    .map((question) => parseLeetCodeProblemPath(submissionUrls[question.id])?.slug)
-                    .filter(Boolean);
-                  if (new Set(slugs).size !== slugs.length) {
-                    setSubmitError('Each question needs its own submissions link. Do not paste the same link on all 3.');
-                    return;
-                  }
-                  if (!user?.email) {
-                    setSubmitError('Log in so this paper can be saved.');
-                    return;
-                  }
-                  setSubmitting(true);
-                  setSubmitError('');
-                  try {
-                    const kept: Record<string, string> = {};
-                    const links: Record<string, string> = {};
-                    paperQuestions.forEach((question) => {
-                      if (screenshots[question.id]) kept[question.id] = screenshots[question.id];
-                      if (submissionUrls[question.id]) links[question.id] = submissionUrls[question.id].trim();
-                    });
-                    await api.submitMockTest({
-                      testId: test.id,
-                      userId: user.id,
-                      fullName: user.name || 'Candidate',
-                      email: user.email,
-                      linkedinUrl: user.linkedinUrl,
-                      answers: paperQuestions.map((question) => ({
-                        questionId: question.id,
-                        number: String(question.number),
-                        title: question.title,
-                        difficulty: question.difficulty,
-                        pattern: question.pattern,
-                        leetcodeUrl: question.leetcodeUrl,
-                        submissionUrl: links[question.id],
-                        snapshotData: kept[question.id],
-                      })),
-                    });
-                    markMockTestCompleted(test.id, {
-                      uploaded: Object.keys(kept).length,
-                      total: paperQuestions.length,
-                      submittedAt: new Date().toISOString(),
-                      screenshots: kept,
-                      submissionUrls: links,
-                      questionIds: paperQuestions.map((question) => question.id),
-                    });
-                    setSubmitted(true);
-                    setShowSubmittedPopup(true);
-                    try {
-                      sessionStorage.setItem(MOCK_TEST_JUST_SUBMITTED_KEY, '1');
-                    } catch {
-                      /* ignore */
-                    }
-                  } catch (err) {
-                    console.error(err);
-                    const message =
-                      err instanceof ApiError || err instanceof Error
-                        ? err.message
-                        : 'Could not save this paper. Try again.';
-                    setSubmitError(message);
-                  } finally {
-                    setSubmitting(false);
-                  }
-                }}
-                className="px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold disabled:opacity-60"
-              >
-                {submitting ? 'Saving to Sheet 3...' : 'Submit paper'}
-              </button>
-              {submitError && <p className="text-[11px] text-rose-600 dark:text-rose-300">{submitError}</p>}
+        <main className="p-4 flex flex-col gap-3 min-w-0">
+          <article className="rounded-2xl bg-white dark:bg-charcoal-900 border border-slate-200 dark:border-white/10 p-4">
+            <h1 className="text-lg font-extrabold">{active.title}</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{active.statement}</p>
+            <p className="mt-3 text-xs font-mono rounded-lg bg-slate-50 dark:bg-charcoal-950 p-2">{active.example}</p>
+          </article>
+          <label className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600">
+            Language
+            <select
+              value={language}
+              onChange={(event) => setLanguage(event.target.value)}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm font-semibold"
+            >
+              {CODE_LANGUAGES.map((item) => (
+                <option key={item.id} value={item.id}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+          <textarea
+            value={code[`${language}:${active.id}`] ?? starterFor(language, active)}
+            spellCheck={false}
+            onChange={(event) => setCode((prev) => ({ ...prev, [`${language}:${active.id}`]: event.target.value }))}
+            className="flex-1 min-h-[320px] w-full rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-950 text-slate-100 font-mono text-sm p-4 focus:outline-none"
+          />
+          <div className="flex items-center gap-3">
+            <button type="button" disabled={running} onClick={() => void runActive()} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold disabled:opacity-60">
+              {running ? 'Running...' : 'Run tests'}
+            </button>
+            <button type="button" disabled={submitting} onClick={() => void submitPaper()} className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold disabled:opacity-60">
+              {submitting ? 'Saving...' : 'Submit paper'}
+            </button>
+            {submitError && <p className="text-[11px] text-rose-600">{submitError}</p>}
+          </div>
+        </main>
+
+        <aside className="border-l border-slate-200 dark:border-white/10 bg-white dark:bg-charcoal-900 p-4">
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Analysis</h2>
+          <p className="mt-2 text-xs text-slate-500">A question passes when more cases pass than fail. The paper passes only when all {questions.length} do.</p>
+          {run ? (
+            <div className="mt-4 space-y-2">
+              <p className={`text-sm font-extrabold ${run.passed ? 'text-emerald-600' : 'text-rose-600'}`}>{run.status || (run.passed ? 'Accepted' : 'Wrong Answer')} · {run.note}</p>
+              {(run.time || run.memory) && (
+                <p className="text-[11px] text-slate-500">{run.time ? `${run.time}s` : ''}{run.memory ? ` · ${run.memory} KB` : ''}</p>
+              )}
+              <div className="rounded-lg bg-slate-950 p-3">
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Output</div>
+                <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-[11px] text-rose-200">{run.output || (run.passed ? 'All cases passed.' : 'No output.')}</pre>
+              </div>
             </div>
           ) : (
-            <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-              This was your only attempt. You cannot retake this paper.
-            </p>
+            <p className="mt-4 text-xs text-slate-500">Run the current question to see the case results here.</p>
           )}
-          <button type="button" onClick={() => navigate('/dashboard')} className="text-xs font-semibold text-slate-500">
-            Back to dashboard
-          </button>
-        </div>
-      </main>
+        </aside>
+      </div>
 
-      {timeOver && (
+      {!sharing && !shareStopped && !integrityReason && !verdictLine && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
           <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-charcoal-900 p-6 text-center shadow-2xl">
-            <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">Time is over</h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">75 minutes are done. This paper is closed and will not be counted.</p>
+            <h2 className="text-lg font-extrabold">Share your screen</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Share your screen to start. The questions and the code editor stay on this page.</p>
+            {shareError && <p className="mt-3 text-xs text-rose-600">{shareError}</p>}
+            <button type="button" onClick={() => void startScreenShare()} className="mt-5 w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold">
+              Share screen and start
+            </button>
+          </div>
+        </div>
+      )}
+
+      {(shareStopped || integrityReason || timeOver) && !verdictLine && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-charcoal-900 p-6 text-center shadow-2xl">
+            <h2 className="text-lg font-extrabold">Paper closed</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              {shareStopped ? 'Screen share stopped before you submitted.' : 'This paper is closed and will not be counted.'}
+            </p>
             <button type="button" onClick={() => navigate('/dashboard#mock-tests')} className="mt-5 w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold">
               Back to dashboard
             </button>
@@ -612,23 +451,18 @@ export const MockTestPage: React.FC = () => {
         </div>
       )}
 
-      {showSubmittedPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-2xl border border-emerald-500/30 bg-white dark:bg-charcoal-900 p-6 text-center shadow-2xl">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-300">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">Paper submitted</h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Your submitted links and snapshots were saved. Taking you back to the dashboard.
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard#mock-tests', { state: { mockTestSubmitted: true } })}
-              className="mt-5 w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold"
-            >
-              Back to dashboard
-            </button>
+      {verdictLine && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
+          <div className={`w-full rounded-3xl bg-white p-6 text-center shadow-2xl dark:bg-charcoal-900 ${verdictLine.startsWith('Passed') ? 'max-w-sm' : 'max-w-4xl'}`}>
+            <CheckCircle2 className={`mx-auto mb-3 w-8 h-8 ${verdictLine.startsWith('Passed') ? 'text-emerald-600' : 'text-rose-600'}`} />
+            <h2 className="text-lg font-extrabold">{verdictLine.startsWith('Passed') ? 'Passed' : 'Failed'}</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{verdictLine}</p>
+            {verdictLine.startsWith('Failed') && (
+              <div className="mt-5 text-left">
+                <PracticeCourseCards heading="Courses picked for this attempt" />
+                <button type="button" onClick={() => navigate('/dashboard#mock-tests')} className="mt-4 w-full rounded-xl bg-slate-900 py-2.5 text-sm font-bold text-white">Back to dashboard</button>
+              </div>
+            )}
           </div>
         </div>
       )}

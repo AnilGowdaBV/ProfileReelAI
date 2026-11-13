@@ -37,20 +37,30 @@ export class MockTestAnswerDto {
   @IsString()
   pattern?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  leetcodeUrl: string;
+  leetcodeUrl?: string;
 
-  @ApiProperty({ description: 'LeetCode submitted-answer / submissions URL' })
+  @ApiPropertyOptional({ description: 'LeetCode submitted-answer / submissions URL' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  submissionUrl: string;
+  submissionUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  code?: string;
 
   @ApiPropertyOptional({ description: 'JPEG/PNG snapshot as a data URL' })
   @IsOptional()
   @IsString()
   snapshotData?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  caseNote?: string;
 }
 
 export class SubmitMockTestDto {
@@ -79,10 +89,30 @@ export class SubmitMockTestDto {
   @IsString()
   linkedinUrl?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  verdict?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  verdictReason?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  tabWarnings?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  pasteWarnings?: string;
+
   @ApiProperty({ type: [MockTestAnswerDto] })
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(3)
+  @ArrayMaxSize(5)
   @ValidateNested({ each: true })
   @Type(() => MockTestAnswerDto)
   answers: MockTestAnswerDto[];
