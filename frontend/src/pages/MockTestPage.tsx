@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { MOCK_TESTS } from '../data/mockTests';
 import { PracticeCourseCards } from '../components/PracticeCourseCards';
+import { SectionSpinner } from '../components/SectionSpinner';
 import { questionsForRole } from '../data/platformQuestions';
 import { paperVerdict } from '../lib/mockTestVerdict';
 import { CODE_LANGUAGES, starterFor } from '../lib/languages';
@@ -52,6 +53,7 @@ export const MockTestPage: React.FC = () => {
   const [submitError, setSubmitError] = useState('');
   const [verdictLine, setVerdictLine] = useState('');
   const [notice, setNotice] = useState('');
+  const [entering, setEntering] = useState(true);
   const noticeTimer = useRef<number | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const shareEndedByUs = useRef(false);
@@ -60,6 +62,11 @@ export const MockTestPage: React.FC = () => {
   const pasteWarningsRef = useRef(0);
   const savedRef = useRef(false);
   const active = questions.find((question) => question.id === activeId) || questions[0];
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setEntering(false), 520);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const showNotice = (message: string) => {
     setNotice(message);
@@ -216,6 +223,14 @@ export const MockTestPage: React.FC = () => {
     const timer = window.setTimeout(() => navigate('/dashboard#mock-tests'), 2200);
     return () => window.clearTimeout(timer);
   }, [verdictLine, navigate]);
+
+  if (entering) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-charcoal-950">
+        <SectionSpinner label="Opening this paper" />
+      </div>
+    );
+  }
 
   if (!test || !active) {
     return (
@@ -451,18 +466,37 @@ export const MockTestPage: React.FC = () => {
         </div>
       )}
 
-      {verdictLine && (
+      {verdictLine && verdictLine.startsWith('Passed') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-          <div className={`w-full rounded-3xl bg-white p-6 text-center shadow-2xl dark:bg-charcoal-900 ${verdictLine.startsWith('Passed') ? 'max-w-sm' : 'max-w-4xl'}`}>
-            <CheckCircle2 className={`mx-auto mb-3 w-8 h-8 ${verdictLine.startsWith('Passed') ? 'text-emerald-600' : 'text-rose-600'}`} />
-            <h2 className="text-lg font-extrabold">{verdictLine.startsWith('Passed') ? 'Passed' : 'Failed'}</h2>
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl dark:bg-charcoal-900">
+            <CheckCircle2 className="mx-auto mb-3 w-8 h-8 text-emerald-600" />
+            <h2 className="text-lg font-extrabold">Passed</h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{verdictLine}</p>
-            {verdictLine.startsWith('Failed') && (
-              <div className="mt-5 text-left">
-                <PracticeCourseCards heading="Courses picked for this attempt" />
-                <button type="button" onClick={() => navigate('/dashboard#mock-tests')} className="mt-4 w-full rounded-xl bg-slate-900 py-2.5 text-sm font-bold text-white">Back to dashboard</button>
+          </div>
+        </div>
+      )}
+
+      {verdictLine && !verdictLine.startsWith('Passed') && (
+        <div className="fixed inset-0 z-50 overflow-hidden bg-[#f7f5fb]">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute left-[-80px] top-[-40px] h-56 w-56 rounded-full bg-violet-200/50 blur-3xl" />
+            <div className="absolute right-[-40px] top-10 h-52 w-52 rounded-full bg-rose-100/70 blur-3xl" />
+            <div className="absolute bottom-[-60px] left-1/3 h-48 w-48 rounded-full bg-sky-100/70 blur-3xl" />
+          </div>
+          <div className="relative flex h-full items-start justify-center px-8 pt-[8vh]">
+            <div className="w-full max-w-[1040px]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-rose-500">Paper closed</p>
+              <h2 className="mt-1.5 text-[30px] font-black tracking-tight text-slate-900">This attempt did not pass</h2>
+              <p className="mt-2 max-w-xl text-[13px] leading-5 text-slate-500">{verdictLine} These studios are what we recommend next, each for a different gap.</p>
+              <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.22em] text-violet-600">Picked for this fail</p>
+              <h3 className="mt-1 text-base font-black tracking-tight text-slate-900">Level up on these platforms</h3>
+              <div className="mt-4">
+                <PracticeCourseCards heading="" />
               </div>
-            )}
+              <button type="button" onClick={() => navigate('/dashboard#mock-tests')} className="mt-6 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-bold text-white">
+                Back to dashboard
+              </button>
+            </div>
           </div>
         </div>
       )}

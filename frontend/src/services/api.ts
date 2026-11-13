@@ -78,6 +78,14 @@ export type MockTestResultRow = {
   createdAt: string;
 };
 
+export type CoursePlatformRow = {
+  id: string;
+  name: string;
+  url: string;
+  purpose: string;
+  createdAt: string;
+};
+
 export type InterviewerApplicationRow = {
   id: string;
   fullName: string;
@@ -175,6 +183,28 @@ export const api = {
 
   jobApplications: (token: string, kind: 'jobs' | 'interest') =>
     request<JobApplicationRow[]>(`/jobs/applications/admin?kind=${kind}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  coursePlatforms: () => request<CoursePlatformRow[]>('/jobs/course-platforms'),
+
+  addCoursePlatform: (token: string, data: { name: string; url: string; purpose?: string }) =>
+    request<CoursePlatformRow>('/jobs/course-platforms', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    }),
+
+  updateCoursePlatform: (token: string, id: string, data: { name: string; url: string; purpose?: string }) =>
+    request<CoursePlatformRow>(`/jobs/course-platforms/${id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    }),
+
+  removeCoursePlatform: (token: string, id: string) =>
+    request<{ success: boolean }>(`/jobs/course-platforms/${id}`, {
+      method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     }),
 

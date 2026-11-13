@@ -257,8 +257,8 @@ export const MockTestsSection: React.FC = () => {
           })}
         </div>
         {completedIds.some((id) => getMockTestResult(id)?.verdict === 'Failed') && (
-          <div className="mt-5">
-            <PracticeCourseCards heading="Because a paper was failed" />
+          <div className="mt-8 overflow-hidden rounded-3xl border border-violet-100 bg-white px-5 py-5 sm:px-6">
+            <PracticeCourseCards kicker="Because a paper was failed" heading="Keep going on these platforms" />
           </div>
         )}
       </div>

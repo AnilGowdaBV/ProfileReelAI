@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Eye, Moon, Sun, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Check, Eye, Moon, Pencil, Sun, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ApiError, api, type InterviewerApplicationRow, type JobApplicationRow, type MockTestResultRow } from '../services/api';
+import { SectionSpinner, holdMin } from '../components/SectionSpinner';
+import { ApiError, api, type CoursePlatformRow, type InterviewerApplicationRow, type JobApplicationRow, type MockTestResultRow } from '../services/api';
 
 const TOKEN_KEY = 'profilereel_admin_token';
 
@@ -50,8 +51,9 @@ export const AdminLoginPage: React.FC = () => {
           <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" required />
         </label>
         {error && <p className="mt-3 text-xs text-rose-600">{error}</p>}
-        <button type="submit" disabled={busy} className="mt-5 w-full rounded-xl bg-slate-900 py-2.5 text-sm font-bold text-white disabled:opacity-60">
-          {busy ? 'Checking...' : 'Log in'}
+        <button type="submit" disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-sm font-bold text-white disabled:opacity-60">
+          {busy && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
+          {busy ? 'Opening admin desk...' : 'Log in'}
         </button>
       </form>
     </div>
@@ -84,6 +86,32 @@ function groupPapers(rows: MockTestResultRow[]) {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+function IconTip({
+  label,
+  onClick,
+  className,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={`group relative grid h-8 w-8 place-items-center rounded-lg ${className || ''}`}
+    >
+      {children}
+      <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-1 -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-[10px] font-bold text-white opacity-0 shadow-lg transition group-hover:opacity-100">
+        {label}
+      </span>
+    </button>
+  );
+}
+
 const STATUS_LABEL: Record<string, string> = {
   UNDER_REVIEW: 'Under review',
   APPROVED: 'Approved',
@@ -97,20 +125,45 @@ export const AdminPage: React.FC = () => {
   const [tests, setTests] = useState<MockTestResultRow[]>([]);
   const [jobs, setJobs] = useState<JobApplicationRow[]>([]);
   const [interest, setInterest] = useState<JobApplicationRow[]>([]);
+  const [courses, setCourses] = useState<CoursePlatformRow[]>([]);
+  const [courseName, setCourseName] = useState('');
+  const [courseUrl, setCourseUrl] = useState('');
+  const [coursePurpose, setCoursePurpose] = useState('');
+  const [editingId, setEditingId] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editUrl, setEditUrl] = useState('');
+  const [editPurpose, setEditPurpose] = useState('');
   const [section, setSection] = useState('');
   const [theme, setTheme] = useState(() => (localStorage.getItem('profilereel_admin_theme') === 'light' ? 'light' : 'dark'));
   const [filter, setFilter] = useState('ALL');
   const [busyId, setBusyId] = useState('');
   const [error, setError] = useState('');
+  const [booting, setBooting] = useState(true);
+  const [paneBusy, setPaneBusy] = useState(false);
+  const paneTimer = useRef<number | null>(null);
 
-  const load = (token: string) => {
-    api.mockTestResults(token).then(setTests).catch(() => setTests([]));
-    api.jobApplications(token, 'jobs').then(setJobs).catch(() => setJobs([]));
-    api.jobApplications(token, 'interest').then(setInterest).catch(() => setInterest([]));
-    return api.interviewerApplications(token).then(setRows).catch((err) => {
-      setError(err instanceof Error ? err.message : 'Could not load applications.');
-    });
+  const load = (token: string) =>
+    Promise.all([
+      api.mockTestResults(token).then(setTests).catch(() => setTests([])),
+      api.jobApplications(token, 'jobs').then(setJobs).catch(() => setJobs([])),
+      api.jobApplications(token, 'interest').then(setInterest).catch(() => setInterest([])),
+      api.coursePlatforms().then(setCourses).catch(() => setCourses([])),
+      api.interviewerApplications(token).then(setRows).catch((err) => {
+        setError(err instanceof Error ? err.message : 'Could not load applications.');
+      }),
+    ]);
+
+  const openSection = (id: string) => {
+    if (id === section) return;
+    setSection(id);
+    setPaneBusy(true);
+    if (paneTimer.current) window.clearTimeout(paneTimer.current);
+    paneTimer.current = window.setTimeout(() => setPaneBusy(false), 480);
   };
+
+  useEffect(() => () => {
+    if (paneTimer.current) window.clearTimeout(paneTimer.current);
+  }, []);
 
   useEffect(() => {
     const token = readAdminToken();
@@ -118,14 +171,18 @@ export const AdminPage: React.FC = () => {
       navigate('/admin/login', { replace: true });
       return;
     }
+    const begun = Date.now();
     api.adminSession(token)
-      .then((session) => {
+      .then(async (session) => {
         setUsername(session.username);
-        return load(token);
+        await load(token);
       })
       .catch(() => {
         sessionStorage.removeItem(TOKEN_KEY);
         navigate('/admin/login', { replace: true });
+      })
+      .finally(() => {
+        void holdMin(begun, 560).then(() => setBooting(false));
       });
   }, [navigate]);
 
@@ -166,11 +223,27 @@ export const AdminPage: React.FC = () => {
   };
   const navClass = (id: string) => `mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${section === id ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/30' : dark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-violet-50'}`;
   const pillClass = (id: string) => `rounded-full px-2 py-0.5 text-[11px] font-bold ${section === id ? 'bg-white/20 text-white' : dark ? 'bg-white/10 text-violet-200' : 'bg-violet-50 text-violet-800'}`;
+  const paneLabel: Record<string, string> = {
+    '': 'Opening home',
+    review: 'Loading interviewer requests',
+    tests: 'Loading test results',
+    jobs: 'Loading job applications',
+    interest: 'Loading company interest',
+    courses: 'Loading course platforms',
+  };
+
+  if (booting) {
+    return (
+      <div className={`flex h-screen items-center justify-center ${dark ? 'bg-[#070b16]' : 'bg-[#f4f2fb]'}`}>
+        <SectionSpinner dark={dark} label="Opening admin desk" />
+      </div>
+    );
+  }
 
   return (
     <div className={`flex h-screen overflow-hidden ${dark ? 'bg-[#070b16]' : 'bg-[#f4f2fb]'} text-slate-900`}>
       <aside className={`flex w-[250px] shrink-0 flex-col border-r ${dark ? 'border-white/10 bg-[#0c1024]' : 'border-slate-200 bg-white'}`}>
-        <button type="button" onClick={() => setSection('')} className="flex items-center gap-3 px-4 py-4 text-left">
+        <button type="button" onClick={() => openSection('')} className="flex items-center gap-3 px-4 py-4 text-left">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-xs font-black text-white">PR</div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-300">ProfileReel</p>
@@ -180,36 +253,43 @@ export const AdminPage: React.FC = () => {
 
         <nav className="px-3">
           <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Workspace</p>
-          <button type="button" onClick={() => setSection('')} className={navClass('')}>
+          <button type="button" onClick={() => openSection('')} className={navClass('')}>
             <span className="text-sm font-bold">Home</span>
           </button>
-          <button type="button" onClick={() => setSection('review')} className={navClass('review')}>
+          <button type="button" onClick={() => openSection('review')} className={navClass('review')}>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold">Profile under review</span>
               <span className={`block text-[11px] ${section === 'review' ? 'text-white/70' : 'text-slate-500'}`}>Interviewer requests</span>
             </span>
             <span className={pillClass('review')}>{rows.length}</span>
           </button>
-          <button type="button" onClick={() => setSection('tests')} className={navClass('tests')}>
+          <button type="button" onClick={() => openSection('tests')} className={navClass('tests')}>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold">Test results</span>
               <span className={`block text-[11px] ${section === 'tests' ? 'text-white/70' : 'text-slate-500'}`}>Mock test papers</span>
             </span>
             <span className={pillClass('tests')}>{papers.length}</span>
           </button>
-          <button type="button" onClick={() => setSection('jobs')} className={navClass('jobs')}>
+          <button type="button" onClick={() => openSection('jobs')} className={navClass('jobs')}>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold">Job applications</span>
               <span className={`block text-[11px] ${section === 'jobs' ? 'text-white/70' : 'text-slate-500'}`}>Applied roles</span>
             </span>
             <span className={pillClass('jobs')}>{jobs.length}</span>
           </button>
-          <button type="button" onClick={() => setSection('interest')} className={navClass('interest')}>
+          <button type="button" onClick={() => openSection('interest')} className={navClass('interest')}>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold">Interest received</span>
               <span className={`block text-[11px] ${section === 'interest' ? 'text-white/70' : 'text-slate-500'}`}>Company interest</span>
             </span>
             <span className={pillClass('interest')}>{interest.length}</span>
+          </button>
+          <button type="button" onClick={() => openSection('courses')} className={navClass('courses')}>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">Course platforms</span>
+              <span className={`block text-[11px] ${section === 'courses' ? 'text-white/70' : 'text-slate-500'}`}>Name and website</span>
+            </span>
+            <span className={pillClass('courses')}>{courses.length}</span>
           </button>
         </nav>
 
@@ -235,6 +315,7 @@ export const AdminPage: React.FC = () => {
       </aside>
 
       <main className={`relative min-h-0 min-w-0 flex-1 ${section === '' ? 'overflow-hidden p-3' : 'overflow-auto px-5 py-5'}`}>
+        {paneBusy && <SectionSpinner overlay dark={dark} label={paneLabel[section] || 'Loading'} />}
         <button
           type="button"
           onClick={() => chooseTheme(dark ? 'light' : 'dark')}
@@ -262,7 +343,7 @@ export const AdminPage: React.FC = () => {
               { label: 'Interest', count: interest.length, color: '#fb923c' },
             ]}
             series={dailySeries([...rows, ...papers, ...jobs, ...interest].map((item) => item.createdAt))}
-            onOpen={setSection}
+            onOpen={openSection}
           />
         )}
 
@@ -412,6 +493,133 @@ export const AdminPage: React.FC = () => {
             dark={dark}
             rows={section === 'jobs' ? jobs : interest}
           />
+        )}
+
+        {section === 'courses' && (
+          <>
+            <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 ${panel}`}>
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${kicker}`}>Failed-test recommendations</p>
+                <h1 className="text-lg font-black leading-tight">Course platforms</h1>
+              </div>
+              <p className={`text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{courses.length} platforms</p>
+            </div>
+            <form
+              onSubmit={async (event) => {
+                event.preventDefault();
+                setError('');
+                try {
+                  const saved = await api.addCoursePlatform(readAdminToken(), { name: courseName, url: courseUrl, purpose: coursePurpose });
+                  setCourses((current) => [...current, saved]);
+                  setCourseName('');
+                  setCourseUrl('');
+                  setCoursePurpose('');
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Could not save this platform.');
+                }
+              }}
+              className={`mt-3 grid gap-2 rounded-2xl px-4 py-4 sm:grid-cols-[1fr_1.3fr_1fr_auto] ${panel}`}
+            >
+              <input value={courseName} onChange={(event) => setCourseName(event.target.value)} placeholder="Name" required className={`rounded-xl px-3 py-2 text-sm ${dark ? 'bg-white/5 text-white' : 'border border-slate-200'}`} />
+              <input value={courseUrl} onChange={(event) => setCourseUrl(event.target.value)} placeholder="Website link" required className={`rounded-xl px-3 py-2 text-sm ${dark ? 'bg-white/5 text-white' : 'border border-slate-200'}`} />
+              <input value={coursePurpose} onChange={(event) => setCoursePurpose(event.target.value)} placeholder="Meant for, e.g. DSA" className={`rounded-xl px-3 py-2 text-sm ${dark ? 'bg-white/5 text-white' : 'border border-slate-200'}`} />
+              <button type="submit" className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">Add</button>
+            </form>
+            {error && <p className="mt-2 text-xs text-rose-500">{error}</p>}
+            <div className={`mt-3 overflow-visible rounded-2xl ${panel}`}>
+              {courses.length === 0 && <p className="px-4 py-10 text-center text-sm text-slate-500">No platforms saved yet.</p>}
+              {courses.length > 0 && (
+                <table className="w-full text-left text-sm">
+                  <thead className={`${dark ? 'bg-white/5 text-violet-200' : 'bg-[#f6f4fb] text-violet-800'} text-[10px] uppercase tracking-[0.12em]`}>
+                    <tr>
+                      {['Name', 'Website', 'Meant for', ''].map((label) => (
+                        <th key={label || 'actions'} className="px-3 py-2 font-bold">{label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {courses.map((course) => {
+                      const editing = editingId === course.id;
+                      const field = `w-full rounded-lg px-2 py-1.5 text-sm ${dark ? 'bg-white/5 text-white' : 'border border-slate-200 bg-white'}`;
+                      return (
+                        <tr key={course.id} className={`border-t ${dark ? 'border-white/10' : 'border-stone-100'}`}>
+                          <td className="px-3 py-2 font-semibold">
+                            {editing ? <input value={editName} onChange={(event) => setEditName(event.target.value)} className={field} /> : course.name}
+                          </td>
+                          <td className="px-3 py-2 text-xs">
+                            {editing ? (
+                              <input value={editUrl} onChange={(event) => setEditUrl(event.target.value)} className={field} />
+                            ) : (
+                              <a href={course.url} target="_blank" rel="noreferrer" className={kicker}>{course.url}</a>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-xs">
+                            {editing ? <input value={editPurpose} onChange={(event) => setEditPurpose(event.target.value)} className={field} /> : (course.purpose || '—')}
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex justify-end gap-1">
+                              {editing ? (
+                                <>
+                                  <IconTip
+                                    label="Save"
+                                    className={dark ? 'text-emerald-300 hover:bg-white/10' : 'text-emerald-600 hover:bg-emerald-50'}
+                                    onClick={() => {
+                                      void api.updateCoursePlatform(readAdminToken(), course.id, { name: editName, url: editUrl, purpose: editPurpose }).then((saved) => {
+                                        setCourses((current) => current.map((row) => (row.id === saved.id ? saved : row)));
+                                        setEditingId('');
+                                        setError('');
+                                      }).catch((err) => setError(err instanceof Error ? err.message : 'Could not update this platform.'));
+                                    }}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </IconTip>
+                                  <IconTip
+                                    label="Cancel"
+                                    className={dark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}
+                                    onClick={() => setEditingId('')}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </IconTip>
+                                </>
+                              ) : (
+                                <>
+                                  <IconTip
+                                    label="Edit"
+                                    className={dark ? 'text-violet-200 hover:bg-white/10' : 'text-violet-600 hover:bg-violet-50'}
+                                    onClick={() => {
+                                      setEditingId(course.id);
+                                      setEditName(course.name);
+                                      setEditUrl(course.url);
+                                      setEditPurpose(course.purpose || '');
+                                      setError('');
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </IconTip>
+                                  <IconTip
+                                    label="Remove"
+                                    className={dark ? 'text-rose-300 hover:bg-white/10' : 'text-rose-600 hover:bg-rose-50'}
+                                    onClick={() => {
+                                      void api.removeCoursePlatform(readAdminToken(), course.id).then(() => {
+                                        setCourses((current) => current.filter((row) => row.id !== course.id));
+                                        if (editingId === course.id) setEditingId('');
+                                      }).catch((err) => setError(err instanceof Error ? err.message : 'Could not remove this platform.'));
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </IconTip>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </>
         )}
       </main>
     </div>

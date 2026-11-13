@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2, Loader2, X } from 'lucide-react';
+import { SectionSpinner } from './SectionSpinner';
 import { useAuth } from '../context/AuthContext';
 import { ApiError, api } from '../services/api';
 
@@ -84,7 +85,7 @@ export const BeInterviewerModal: React.FC<{ open: boolean; onClose: () => void }
           </button>
         </div>
         {checking ? (
-          <p className="px-6 py-8 text-center text-sm text-slate-500">Checking your application...</p>
+          <SectionSpinner compact label="Checking your application" />
         ) : existingStatus ? (
           <div className="relative px-6 py-8 text-center">
             <div className={`mx-auto w-fit rotate-[-8deg] rounded-lg border-4 px-4 py-1 text-2xl font-black uppercase tracking-[0.16em] ${STATUS_COPY[existingStatus]?.tone || 'border-amber-500 text-amber-600'}`}>
@@ -129,7 +130,8 @@ export const BeInterviewerModal: React.FC<{ open: boolean; onClose: () => void }
               </label>
             ))}
             {error && <p className="text-xs text-rose-600">{error}</p>}
-            <button type="submit" disabled={submitting} className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold disabled:opacity-60">
+            <button type="submit" disabled={submitting} className="flex w-full items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold disabled:opacity-60">
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {submitting ? 'Reading LinkedIn and saving...' : 'Submit application'}
             </button>
           </form>

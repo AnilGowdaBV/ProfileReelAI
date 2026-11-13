@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import {
   GenerationJob,
   JobStatus,
@@ -8,6 +8,8 @@ import {
 } from './entities/generation-job.entity';
 import { JobApplication } from './entities/job-application.entity';
 import { MockTestResult } from './entities/mock-test-result.entity';
+import { CoursePlatform } from './entities/course-platform.entity';
+import { CreateCoursePlatformDto } from './dto/create-course-platform.dto';
 import { CreateJobApplicationDto } from './dto/create-job-application.dto';
 import { SubmitMockTestDto } from './dto/submit-mock-test.dto';
 import { R2StorageService } from '../storage/r2-storage.service';
@@ -17,6 +19,7 @@ import { SupabaseStorageService } from '../storage/supabase-storage.service';
 export class JobsService {
   private readonly logger = new Logger(JobsService.name);
   private mockTableReady: Promise<void>;
+  private courseTableReady: Promise<void>;
 
   constructor(
     @InjectRepository(GenerationJob)
@@ -25,10 +28,13 @@ export class JobsService {
     private readonly applicationRepo: Repository<JobApplication>,
     @InjectRepository(MockTestResult)
     private readonly mockResults: Repository<MockTestResult>,
+    @InjectRepository(CoursePlatform)
+    private readonly coursePlatforms: Repository<CoursePlatform>,
     private readonly r2Storage: R2StorageService,
     private readonly supabaseStorage: SupabaseStorageService,
   ) {
     this.mockTableReady = this.ensureMockTestTable();
+    this.courseTableReady = this.ensureCoursePlatforms();
   }
 
   async createJob(candidateId: string): Promise<GenerationJob> {
@@ -262,6 +268,90 @@ export class JobsService {
 
     this.logger.log(`Synced mock test for ${dto.email} to Google Sheet (Sheet3) with ${answers.length} answers`);
     return { success: true, sheet: 'Sheet3', answers: answers.length };
+  }
+
+  async listCoursePlatforms() {
+    await this.courseTableReady;
+    return this.coursePlatforms.find({ order: { createdAt: 'ASC' } });
+  }
+
+  async addCoursePlatform(dto: CreateCoursePlatformDto) {
+    await this.courseTableReady;
+    const name = dto.name.trim();
+    const url = this.normalizeCourseUrl(dto.url);
+    const purpose = (dto.purpose || '').trim();
+    if (!name || !url) {
+      throw new BadRequestException('Name and website link are required');
+    }
+    const exists = await this.coursePlatforms.findOne({ where: [{ url }, { name }] });
+    if (exists) {
+      throw new BadRequestException('That course platform is already saved');
+    }
+    return this.coursePlatforms.save(this.coursePlatforms.create({ name, url, purpose }));
+  }
+
+  async updateCoursePlatform(id: string, dto: CreateCoursePlatformDto) {
+    await this.courseTableReady;
+    const row = await this.coursePlatforms.findOne({ where: { id } });
+    if (!row) {
+      throw new NotFoundException('Course platform not found');
+    }
+    const name = dto.name.trim();
+    const url = this.normalizeCourseUrl(dto.url);
+    const purpose = (dto.purpose || '').trim();
+    if (!name || !url) {
+      throw new BadRequestException('Name and website link are required');
+    }
+    const exists = await this.coursePlatforms.findOne({ where: [{ url, id: Not(id) }, { name, id: Not(id) }] });
+    if (exists) {
+      throw new BadRequestException('That course platform is already saved');
+    }
+    row.name = name;
+    row.url = url;
+    row.purpose = purpose;
+    return this.coursePlatforms.save(row);
+  }
+
+  async removeCoursePlatform(id: string) {
+    await this.courseTableReady;
+    const row = await this.coursePlatforms.findOne({ where: { id } });
+    if (!row) {
+      throw new NotFoundException('Course platform not found');
+    }
+    await this.coursePlatforms.remove(row);
+    return { success: true };
+  }
+
+  private normalizeCourseUrl(raw: string) {
+    const trimmed = String(raw || '').trim();
+    if (!trimmed) return '';
+    try {
+      const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+      return new URL(withProtocol).toString();
+    } catch {
+      throw new BadRequestException('Enter a valid website link');
+    }
+  }
+
+  private async ensureCoursePlatforms() {
+    await this.coursePlatforms.query(`
+      CREATE TABLE IF NOT EXISTS course_platforms (
+        id varchar(36) NOT NULL PRIMARY KEY,
+        name varchar(255) NOT NULL,
+        url varchar(500) NOT NULL,
+        purpose varchar(255) NOT NULL DEFAULT '',
+        created_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+      )
+    `);
+    const count = await this.coursePlatforms.count();
+    if (count > 0) return;
+    await this.coursePlatforms.save([
+      this.coursePlatforms.create({ name: 'CodeZym', url: 'https://codezym.com/', purpose: 'LLD' }),
+      this.coursePlatforms.create({ name: 'Fanout', url: 'https://fanout.sh/', purpose: 'System Design + AI' }),
+      this.coursePlatforms.create({ name: 'TakeUForward', url: 'https://takeuforward.org/', purpose: 'DSA' }),
+      this.coursePlatforms.create({ name: 'LLDCoding', url: 'https://lldcoding.com/', purpose: 'LLD' }),
+      this.coursePlatforms.create({ name: 'neoG Camp', url: 'https://neog.camp/', purpose: 'Full-stack development' }),
+    ]);
   }
 
   private async ensureMockTestTable() {

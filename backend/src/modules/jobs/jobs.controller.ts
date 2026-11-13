@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Headers, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Headers, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { AdminService } from '../admin/admin.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { JobsService } from './jobs.service';
@@ -8,6 +8,7 @@ import { SubmitMockTestDto } from './dto/submit-mock-test.dto';
 import { CodeRunnerService } from './code-runner.service';
 import { CourseRecommendationsService } from './course-recommendations.service';
 import { RunCodeDto } from './dto/run-code.dto';
+import { CreateCoursePlatformDto } from './dto/create-course-platform.dto';
 
 @ApiTags('Jobs')
 @Controller('jobs')
@@ -40,6 +41,33 @@ export class JobsController {
       message: 'Application submitted successfully',
       application,
     };
+  }
+
+  @Get('course-platforms')
+  listCoursePlatforms() {
+    return this.jobsService.listCoursePlatforms();
+  }
+
+  @Post('course-platforms')
+  addCoursePlatform(@Headers('authorization') authorization: string | undefined, @Body() dto: CreateCoursePlatformDto) {
+    this.admin.session(authorization);
+    return this.jobsService.addCoursePlatform(dto);
+  }
+
+  @Patch('course-platforms/:id')
+  updateCoursePlatform(
+    @Headers('authorization') authorization: string | undefined,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: CreateCoursePlatformDto,
+  ) {
+    this.admin.session(authorization);
+    return this.jobsService.updateCoursePlatform(id, dto);
+  }
+
+  @Delete('course-platforms/:id')
+  removeCoursePlatform(@Headers('authorization') authorization: string | undefined, @Param('id', new ParseUUIDPipe()) id: string) {
+    this.admin.session(authorization);
+    return this.jobsService.removeCoursePlatform(id);
   }
 
   @Get('mock-test-results')

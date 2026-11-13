@@ -16,6 +16,7 @@ import { Candidate, HealthStatus, CandidateScore } from '../types/candidate';
 import { api, ApiError } from '../services/api';
 import { Sparkles, Database, ShieldCheck, Zap } from 'lucide-react';
 import { FullPageSpinner } from '../components/FullPageSpinner';
+import { holdMin } from '../components/SectionSpinner';
 import { MOCK_TEST_PAID_MESSAGE, markMockTestPaid } from '../lib/mockTestAccess';
 
 export const DashboardPage: React.FC = () => {
@@ -96,6 +97,7 @@ export const DashboardPage: React.FC = () => {
   // Load initial system health and existing candidates from backend/MySQL
   useEffect(() => {
     async function loadInitialData() {
+      const begun = Date.now();
       try {
         const [healthData, candidatesData] = await Promise.all([
           api.getHealth().catch(() => undefined),
@@ -108,6 +110,7 @@ export const DashboardPage: React.FC = () => {
       } catch (err) {
         console.error('Failed to load initial data:', err);
       } finally {
+        await holdMin(begun, 560);
         setIsInitialLoading(false);
       }
     }
