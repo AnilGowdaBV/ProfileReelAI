@@ -193,6 +193,7 @@ export const MockTestsSection: React.FC = () => {
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div>
+                      {!soon && (
                       <div className="flex items-center gap-1.5 mb-2">
                         {[
                           { name: 'Swiggy', domain: 'swiggy.com' },
@@ -209,6 +210,7 @@ export const MockTestsSection: React.FC = () => {
                           />
                         ))}
                       </div>
+                      )}
                       <h3 className="text-base font-bold text-slate-900 dark:text-white">{test.title}</h3>
                     </div>
                     <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${soon ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'}`}>

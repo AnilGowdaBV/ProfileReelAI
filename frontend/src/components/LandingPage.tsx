@@ -231,7 +231,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className={`mb-3 h-1 w-full rounded-full bg-gradient-to-r ${accents[index % accents.length]}`} />
               <div className="flex items-center justify-between">
                 <div className="flex gap-1.5">
-                  {companies.map((company) => (
+                  {!soon && companies.map((company) => (
                     <img
                       key={company.name}
                       src={`https://www.google.com/s2/favicons?domain=${company.domain}&sz=64`}
