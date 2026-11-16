@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { MOCK_TESTS } from '../data/mockTests';
 
 interface LandingPageProps {
   onOpenLogin: () => void;
@@ -185,6 +186,74 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       a: 'Pro unlocks unlimited candidate profile evaluations, full 720p video downloads, 1-on-1 FAANG mock interview slots, and priority applications for just ₹100/month processed securely via Razorpay.',
     },
   ];
+
+  const companies = [
+    { name: 'Swiggy', domain: 'swiggy.com' },
+    { name: 'Flipkart', domain: 'flipkart.com' },
+    { name: 'Zepto', domain: 'zeptonow.com' },
+    { name: 'Uber', domain: 'uber.com' },
+  ];
+  const accents = ['from-cyan-400 to-blue-600', 'from-orange-400 to-rose-500', 'from-sky-400 to-indigo-600', 'from-violet-400 to-fuchsia-600', 'from-emerald-400 to-teal-600', 'from-amber-400 to-orange-500', 'from-pink-400 to-purple-600'];
+
+  return (
+    <div className="h-screen overflow-hidden bg-[#f4f7fb] text-slate-900">
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-sky-200/70 blur-3xl" />
+        <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-violet-200/60 blur-3xl" />
+      </div>
+      <header className="mx-auto flex h-16 max-w-[1320px] items-center justify-between px-8">
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.jpg" alt="ProfileReel AI" className="h-9 w-9 rounded-xl object-cover shadow-sm" />
+          <span className="text-lg font-black tracking-tight">ProfileReel AI</span>
+        </div>
+        <button type="button" onClick={onOpenLogin} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-bold text-white">
+          Sign in
+        </button>
+      </header>
+      <main className="mx-auto flex h-[calc(100vh-4rem)] max-w-[1320px] flex-col justify-center px-8 pb-6">
+        <div className="pb-6 text-center">
+          <h1 className="text-4xl font-black tracking-tight text-slate-950">
+            Best suitable for <span className="bg-gradient-to-r from-sky-600 to-violet-600 bg-clip-text text-transparent">Product companies</span>
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">75 min · 4 questions · Swiggy, Flipkart, Zepto, Uber</p>
+        </div>
+        <div className="flex flex-wrap justify-center gap-4">
+          {MOCK_TESTS.map((test, index) => (
+            <button
+              key={test.id}
+              type="button"
+              onClick={onOpenLogin}
+              className="flex w-[calc((100%-3rem)/4)] flex-col rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_16px_36px_rgba(15,23,42,0.1)]"
+            >
+              <div className={`mb-3 h-1 w-full rounded-full bg-gradient-to-r ${accents[index % accents.length]}`} />
+              <div className="flex items-center justify-between">
+                <div className="flex gap-1.5">
+                  {companies.map((company) => (
+                    <img
+                      key={company.name}
+                      src={`https://www.google.com/s2/favicons?domain=${company.domain}&sz=64`}
+                      alt={company.name}
+                      title={company.name}
+                      className="h-6 w-6 rounded-md border border-slate-200 bg-white object-contain p-0.5"
+                    />
+                  ))}
+                </div>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700">₹10</span>
+              </div>
+              <h2 className="mt-3 text-lg font-black text-slate-950">{test.title}</h2>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                {test.minutes} min · {test.questionCount} questions · open for 1 hour after payment
+              </p>
+              <span className="mt-4 flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white">
+                Pay ₹10 to take test
+                <ArrowRight className="h-3.5 w-3.5" />
+              </span>
+            </button>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#070a13] text-slate-800 dark:text-slate-100 selection:bg-brand-500 selection:text-white transition-colors duration-300 overflow-x-hidden relative">
