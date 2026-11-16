@@ -337,7 +337,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </a>
                 <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-white/10">
                   <div className="w-8 h-8 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                    {user?.name ? user.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
+                    {(user?.name ?? 'U').split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()}
                   </div>
                   <button
                     type="button"
