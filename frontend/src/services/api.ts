@@ -402,10 +402,11 @@ export const api = {
       `/jobs/courses/recommended?skills=${encodeURIComponent(skills.join(','))}&interests=${encodeURIComponent(interests.join(','))}&limit=${limit}`,
     ),
 
-  getLiveInstahyreJobs: async (skills?: string, limit: number = 20, offset: number = 0): Promise<any[]> => {
+  getLiveInstahyreJobs: async (skills?: string, limit: number = 20, offset: number = 0, focus?: string): Promise<any[]> => {
     try {
       const skillsParam = skills ? `&skills=${encodeURIComponent(skills)}` : '';
-      return await request<any[]>(`/jobs/instahyre/live?limit=${limit}&offset=${offset}${skillsParam}`);
+      const focusParam = focus ? `&focus=${encodeURIComponent(focus)}` : '';
+      return await request<any[]>(`/jobs/instahyre/live?limit=${limit}&offset=${offset}${skillsParam}${focusParam}`);
     } catch (err) {
       console.warn('Backend Instahyre proxy unavailable, querying live Instahyre public endpoint...', err);
       // Fallback directly to Instahyre public search API

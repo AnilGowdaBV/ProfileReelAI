@@ -196,15 +196,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   ];
   const accents = ['from-cyan-400 to-blue-600', 'from-orange-400 to-rose-500', 'from-sky-400 to-indigo-600', 'from-violet-400 to-fuchsia-600', 'from-emerald-400 to-teal-600', 'from-amber-400 to-orange-500', 'from-pink-400 to-purple-600'];
   const [landingJobs, setLandingJobs] = useState<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
+  const [landingJobsLoading, setLandingJobsLoading] = useState(true);
   const [landingPeople, setLandingPeople] = useState<Array<{ id: string; fullName: string; currentCompany: string; currentTitle: string; photoUrl: string; companies: Array<{ name: string; logo: string }> }>>([]);
 
   useEffect(() => {
     let alive = true;
-    api.getLiveInstahyreJobs('Java', 12, 0).then((rows) => {
-      if (!alive || !Array.isArray(rows)) return;
+    Promise.race([
+      api.getLiveInstahyreJobs('Java', 8, 0, 'companies').catch(() => []),
+      new Promise<any[]>((resolve) => window.setTimeout(() => resolve([]), 2000)),
+    ]).then((rows) => {
+      if (!alive) return;
+      const live = Array.isArray(rows) && rows.length > 0 ? rows : [
+        ['target', 'Target in India', 'Java Developer', 'Bangalore', 'target.com'],
+        ['omnissa', 'Omnissa', 'SMTS - Java', 'Bangalore', 'omnissa.com'],
+        ['kla', 'KLA-Tencor', 'Java Developer', 'Chennai', 'kla.com'],
+        ['innovaccer', 'Innovaccer', 'SSE - Java', 'Gurgaon', 'innovaccer.com'],
+        ['meesho', 'Meesho', 'SDE - Java', 'Bangalore', 'meesho.com'],
+        ['ey', 'EY', 'Java Developer', 'Bangalore', 'ey.com'],
+        ['greyorange', 'GreyOrange', 'SDE III - Java', 'Gurgaon', 'greyorange.com'],
+        ['arcticwolf', 'Arctic Wolf', 'Sr. Backend Engineer - Java', 'Bangalore', 'arcticwolf.com'],
+      ].map(([id, company, title, location, domain]) => ({
+        id, title, company, location,
+        skills: ['Java'],
+        logo: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+      }));
       const javaRole = /java|spring|j2ee|jvm|hibernate|microservices/i;
-      const jobs = rows
-        .filter((job: any) => javaRole.test(`${job.title || ''} ${Array.isArray(job.skills) ? job.skills.join(' ') : ''}`))
+      const featuredCompany = (name: string) => {
+        const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return key.startsWith('target') || key.includes('omnissa') || key.includes('omnisa') || key.includes('kla') || key.includes('innovaccer') || key.includes('innovacer') || key.includes('meesho') || key === 'ey' || key.startsWith('eyg') || key.startsWith('eyi') || key.includes('ernstyoung') || key.includes('greyorange') || key.includes('arcticwolf');
+      };
+      const usedCompanies = new Set<string>();
+      const jobs = live.sort(() => Math.random() - 0.5)
+        .filter((job: any) => featuredCompany(job.company || job.companyName || '') && javaRole.test(`${job.title || ''} ${Array.isArray(job.skills) ? job.skills.join(' ') : ''}`))
+        .filter((job: any) => {
+          const key = String(job.company || job.companyName || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^target.*/, 'target');
+          if (usedCompanies.has(key)) return false;
+          usedCompanies.add(key);
+          return true;
+        })
         .slice(0, 3)
         .map((job: any) => ({
           id: String(job.id),
@@ -214,7 +243,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           logo: job.logo || job.companyLogo || '',
         }));
       setLandingJobs(jobs);
-    }).catch(() => undefined);
+    }).catch(() => undefined).finally(() => {
+      if (alive) setLandingJobsLoading(false);
+    });
     api.interviewerPicks().then((rows) => {
       if (alive) setLandingPeople(rows);
     }).catch(() => undefined);
@@ -285,31 +316,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             );
           })}
         </div>
-        {landingJobs.length > 0 && (
+        {(landingJobsLoading || landingJobs.length > 0) && (
           <div className="mt-3">
             <h2 className="text-center text-base font-black text-slate-950">Open roles</h2>
+            {landingJobsLoading && landingJobs.length === 0 ? (
+              <div className="mt-2 grid grid-cols-3 gap-3">
+                {[0, 1, 2].map((slot) => (
+                  <div key={slot} className="animate-pulse overflow-hidden rounded-3xl border border-slate-200 bg-white">
+                    <div className="h-12 bg-slate-100" />
+                    <div className="space-y-2 p-3">
+                      <div className="h-3 w-3/4 rounded bg-slate-200" />
+                      <div className="h-2.5 w-1/2 rounded bg-slate-100" />
+                      <div className="h-8 rounded-xl bg-slate-200" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="mt-2 grid grid-cols-3 gap-3">
-              {landingJobs.map((job, index) => (
+              {landingJobs.map((job) => (
                 <button
                   key={job.id}
                   type="button"
                   onClick={onOpenLogin}
-                  className="flex w-full flex-col rounded-3xl border border-slate-200 bg-white p-3.5 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-sky-200"
+                  className="flex w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5"
                 >
-                  <div className={`mb-2 h-1 w-full rounded-full bg-gradient-to-r ${accents[(index + 3) % accents.length]}`} />
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                      {job.logo ? <img src={job.logo} alt="" className="h-6 w-6 object-contain" /> : <span className="text-[10px] font-black text-slate-400">JOB</span>}
+                  <span className="flex h-12 items-center justify-center border-b border-slate-100 bg-slate-50 px-3">
+                    {job.logo ? <img src={job.logo} alt="" className="max-h-8 max-w-[120px] object-contain" /> : <span className="text-[10px] font-black text-slate-400">JOB</span>}
+                  </span>
+                  <span className="flex flex-col p-3">
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="line-clamp-1 text-sm font-black text-slate-950">{job.title}</span>
+                      <span className="shrink-0 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">Open</span>
                     </span>
-                    <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">Open</span>
-                  </div>
-                  <p className="mt-2 line-clamp-1 text-sm font-black text-slate-950">{job.title}</p>
-                  <p className="line-clamp-1 text-[11px] font-semibold text-slate-600">{job.company}</p>
-                  <p className="text-[11px] text-slate-400">{job.location}</p>
-                  <span className="mt-2 flex w-full items-center justify-center rounded-xl bg-slate-950 py-2 text-xs font-bold text-white">Apply</span>
+                    <span className="line-clamp-1 text-[11px] font-semibold text-slate-600">{job.company}</span>
+                    <span className="text-[11px] text-slate-400">{job.location}</span>
+                    <span className="mt-2 flex w-full items-center justify-center rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white">Apply</span>
+                  </span>
                 </button>
               ))}
             </div>
+            )}
           </div>
         )}
         {landingPeople.length > 0 && (

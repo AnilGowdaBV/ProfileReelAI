@@ -10,6 +10,71 @@ import { CourseRecommendationsService } from './course-recommendations.service';
 import { RunCodeDto } from './dto/run-code.dto';
 import { CreateCoursePlatformDto } from './dto/create-course-platform.dto';
 
+let featuredJobCache: { at: number; jobs: any[] } | null = null;
+
+const featuredRoleFallback = [
+  ['target', 'Target in India', 'Java Developer', 'Bangalore', 'target.com'],
+  ['omnissa', 'Omnissa', 'SMTS - Java', 'Bangalore', 'omnissa.com'],
+  ['kla', 'KLA-Tencor', 'Java Developer', 'Chennai', 'kla.com'],
+  ['innovaccer', 'Innovaccer', 'SSE - Java', 'Gurgaon', 'innovaccer.com'],
+  ['meesho', 'Meesho', 'SDE - Java', 'Bangalore', 'meesho.com'],
+  ['ey', 'EY', 'Java Developer', 'Bangalore', 'ey.com'],
+  ['greyorange', 'GreyOrange', 'SDE III - Java', 'Gurgaon', 'greyorange.com'],
+  ['arcticwolf', 'Arctic Wolf', 'Sr. Backend Engineer - Java', 'Bangalore', 'arcticwolf.com'],
+].map(([id, company, title, location, domain]) => ({
+  id,
+  title,
+  candidate_title: title,
+  keywords: ['Java'],
+  locations: [location],
+  employer: {
+    company_name: company,
+    profile_image_src: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+  },
+}));
+
+async function loadFeaturedJavaJobs(headers: Record<string, string>) {
+  if (featuredJobCache && Date.now() - featuredJobCache.at < 60_000) {
+    return featuredJobCache.jobs;
+  }
+  const companyKey = (name: string) => {
+    const bucket = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (bucket.startsWith('target')) return 'target';
+    if (bucket.includes('omnissa') || bucket.includes('omnisa')) return 'omnissa';
+    if (bucket.includes('kla')) return 'kla';
+    if (bucket.includes('innovaccer') || bucket.includes('innovacer')) return 'innovaccer';
+    if (bucket.includes('meesho')) return 'meesho';
+    if (bucket === 'ey' || bucket.startsWith('eyg') || bucket.startsWith('eyi') || bucket.includes('ernstyoung')) return 'ey';
+    if (bucket.includes('greyorange')) return 'greyorange';
+    if (bucket.includes('arcticwolf')) return 'arcticwolf';
+    return '';
+  };
+  const pages = await Promise.all(
+    [0, 40, 80, 120, 160, 200].map(async (offset) => {
+      const pageRes = await fetch(
+        `https://www.instahyre.com/api/v1/job_search?skills=Java&offset=${offset}&count=40`,
+        { headers },
+      );
+      const pageData = (await pageRes.json().catch(() => null)) as any;
+      return pageData?.objects || [];
+    }),
+  );
+  const seen = new Set<string>();
+  const jobs: any[] = [];
+  for (const batch of pages) {
+    for (const job of batch) {
+      const key = companyKey(job.employer?.company_name || '');
+      const text = `${job.title || ''} ${job.candidate_title || ''} ${(job.keywords || []).join(' ')}`;
+      if (!key || seen.has(key) || !/java|spring|j2ee|jvm|hibernate|microservices/i.test(text)) continue;
+      seen.add(key);
+      jobs.push(job);
+    }
+  }
+  const ready = jobs.length ? jobs : featuredRoleFallback;
+  featuredJobCache = { at: Date.now(), jobs: ready };
+  return ready;
+}
+
 @ApiTags('Jobs')
 @Controller('jobs')
 export class JobsController {
@@ -128,6 +193,7 @@ export class JobsController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
     @Query('skills') skills?: string,
+    @Query('focus') focus?: string,
   ) {
     try {
       const take = limit ? Math.min(40, Math.max(1, Number(limit))) : 20;
@@ -154,12 +220,24 @@ export class JobsController {
         Accept: 'application/json',
       };
 
+      let items: any[] = [];
+      if (focus === 'companies') {
+        items = [...(await loadFeaturedJavaJobs(headers))];
+        for (let i = items.length - 1; i > 0; i -= 1) {
+          const swap = Math.floor(Math.random() * (i + 1));
+          const current = items[i];
+          items[i] = items[swap];
+          items[swap] = current;
+        }
+        items = items.slice(0, take);
+      }
+
       let res = await fetch(searchUrl, { headers });
       let data = (await res.json().catch(() => null)) as any;
-      let items = data?.objects || [];
+      if (focus !== 'companies') items = data?.objects || [];
 
       // If targeted skill search returned 0 items, fallback to broader feed and rank locally
-      if (items.length === 0 && rawTokens.length > 0) {
+      if (focus !== 'companies' && items.length === 0 && rawTokens.length > 0) {
         const fallbackUrl = `https://www.instahyre.com/api/v1/job_search?offset=${skip}&count=${take}`;
         res = await fetch(fallbackUrl, { headers });
         data = (await res.json().catch(() => null)) as any;
@@ -167,7 +245,7 @@ export class JobsController {
       }
 
       // Prioritize and rank jobs by candidate's profile skills
-      if (rawTokens.length > 0 && items.length > 0) {
+      if (focus !== 'companies' && rawTokens.length > 0 && items.length > 0) {
         const lowerTokens = rawTokens.map((t) => t.toLowerCase());
         items.sort((a: any, b: any) => {
           const aKeywords = (a.keywords || []).map((k: string) => String(k).toLowerCase()).join(' ');

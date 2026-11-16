@@ -46,6 +46,7 @@ export const MockTestsSection: React.FC = () => {
   const [interviewingAt, setInterviewingAt] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [shownJobs, setShownJobs] = useState<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
   const [incomingJobs, setIncomingJobs] = useState<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
   const [applyJob, setApplyJob] = useState<{ id: string; title: string; company: string } | null>(null);
   const [paywallJob, setPaywallJob] = useState<{ id: string; title: string; company: string } | null>(null);
@@ -118,17 +119,39 @@ export const MockTestsSection: React.FC = () => {
   useEffect(() => {
     let alive = true;
     const pullIntoQueue = async () => {
-      const rows = await api.getLiveInstahyreJobs('Java', 12, jobOffset.current);
-      jobOffset.current += 12;
-      if (!alive || !Array.isArray(rows)) return;
-      const seen = new Set(jobQueue.current.map((job) => job.id));
+      const live = await Promise.race([
+        api.getLiveInstahyreJobs('Java', 8, 0, 'companies').catch(() => []),
+        new Promise<any[]>((resolve) => window.setTimeout(() => resolve([]), 2000)),
+      ]);
+      const rows = Array.isArray(live) && live.length > 0 ? live : [
+        ['target', 'Target in India', 'Java Developer', 'Bangalore', 'target.com'],
+        ['omnissa', 'Omnissa', 'SMTS - Java', 'Bangalore', 'omnissa.com'],
+        ['kla', 'KLA-Tencor', 'Java Developer', 'Chennai', 'kla.com'],
+        ['innovaccer', 'Innovaccer', 'SSE - Java', 'Gurgaon', 'innovaccer.com'],
+        ['meesho', 'Meesho', 'SDE - Java', 'Bangalore', 'meesho.com'],
+        ['ey', 'EY', 'Java Developer', 'Bangalore', 'ey.com'],
+        ['greyorange', 'GreyOrange', 'SDE III - Java', 'Gurgaon', 'greyorange.com'],
+        ['arcticwolf', 'Arctic Wolf', 'Sr. Backend Engineer - Java', 'Bangalore', 'arcticwolf.com'],
+      ].map(([id, company, title, location, domain]) => ({
+        id, title, company, location,
+        skills: ['Java'],
+        logo: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+      }));
+      if (!alive) return;
+      const seen = new Set(jobQueue.current.map((job) => job.company.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^target.*/, 'target')));
       const javaRole = /java|spring|j2ee|jvm|hibernate|microservices/i;
+      const featuredCompany = (name: string) => {
+        const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return key.startsWith('target') || key.includes('omnissa') || key.includes('omnisa') || key.includes('kla') || key.includes('innovaccer') || key.includes('innovacer') || key.includes('meesho') || key === 'ey' || key.startsWith('eyg') || key.startsWith('eyi') || key.includes('ernstyoung') || key.includes('greyorange') || key.includes('arcticwolf');
+      };
       rows.forEach((job: any) => {
         const id = String(job.id);
         const title = job.title || '';
+        const company = job.company || job.companyName || '';
         const skills = Array.isArray(job.skills) ? job.skills.join(' ') : '';
-        if (seen.has(id) || !javaRole.test(`${title} ${skills}`)) return;
-        seen.add(id);
+        const companyKey = company.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^target.*/, 'target');
+        if (seen.has(companyKey) || !featuredCompany(company) || !javaRole.test(`${title} ${skills}`)) return;
+        seen.add(companyKey);
         jobQueue.current.push({
           id,
           title: title || 'Java Developer',
@@ -140,14 +163,13 @@ export const MockTestsSection: React.FC = () => {
     };
     const takeThree = () => jobQueue.current.splice(0, 3);
     const boot = async () => {
-      for (let attempt = 0; attempt < 4 && jobQueue.current.length < 6; attempt += 1) {
-        await pullIntoQueue();
-      }
+      await pullIntoQueue();
       if (!alive) return;
       setShownJobs(takeThree());
-      if (jobQueue.current.length < 3) await pullIntoQueue();
     };
-    boot().catch(() => undefined);
+    boot().catch(() => undefined).finally(() => {
+      if (alive) setJobsLoading(false);
+    });
     const timer = window.setInterval(() => {
       const swap = async () => {
         if (jobQueue.current.length < 3) await pullIntoQueue();
@@ -319,28 +341,46 @@ export const MockTestsSection: React.FC = () => {
             );
           })}
         </div>
-        {shownJobs.length > 0 && (
+        {(jobsLoading || shownJobs.length > 0) && (
           <div className="mt-8">
             <h3 className="text-center text-lg font-black text-slate-900 dark:text-white">Open roles</h3>
+            {jobsLoading && shownJobs.length === 0 ? (
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                {[0, 1, 2].map((slot) => (
+                  <div key={slot} className="animate-pulse overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    <div className="h-14 bg-slate-100" />
+                    <div className="space-y-2 px-4 py-3">
+                      <div className="h-4 w-3/4 rounded bg-slate-200" />
+                      <div className="h-3 w-1/3 rounded bg-slate-100" />
+                      <div className="h-3 w-1/4 rounded bg-slate-100" />
+                      <div className="mt-3 h-8 rounded-xl bg-slate-200" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="relative mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
               {[0, 1, 2].map((slot) => {
                 const current = shownJobs[slot];
                 const incoming = incomingJobs[slot];
                 const card = (job: (typeof shownJobs)[number]) => (
                   <>
-                    <div>
+                    <div className="flex h-14 items-center justify-center border-b border-slate-100 bg-slate-50 px-4">
+                      {job.logo ? (
+                        <img src={job.logo} alt="" className="max-h-10 max-w-[148px] object-contain" />
+                      ) : (
+                        <span className="text-xs font-black text-slate-400">{job.company}</span>
+                      )}
+                    </div>
+                    <div className="flex flex-1 flex-col px-4 py-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          {job.logo ? <img src={job.logo} alt="" className="h-8 w-8 rounded-lg border border-slate-200 bg-white object-contain" /> : null}
-                          <div>
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white">{job.title}</h3>
-                            <p className="text-xs text-slate-500">{job.company}</p>
-                          </div>
+                        <div>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white">{job.title}</h3>
+                          <p className="text-xs text-slate-500">{job.company}</p>
                         </div>
                         <span className="shrink-0 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">Open</span>
                       </div>
-                      <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">{job.location}</p>
-                    </div>
+                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">{job.location}</p>
                     <button
                       type="button"
                       onClick={async () => {
@@ -358,21 +398,22 @@ export const MockTestsSection: React.FC = () => {
                         setEmail((value) => value || user?.email || '');
                         setLinkedinUrl((value) => value || user?.linkedinUrl || '');
                       }}
-                      className="mt-4 w-full rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white"
+                      className="mt-3 w-full rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white hover:bg-emerald-500"
                     >
                       Apply
                     </button>
+                    </div>
                   </>
                 );
                 return (
                   <div key={current?.id || slot} className="relative min-h-[148px]">
                     {current && (
-                      <div className={`glass-panel flex h-full flex-col justify-between rounded-2xl border border-slate-200 p-5 transition-all duration-700 ease-in-out dark:border-white/5 ${incoming ? 'pointer-events-none -translate-x-4 opacity-0' : 'translate-x-0 opacity-100'}`}>
+                      <div className={`flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-700 ease-in-out ${incoming ? 'pointer-events-none -translate-x-4 opacity-0' : 'translate-x-0 opacity-100'}`}>
                         {card(current)}
                       </div>
                     )}
                     {incoming && (
-                      <div className="glass-panel absolute inset-0 flex translate-x-4 flex-col justify-between rounded-2xl border border-slate-200 p-5 opacity-0 animate-[roleIn_700ms_ease-in-out_forwards] dark:border-white/5">
+                      <div className="absolute inset-0 flex translate-x-4 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white opacity-0 shadow-sm animate-[roleIn_700ms_ease-in-out_forwards]">
                         {card(incoming)}
                       </div>
                     )}
@@ -380,6 +421,7 @@ export const MockTestsSection: React.FC = () => {
                 );
               })}
             </div>
+            )}
           </div>
         )}
         {interviewers.length > 0 && (
