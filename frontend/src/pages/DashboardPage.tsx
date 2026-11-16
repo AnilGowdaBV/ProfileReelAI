@@ -244,7 +244,7 @@ export const DashboardPage: React.FC = () => {
         </div>
         */}
 
-        {/* Submission Card: Only shown when no candidate profile is actively loaded */}
+        {/* Submission Card paused for now
         {!selectedCandidate && (
           <CandidateSubmissionCard
             onSubmit={handleCandidateSubmit}
@@ -252,6 +252,7 @@ export const DashboardPage: React.FC = () => {
             errorMessage={errorMessage}
           />
         )}
+        */}
 
         {/* Active Candidate Details & Intelligence */}
         {selectedCandidate && (
@@ -281,11 +282,12 @@ export const DashboardPage: React.FC = () => {
 
         <MockTestsSection />
 
-        {/* Transparent Razorpay Pricing & Subscription Section */}
+        {/* Transparent Razorpay Pricing paused for now
         <PricingSection
           onOpenSubscribeModal={() => setIsSubModalOpen(true)}
           isPro={isPro}
         />
+        */}
       </main>
 
       {/* Official Razorpay Pro Subscription Modal */}

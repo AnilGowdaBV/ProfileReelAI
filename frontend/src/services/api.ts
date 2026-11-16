@@ -144,6 +144,11 @@ export const api = {
       method: 'POST',
     }),
 
+  jobApplyAllowance: (email: string, linkedinUrl?: string) =>
+    request<{ needsPayment: boolean }>(
+      `/jobs/apply-allowance?email=${encodeURIComponent(email)}&linkedin=${encodeURIComponent(linkedinUrl || '')}`,
+    ),
+
   applyForJob: (data: {
     jobId: string;
     jobTitle: string;

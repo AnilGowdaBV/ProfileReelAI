@@ -5,6 +5,7 @@ export enum SubscriptionPlan {
   MONTHLY = 'monthly',
   ANNUAL = 'annual',
   MOCK_TEST = 'mock_test',
+  JOB_APPLY = 'job_apply',
 }
 
 export class CreatePaymentOrderDto {

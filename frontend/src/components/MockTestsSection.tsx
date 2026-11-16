@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { MOCK_TESTS } from '../data/mockTests';
 import { PracticeCourseCards } from './PracticeCourseCards';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { ApiError, api } from '../services/api';
 import {
   MOCK_TEST_COMPLETED_EVENT,
   MOCK_TEST_JUST_SUBMITTED_KEY,
@@ -19,6 +19,7 @@ import {
   isMockTestCompleted,
   isMockTestPaid,
   markMockTestPaid,
+  startJobApplyCheckout,
   startMockTestCheckout,
 } from '../lib/mockTestAccess';
 
@@ -47,6 +48,8 @@ export const MockTestsSection: React.FC = () => {
   const [shownJobs, setShownJobs] = useState<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
   const [incomingJobs, setIncomingJobs] = useState<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
   const [applyJob, setApplyJob] = useState<{ id: string; title: string; company: string } | null>(null);
+  const [paywallJob, setPaywallJob] = useState<{ id: string; title: string; company: string } | null>(null);
+  const [paywallBusy, setPaywallBusy] = useState(false);
   const [interviewers, setInterviewers] = useState<Array<{ id: string; fullName: string; currentCompany: string; currentTitle: string; photoUrl: string; companies: Array<{ name: string; logo: string; title: string }> }>>([]);
   const jobQueue = React.useRef<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
   const jobOffset = React.useRef(0);
@@ -340,7 +343,12 @@ export const MockTestsSection: React.FC = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
+                        const allowance = await api.jobApplyAllowance(user?.email || '', user?.linkedinUrl || '').catch(() => ({ needsPayment: false }));
+                        if (allowance.needsPayment) {
+                          setPaywallJob(job);
+                          return;
+                        }
                         setApplyJob(job);
                         setDetailsTestId(job.id);
                         setFormSaved(false);
@@ -428,6 +436,64 @@ export const MockTestsSection: React.FC = () => {
         })()}
       </div>
 
+      {paywallJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-extrabold text-slate-900">Pay ₹100 for more jobs</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Your first 3 job applications are free. Pay ₹100 once to keep applying for more roles.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPaywallJob(null)}
+                className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-bold text-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={paywallBusy}
+                onClick={async () => {
+                  if (!user?.email) return;
+                  setPaywallBusy(true);
+                  try {
+                    const paid = await startJobApplyCheckout({
+                      userId: user.id,
+                      userEmail: user.email,
+                      customerName: user.name,
+                      linkedinUrl: user.linkedinUrl,
+                    });
+                    if (!paid) {
+                      setPaywallJob(null);
+                      return;
+                    }
+                    const job = paywallJob;
+                    setPaywallJob(null);
+                    setApplyJob(job);
+                    setDetailsTestId(job.id);
+                    setFormSaved(false);
+                    setFormError('');
+                    setResumeFile(null);
+                    setFullName((name) => name || user.name || '');
+                    setEmail((value) => value || user.email || '');
+                    setLinkedinUrl((value) => value || user.linkedinUrl || '');
+                  } catch (err: any) {
+                    setFormError(err?.message || 'Payment could not be completed.');
+                    setPaywallJob(null);
+                  } finally {
+                    setPaywallBusy(false);
+                  }
+                }}
+                className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+              >
+                {paywallBusy ? 'Opening payment…' : 'Make payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {detailsTestId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="glass-panel-elevated max-w-lg w-full rounded-3xl p-6 sm:p-8 border-2 border-brand-500/30 shadow-2xl relative max-h-[90vh] overflow-y-auto bg-white dark:bg-charcoal-900">
@@ -481,7 +547,7 @@ export const MockTestsSection: React.FC = () => {
                         });
                       }
                       const test = MOCK_TESTS.find((item) => item.id === detailsTestId);
-                      await api.applyForJob({
+                      const payload = {
                         jobId: applyJob?.id || detailsTestId,
                         jobTitle: applyJob?.title || test?.title || 'Mock Test',
                         companyName: applyJob?.company || 'Swiggy, Flipkart, Zepto, Uber',
@@ -495,9 +561,19 @@ export const MockTestsSection: React.FC = () => {
                         interviewingAt: interviewingAt.trim(),
                         resumeFileName: resumeFile?.name,
                         resumeData,
-                        applicationType: 'Express Interest',
-                        sheetName: 'Sheet2',
-                      });
+                        applicationType: applyJob ? 'Job Application' : 'Express Interest',
+                        sheetName: applyJob ? 'Sheet1' : 'Sheet2',
+                      };
+                      try {
+                        await api.applyForJob(payload);
+                      } catch (err) {
+                        if (applyJob && err instanceof ApiError && err.status === 402) {
+                          setPaywallJob(applyJob);
+                          setDetailsTestId(null);
+                          return;
+                        }
+                        throw err;
+                      }
                       setFormSaved(true);
                     } catch (err: any) {
                       setFormError(err?.message || 'Could not save your details. Try again.');

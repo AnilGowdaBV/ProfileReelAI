@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 import {
@@ -67,6 +67,41 @@ export class JobsService {
     return this.jobRepo.save(job);
   }
 
+  async jobApplyNeedsPayment(email: string, linkedinUrl: string): Promise<boolean> {
+    const postgres = this.applicationRepo.manager.connection.options.type === 'postgres';
+    await this.applicationRepo.query(
+      `CREATE TABLE IF NOT EXISTS job_apply_passes (
+        id varchar(36) PRIMARY KEY,
+        email varchar(255) NOT NULL,
+        linkedin_url varchar(500) NOT NULL DEFAULT '',
+        created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+    );
+    const normalized = email.trim().toLowerCase();
+    const linkedin = linkedinUrl.trim().toLowerCase();
+    if (!normalized && !linkedin) return false;
+    const paid = await this.applicationRepo.query(
+      postgres
+        ? `SELECT id FROM job_apply_passes WHERE LOWER(email) = $1 OR ($2 <> '' AND LOWER(linkedin_url) = $2) LIMIT 1`
+        : `SELECT id FROM job_apply_passes WHERE LOWER(email) = ? OR (? <> '' AND LOWER(linkedin_url) = ?) LIMIT 1`,
+      postgres ? [normalized, linkedin] : [normalized, linkedin, linkedin],
+    );
+    if (paid.length) return false;
+    const rows = await this.applicationRepo.query(
+      postgres
+        ? `SELECT COUNT(*) AS total FROM job_applications WHERE status = 'applied' AND (LOWER(email) = $1 OR ($2 <> '' AND LOWER(linkedin_url) = $2))`
+        : `SELECT COUNT(*) AS total FROM job_applications WHERE status = 'applied' AND (LOWER(email) = ? OR (? <> '' AND LOWER(linkedin_url) = ?))`,
+      postgres ? [normalized, linkedin] : [normalized, linkedin, linkedin],
+    );
+    return Number(rows[0]?.total || 0) >= 3;
+  }
+
+  private async assertCanApply(email: string, linkedinUrl: string) {
+    if (await this.jobApplyNeedsPayment(email, linkedinUrl)) {
+      throw new HttpException('Pay ₹100 to keep applying for jobs.', HttpStatus.PAYMENT_REQUIRED);
+    }
+  }
+
   async findById(jobId: string): Promise<GenerationJob> {
     const job = await this.jobRepo.findOne({ where: { id: jobId } });
     if (!job) {
@@ -76,6 +111,9 @@ export class JobsService {
   }
 
   async applyForJob(dto: CreateJobApplicationDto): Promise<JobApplication> {
+    if (dto.applicationType === 'Job Application') {
+      await this.assertCanApply(dto.email, dto.linkedinUrl || '');
+    }
     let resumeUrl: string | null = null;
     if (dto.resumeData && dto.resumeFileName) {
       resumeUrl = await this.supabaseStorage.uploadResume(dto.resumeFileName, dto.resumeData);

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
+import { randomUUID } from 'crypto';
 import { CreatePaymentOrderDto, SubscriptionPlan } from './dto/create-order.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import * as QRCode from 'qrcode';
@@ -62,11 +63,39 @@ export class PaymentsService {
     return this.keyId;
   }
 
+  private async rememberJobApplyPass(email: string, linkedinUrl: string) {
+    const postgres = this.userRepository.manager.connection.options.type === 'postgres';
+    const idType = postgres ? 'varchar(36)' : 'varchar(36)';
+    await this.userRepository.query(
+      `CREATE TABLE IF NOT EXISTS job_apply_passes (
+        id ${idType} PRIMARY KEY,
+        email varchar(255) NOT NULL,
+        linkedin_url varchar(500) NOT NULL DEFAULT '',
+        created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+    );
+    const normalized = email.trim().toLowerCase();
+    const existing = await this.userRepository.query(
+      postgres
+        ? `SELECT id FROM job_apply_passes WHERE LOWER(email) = $1 LIMIT 1`
+        : `SELECT id FROM job_apply_passes WHERE LOWER(email) = ? LIMIT 1`,
+      [normalized],
+    );
+    if (existing.length) return;
+    await this.userRepository.query(
+      postgres
+        ? `INSERT INTO job_apply_passes (id, email, linkedin_url) VALUES ($1, $2, $3)`
+        : `INSERT INTO job_apply_passes (id, email, linkedin_url) VALUES (?, ?, ?)`,
+      [randomUUID(), normalized, linkedinUrl.trim().toLowerCase()],
+    );
+  }
+
   /**
    * Create official Razorpay Order & hosted Payment Link
    */
   async createPaymentOrder(dto: CreatePaymentOrderDto) {
     const isMockTest = dto.plan === SubscriptionPlan.MOCK_TEST;
+    const isJobApply = dto.plan === SubscriptionPlan.JOB_APPLY;
     const amountInRupees = isMockTest ? 10 : 100;
     const amountInPaise = amountInRupees * 100;
     const currency = 'INR';
@@ -106,7 +135,9 @@ export class PaymentsService {
           accept_partial: false,
           description: isMockTest
             ? 'ProfileReel AI Mock Interview Test (₹10)'
-            : 'ProfileReel AI Pro Monthly Subscription (₹100/mo)',
+            : isJobApply
+              ? 'ProfileReel AI extra job applications (₹100)'
+              : 'ProfileReel AI Pro Monthly Subscription (₹100/mo)',
           customer: {
             name: dto.customerName || 'ProfileReel Subscriber',
             email: dto.customerEmail || 'subscriber@profilereel.ai',
@@ -176,6 +207,7 @@ export class PaymentsService {
     }
 
     const isMockTest = dto.plan === 'mock_test';
+    const isJobApply = dto.plan === 'job_apply';
     const durationDays = dto.plan === 'annual' ? 365 : 30;
     const now = Date.now();
     const expiresAt = now + durationDays * 24 * 60 * 60 * 1000;
@@ -195,16 +227,20 @@ export class PaymentsService {
     // Store by paymentId, orderId, latest, and candidateProfileUrl
     this.activeSubscriptions.set(dto.razorpayPaymentId, record);
     this.activeSubscriptions.set(dto.razorpayOrderId, record);
-    if (!isMockTest) this.activeSubscriptions.set('latest', record);
-    if (!isMockTest && dto.candidateProfileUrl) {
+    if (!isMockTest && !isJobApply) this.activeSubscriptions.set('latest', record);
+    if (!isMockTest && !isJobApply && dto.candidateProfileUrl) {
       this.activeSubscriptions.set(dto.candidateProfileUrl, record);
       const clean = dto.candidateProfileUrl.replace(/\/+$/, '');
       this.activeSubscriptions.set(clean, record);
       this.activeSubscriptions.set(clean + '/', record);
     }
 
-    // A ₹10 mock test must not activate the monthly Pro plan.
-    if (!isMockTest && (dto.userId || dto.userEmail)) {
+    if (isJobApply && dto.userEmail) {
+      await this.rememberJobApplyPass(dto.userEmail, dto.candidateProfileUrl || '');
+    }
+
+    // A ₹10 mock test or a ₹100 job-apply pass must not activate the monthly Pro plan.
+    if (!isMockTest && !isJobApply && (dto.userId || dto.userEmail)) {
       try {
         const user = await this.userRepository.findOne({
           where: [{ id: dto.userId }, { email: dto.userEmail }],
@@ -226,7 +262,7 @@ export class PaymentsService {
     return {
       success: true,
       verified: true,
-      isPremium: !isMockTest,
+      isPremium: !isMockTest && !isJobApply,
       plan: dto.plan,
       paymentId: dto.razorpayPaymentId,
       activatedAt: new Date(now).toISOString(),
@@ -261,7 +297,7 @@ export class PaymentsService {
       const orderId = paymentEntity?.order_id || body.payload?.order?.entity?.id;
       const paymentId = paymentEntity?.id;
       const plan = notes.plan || 'monthly';
-      if (plan === 'mock_test') {
+      if (plan === 'mock_test' || plan === 'job_apply') {
         this.logger.log(`Webhook recorded mock test payment ${paymentId}`);
         return { success: true };
       }

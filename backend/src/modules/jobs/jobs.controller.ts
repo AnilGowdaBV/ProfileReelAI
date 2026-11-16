@@ -32,6 +32,12 @@ export class JobsController {
     return this.codeRunner.run(dto.language, dto.source, tests);
   }
 
+  @Get('apply-allowance')
+  async applyAllowance(@Query('email') email = '', @Query('linkedin') linkedin = '') {
+    const needsPayment = await this.jobsService.jobApplyNeedsPayment(email, linkedin);
+    return { needsPayment };
+  }
+
   @Post('apply')
   @ApiOperation({ summary: 'Submit a candidate job application and persist to DB & Google Sheet' })
   async applyForJob(@Body() dto: CreateJobApplicationDto) {

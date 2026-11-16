@@ -389,3 +389,70 @@ export async function startMockTestCheckout(opts: {
     checkout.open();
   });
 }
+
+export async function startJobApplyCheckout(opts: {
+  userId?: string;
+  userEmail: string;
+  customerName?: string;
+  linkedinUrl?: string;
+}): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/payments/create-order`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      plan: 'job_apply',
+      customerName: opts.customerName,
+      customerEmail: opts.userEmail,
+      userId: opts.userId,
+      candidateProfileUrl: opts.linkedinUrl,
+    }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.orderId || !data?.keyId) {
+    throw new Error(data?.message || 'Could not start ₹100 checkout');
+  }
+
+  const Razorpay = await loadRazorpayScript();
+  return new Promise<boolean>((resolve, reject) => {
+    const checkout = new Razorpay({
+      key: data.keyId,
+      amount: data.amount,
+      currency: data.currency || 'INR',
+      name: 'ProfileReel AI',
+      description: 'Keep applying for jobs (₹100)',
+      order_id: data.orderId,
+      prefill: {
+        name: opts.customerName || '',
+        email: opts.userEmail || '',
+      },
+      theme: { color: '#059669' },
+      handler: async (response: {
+        razorpay_payment_id: string;
+        razorpay_order_id: string;
+        razorpay_signature: string;
+      }) => {
+        try {
+          const verifyRes = await fetch(`${API_BASE}/payments/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature,
+              plan: 'job_apply',
+              userId: opts.userId,
+              userEmail: opts.userEmail,
+              candidateProfileUrl: opts.linkedinUrl,
+            }),
+          });
+          if (!verifyRes.ok) throw new Error('Payment verification failed');
+          resolve(true);
+        } catch (err) {
+          reject(err);
+        }
+      },
+      modal: { ondismiss: () => resolve(false) },
+    });
+    checkout.open();
+  });
+}
