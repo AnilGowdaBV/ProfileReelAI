@@ -40,6 +40,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MOCK_TESTS } from '../data/mockTests';
 import { api } from '../services/api';
+import { PracticeCourseCards } from './PracticeCourseCards';
 
 interface LandingPageProps {
   onOpenLogin: () => void;
@@ -255,7 +256,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   }, []);
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f4f7fb] text-slate-900">
+    <div className="min-h-screen bg-[#f4f7fb] text-slate-900">
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-sky-200/70 blur-3xl" />
         <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-violet-200/60 blur-3xl" />
@@ -269,7 +270,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           Sign in
         </button>
       </header>
-      <main className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-[1080px] flex-col justify-center px-6 pb-3">
+      <main className="mx-auto max-w-[1080px] px-6 pb-8">
         <div className="pb-3 text-center">
           <h1 className="text-3xl font-black tracking-tight text-slate-950">
             Best suitable for <span className="bg-gradient-to-r from-sky-600 to-violet-600 bg-clip-text text-transparent">Product companies</span>
@@ -397,6 +398,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
         )}
+        <div className="mt-3 pb-4">
+          <PracticeCourseCards heading="Courses" onSelect={onOpenLogin} />
+        </div>
       </main>
     </div>
   );

@@ -12,7 +12,6 @@ import {
   MOCK_TEST_PAID_MESSAGE,
   MOCK_TEST_PAYWALL_ENABLED,
   getCompletedMockTests,
-  getMockTestResult,
   getMockTestUnlockRemaining,
   getPaidMockTests,
   hasOpenMockTestAttempt,
@@ -462,20 +461,9 @@ export const MockTestsSection: React.FC = () => {
             </div>
           </div>
         )}
-        {(() => {
-          const failed = MOCK_TESTS.filter((item) => completedIds.includes(item.id) && getMockTestResult(item.id)?.verdict === 'Failed');
-          if (failed.length === 0) return null;
-          const names = failed.map((item) => item.title).join(', ');
-          return (
-            <div className="mt-8 overflow-hidden rounded-3xl border border-violet-100 bg-white px-5 py-5 sm:px-6">
-              <PracticeCourseCards
-                kicker={`For ${names}`}
-                heading="This is your next move. Go with these courses."
-                roles={failed.map((item) => item.role)}
-              />
-            </div>
-          );
-        })()}
+        <div className="mt-8">
+          <PracticeCourseCards heading="Courses" />
+        </div>
       </div>
 
       {paywallJob && (

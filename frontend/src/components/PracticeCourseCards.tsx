@@ -3,23 +3,6 @@ import { ArrowUpRight } from 'lucide-react';
 import { api, type CoursePlatformRow } from '../services/api';
 import { SectionSpinner } from './SectionSpinner';
 
-const LOOKS = [
-  { wash: '#f5f3ff', accent: '#7c3aed', ink: '#4c1d95' },
-  { wash: '#ecfeff', accent: '#0891b2', ink: '#155e75' },
-  { wash: '#fff7ed', accent: '#ea580c', ink: '#9a3412' },
-  { wash: '#ecfdf5', accent: '#059669', ink: '#065f46' },
-  { wash: '#fdf2f8', accent: '#db2777', ink: '#9d174d' },
-];
-
-function lookFor(purpose: string, index: number) {
-  const key = purpose.toLowerCase();
-  if (key.includes('dsa')) return { wash: '#f5f3ff', accent: '#7c3aed', ink: '#4c1d95' };
-  if (key.includes('system') || key.includes('ai')) return { wash: '#eff6ff', accent: '#2563eb', ink: '#1e40af' };
-  if (key.includes('lld')) return { wash: '#fff7ed', accent: '#ea580c', ink: '#9a3412' };
-  if (key.includes('full') || key.includes('stack')) return { wash: '#ecfdf5', accent: '#059669', ink: '#065f46' };
-  return LOOKS[index % LOOKS.length];
-}
-
 function hostOf(url: string) {
   try {
     return new URL(url).hostname.replace(/^www\./, '');
@@ -27,25 +10,6 @@ function hostOf(url: string) {
     return url.replace(/^https?:\/\//, '').split('/')[0];
   }
 }
-
-const Favicon: React.FC<{ host: string; name: string }> = ({ host, name }) => {
-  const [broken, setBroken] = useState(false);
-  if (broken) {
-    return (
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-white text-[10px] font-black text-slate-700">
-        {name.slice(0, 2).toUpperCase()}
-      </span>
-    );
-  }
-  return (
-    <img
-      src={`https://www.google.com/s2/favicons?domain=${host}&sz=64`}
-      alt=""
-      onError={() => setBroken(true)}
-      className="h-8 w-8 shrink-0 rounded-xl border border-slate-100 bg-white object-contain p-1"
-    />
-  );
-};
 
 const FIT: Record<string, string[]> = {
   react: ['react', 'frontend', 'front-end', 'front end', 'full-stack', 'fullstack', 'full stack', 'ui'],
@@ -65,12 +29,15 @@ function fitsRole(course: CoursePlatformRow, roles: string[]) {
   return roles.some((role) => (FIT[role] || []).some((word) => key.includes(word)));
 }
 
-export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string; roles?: string[] }> = ({
+export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string; roles?: string[]; onSelect?: () => void; compact?: boolean }> = ({
   heading = 'Recommended for you',
   kicker,
   roles = [],
+  onSelect,
+  compact = false,
 }) => {
   const [courses, setCourses] = useState<CoursePlatformRow[]>([]);
+  const [deck, setDeck] = useState<CoursePlatformRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -81,52 +48,68 @@ export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string; 
   }, []);
 
   const picked = courses.filter((course) => fitsRole(course, roles));
+  const pool = picked.length > 0 ? picked : courses;
+
+  useEffect(() => {
+    const next = [...pool];
+    for (let index = next.length - 1; index > 0; index -= 1) {
+      const swap = Math.floor(Math.random() * (index + 1));
+      const current = next[index];
+      next[index] = next[swap];
+      next[swap] = current;
+    }
+    setDeck(next);
+  }, [courses, roles.join('|')]);
+
+  useEffect(() => {
+    if (deck.length <= 3) return undefined;
+    const timer = window.setInterval(() => {
+      setDeck((current) => [...current.slice(3), ...current.slice(0, 3)]);
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [deck.length]);
 
   if (loading) {
     return <SectionSpinner compact label="Loading platforms" />;
   }
 
-  if (picked.length === 0) return null;
+  const shown = deck.slice(0, 3);
+  if (shown.length === 0) return null;
 
   return (
     <div>
       {(kicker || heading) && (
-        <div className="mb-3.5">
+        <div className="text-center">
           {kicker && <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-violet-600">{kicker}</p>}
-          {heading && <h3 className="mt-1 text-lg font-black tracking-tight text-slate-900">{heading}</h3>}
+          {heading && <h3 className={compact ? 'text-sm font-black text-slate-950' : 'text-lg font-black text-slate-900'}>{heading}</h3>}
         </div>
       )}
-      <div className="flex flex-wrap gap-2.5">
-        {picked.map((course, index) => {
-          const look = lookFor(course.purpose, index);
+      <div className={compact ? 'mt-1.5 grid grid-cols-3 gap-2' : 'mt-4 grid grid-cols-1 gap-4 md:grid-cols-3'}>
+        {shown.map((course) => {
           const host = hostOf(course.url);
           return (
             <a
               key={course.id}
-              href={course.url}
-              target="_blank"
+              href={onSelect ? undefined : course.url}
+              target={onSelect ? undefined : '_blank'}
               rel="noreferrer"
-              className="group relative flex h-[132px] w-[200px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 p-3 text-left shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
-              style={{ background: `linear-gradient(180deg, #ffffff 0%, ${look.wash} 100%)` }}
+              onClick={onSelect ? (event) => { event.preventDefault(); onSelect(); } : undefined}
+              className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm"
             >
-              <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: look.accent }} />
-              <span className="relative flex items-start justify-between gap-1.5">
-                <Favicon host={host} name={course.name} />
-                {course.purpose && (
-                  <span
-                    className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase leading-tight tracking-[0.08em]"
-                    style={{ background: `${look.accent}14`, color: look.ink }}
-                  >
-                    {course.purpose}
-                  </span>
-                )}
+              <span className={`flex items-center justify-center border-b border-slate-100 bg-slate-50 ${compact ? 'h-8' : 'h-14'}`}>
+                <img src={`https://www.google.com/s2/favicons?domain=${host}&sz=128`} alt="" className={`rounded-lg border border-slate-200 bg-white object-contain ${compact ? 'h-5 w-5' : 'h-9 w-9 rounded-xl p-1'}`} />
               </span>
-              <span className="relative mt-auto min-w-0">
-                <span className="block truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">{host}</span>
-                <span className="mt-0.5 block truncate text-[13px] font-black leading-tight text-slate-900">{course.name}</span>
-                <span className="mt-1.5 inline-flex items-center gap-0.5 text-[11px] font-bold" style={{ color: look.ink }}>
+              <span className={`flex flex-1 flex-col ${compact ? 'px-2.5 py-1.5' : 'px-4 py-3'}`}>
+                <span className="flex items-start justify-between gap-2">
+                  <span className={`font-bold text-slate-900 ${compact ? 'line-clamp-1 text-xs' : 'text-base'}`}>{course.name}</span>
+                  {course.purpose && (
+                    <span className="shrink-0 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">{course.purpose}</span>
+                  )}
+                </span>
+                {!compact && <span className="mt-2 text-xs text-slate-500">{host}</span>}
+                <span className={`flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 font-bold text-white ${compact ? 'mt-1.5 py-1 text-[11px]' : 'mt-3 py-2 text-xs'}`}>
                   Start learning
-                  <ArrowUpRight className="h-3 w-3 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  <ArrowUpRight className="h-3.5 w-3.5" />
                 </span>
               </span>
             </a>
