@@ -28,8 +28,8 @@ export const MOCK_TESTS: MockTest[] = [
     role: 'java',
     title: 'Java',
     minutes: 75,
-    blurb: '4 coding questions, solved inside this test.',
-    questionCount: MOCK_TEST_QUESTION_COUNT,
+    blurb: '2 coding questions, drawn from 3 papers.',
+    questionCount: 2,
   },
   {
     id: 'set-3',

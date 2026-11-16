@@ -16,8 +16,10 @@ import {
   MOCK_TEST_JUST_SUBMITTED_KEY,
   beginMockTestClock,
   expireMockTestUnlock,
+  getMockTestAttempt,
   getMockTestRemainingMs,
   markMockTestCompleted,
+  saveMockTestAttempt,
 } from '../lib/mockTestAccess';
 
 const WATCH_TAB_AND_PASTE = true;
@@ -78,7 +80,9 @@ export const MockTestPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const test = MOCK_TESTS.find((item) => item.id === setId);
-  const questions = test ? questionsForRole(test.role) : [];
+  const questions = test
+    ? questionsForRole(test.role, test.role === 'java' ? getMockTestAttempt(setId)?.questionIds : undefined)
+    : [];
   const [activeId, setActiveId] = useState(questions[0]?.id || '');
   const [language, setLanguage] = useState('javascript');
   const [running, setRunning] = useState(false);
@@ -111,6 +115,17 @@ export const MockTestPage: React.FC = () => {
     const timer = window.setTimeout(() => setEntering(false), 520);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!setId || test?.role !== 'java' || questions.length !== 2) return;
+    const saved = getMockTestAttempt(setId);
+    if (saved?.questionIds?.length === 2) return;
+    saveMockTestAttempt(setId, {
+      screenshots: saved?.screenshots || {},
+      submissionUrls: saved?.submissionUrls || {},
+      questionIds: questions.map((question) => question.id),
+    });
+  }, [setId, test?.role, questions]);
 
   const showNotice = (message: string) => {
     setNotice(message);

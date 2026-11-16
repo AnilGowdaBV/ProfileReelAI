@@ -1,3 +1,5 @@
+import { getUsedQuestionIds } from '../lib/mockTestAccess';
+
 export type InterviewRole = 'react' | 'java' | 'golang' | 'dataengineer' | 'sdet' | 'dataanalyst' | 'devops';
 
 export type PlatformQuestion = {
@@ -78,62 +80,48 @@ export const PLATFORM_QUESTIONS: PlatformQuestion[] = [
     ],
   },
   {
-    id: 'java-1',
+    id: 'java-koko',
     role: 'java',
-    title: 'Smallest missing positive',
-    pattern: 'Array',
+    title: 'Koko Eating Bananas',
+    pattern: 'Binary search',
     statement:
-      'Given a list of integers, return the smallest missing positive whole number. The list may contain negatives and duplicates.',
-    example: 'solve([1, 2, 0]) → 3',
-    starter: list,
+      'Koko has piles of bananas. piles[i] is how many bananas are in that pile. She chooses a speed k, eats k bananas from one pile each hour, and will not start another pile in the same hour. Return the smallest k that lets her finish every pile within h hours.',
+    example: 'solve([3, 6, 7, 11], 8) → 4',
+    starter: 'function solve(piles, hours) {\n  \n}\n',
     tests: [
-      { args: [[1, 2, 0]], output: 3 },
-      { args: [[3, 4, -1, 1]], output: 2, hidden: true },
-      { args: [[7, 8, 9]], output: 1, hidden: true },
+      { args: [[3, 6, 7, 11], 8], output: 4 },
+      { args: [[30, 11, 23, 4, 20], 5], output: 30, hidden: true },
+      { args: [[30, 11, 23, 4, 20], 6], output: 23, hidden: true },
     ],
   },
   {
-    id: 'java-2',
+    id: 'java-oranges',
     role: 'java',
-    title: 'Can the courses be finished',
-    pattern: 'Graph',
-    statement:
-      'There are n courses, numbered from 0. prerequisites is a list of pairs [course, mustFinishFirst]. Return true if every course can be finished, and false if the prerequisites form a cycle.',
-    example: 'solve(2, [[1, 0]]) → true',
-    starter: 'function solve(n, prerequisites) {\n  \n}\n',
-    tests: [
-      { args: [2, [[1, 0]]], output: true },
-      { args: [2, [[1, 0], [0, 1]]], output: false, hidden: true },
-    ],
-  },
-  {
-    id: 'java-3',
-    role: 'java',
-    title: 'Top frequent numbers',
-    pattern: 'Heap',
-    statement:
-      'Given a list of numbers and k, return the k numbers that appear most often. If there is a tie, the smaller number comes first. Return them from most frequent to least.',
-    example: 'solve([1,1,1,2,2,3], 2) → [1, 2]',
-    starter: 'function solve(numbers, k) {\n  \n}\n',
-    tests: [
-      { args: [[1, 1, 1, 2, 2, 3], 2], output: [1, 2] },
-      { args: [[1], 1], output: [1], hidden: true },
-      { args: [[4, 4, 3, 3, 2], 2], output: [3, 4], hidden: true },
-    ],
-  },
-  {
-    id: 'java-4',
-    role: 'java',
-    title: 'Islands in a grid',
+    title: 'Rotting Oranges',
     pattern: 'Grid',
     statement:
-      'A grid of "1" and "0" marks land and water. Return how many islands there are. Land cells connect on the four sides, not diagonally.',
-    example: 'solve([["1","1","0"],["0","1","0"],["0","0","1"]]) → 2',
+      'A grid uses 0 for empty, 1 for a fresh orange, and 2 for a rotten orange. Every minute, a rotten orange rots the fresh oranges on its four sides. Return the minutes until every orange is rotten. Return -1 if a fresh orange can never rot. Return 0 if there is no fresh orange.',
+    example: 'solve([[2,1,1],[1,1,0],[0,1,1]]) → 4',
     starter: list,
     tests: [
-      { args: [[['1', '1', '0'], ['0', '1', '0'], ['0', '0', '1']]], output: 2 },
-      { args: [[['1', '0'], ['0', '1']]], output: 2, hidden: true },
-      { args: [[['0']]], output: 0, hidden: true },
+      { args: [[[2, 1, 1], [1, 1, 0], [0, 1, 1]]], output: 4 },
+      { args: [[[2, 1, 1], [0, 1, 1], [1, 0, 1]]], output: -1, hidden: true },
+      { args: [[[0, 2]]], output: 0, hidden: true },
+    ],
+  },
+  {
+    id: 'java-edit',
+    role: 'java',
+    title: 'Edit Distance',
+    pattern: 'Dynamic programming',
+    statement:
+      'Given two words, return the fewest edits that turn the first word into the second. One edit is inserting a character, deleting a character, or replacing a character.',
+    example: 'solve("horse", "ros") → 3',
+    starter: 'function solve(word1, word2) {\n  \n}\n',
+    tests: [
+      { args: ['horse', 'ros'], output: 3 },
+      { args: ['intention', 'execution'], output: 5, hidden: true },
+      { args: ['', 'a'], output: 1, hidden: true },
     ],
   },
   {
@@ -405,6 +393,23 @@ export const PLATFORM_QUESTIONS: PlatformQuestion[] = [
   },
 ];
 
-export function questionsForRole(role: InterviewRole): PlatformQuestion[] {
-  return PLATFORM_QUESTIONS.filter((question) => question.role === role);
+const JAVA_PAPERS = [
+  ['java-koko', 'java-oranges'],
+  ['java-koko', 'java-edit'],
+  ['java-oranges', 'java-edit'],
+];
+
+export function questionsForRole(role: InterviewRole, lockedIds?: string[]): PlatformQuestion[] {
+  const bank = PLATFORM_QUESTIONS.filter((question) => question.role === role);
+  if (role !== 'java') return bank;
+  const known = new Set(bank.map((question) => question.id));
+  const locked = (lockedIds || []).filter((id) => known.has(id));
+  if (locked.length === 2) {
+    return locked.map((id) => bank.find((question) => question.id === id)!);
+  }
+  const used = new Set(getUsedQuestionIds());
+  const fresh = JAVA_PAPERS.filter((paper) => paper.some((id) => !used.has(id)));
+  const pool = fresh.length ? fresh : JAVA_PAPERS;
+  const paper = pool[Math.floor(Math.random() * pool.length)];
+  return paper.map((id) => bank.find((question) => question.id === id)!);
 }
