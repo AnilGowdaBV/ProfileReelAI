@@ -166,6 +166,7 @@ export class ApifyProfileDataProvider implements IProfileDataProvider {
         endDate: exp.current ? 'Present' : exp.dateRange || exp.endDate || undefined,
         isCurrentRole: !!exp.current,
         description: exp.description || undefined,
+        logo: exp.logoUrl || exp.logo || exp.companyLogo || undefined,
       }));
 
     const educations: RawEducationItem[] = (item.education || [])

@@ -10,6 +10,11 @@ import { CandidateFact } from '../modules/candidates/entities/candidate-fact.ent
 import { GenerationJob } from '../modules/jobs/entities/generation-job.entity';
 import { GeneratedVideo } from '../modules/video-generation/entities/generated-video.entity';
 import { CandidateScore } from '../modules/profile-scoring/entities/candidate-score.entity';
+import { JobApplication } from '../modules/jobs/entities/job-application.entity';
+import { InterviewRequest } from '../modules/interviewers/interview-request.entity';
+import { InterviewerApplication } from '../modules/interviewers/interviewer-application.entity';
+import { MockTestResult } from '../modules/jobs/entities/mock-test-result.entity';
+import { CoursePlatform } from '../modules/jobs/entities/course-platform.entity';
 
 const databaseUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
 
@@ -21,7 +26,7 @@ export const AppDataSource =
         ssl: { rejectUnauthorized: false },
         synchronize: true,
         logging: process.env.DB_LOGGING === 'true',
-        entities: [User, Candidate, CandidateFact, GenerationJob, GeneratedVideo, CandidateScore],
+        entities: [User, Candidate, CandidateFact, GenerationJob, GeneratedVideo, CandidateScore, JobApplication, InterviewerApplication, InterviewRequest, MockTestResult, CoursePlatform],
       })
     : new DataSource({
         type: 'mysql',
@@ -32,6 +37,6 @@ export const AppDataSource =
         database: process.env.DB_DATABASE || process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || 'profilereel_ai',
         synchronize: false,
         logging: process.env.DB_LOGGING === 'true',
-        entities: [User, Candidate, CandidateFact, GenerationJob, GeneratedVideo, CandidateScore],
+        entities: [User, Candidate, CandidateFact, GenerationJob, GeneratedVideo, CandidateScore, JobApplication, InterviewerApplication, InterviewRequest, MockTestResult, CoursePlatform],
         migrations: [path.join(__dirname, 'migrations', '*{.ts,.js}')],
       });

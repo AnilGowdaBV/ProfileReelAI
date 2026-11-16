@@ -3,7 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { MOCK_TESTS } from '../data/mockTests';
 import { PracticeCourseCards } from '../components/PracticeCourseCards';
+import { PassedJobPicks } from '../components/PassedJobPicks';
 import { SectionSpinner } from '../components/SectionSpinner';
+import { FullPageSpinner } from '../components/FullPageSpinner';
 import { questionsForRole } from '../data/platformQuestions';
 import { paperVerdict } from '../lib/mockTestVerdict';
 import { CODE_LANGUAGES, starterFor } from '../lib/languages';
@@ -18,6 +20,8 @@ import {
   markMockTestCompleted,
 } from '../lib/mockTestAccess';
 
+const WATCH_TAB_AND_PASTE = true;
+
 function withWarnings(
   verdict: { verdict: 'Passed' | 'Failed'; reason: string },
   tabCount: number,
@@ -29,6 +33,45 @@ function withWarnings(
   }
   return { verdict: verdict.verdict, reason: `${verdict.reason} ${note}` };
 }
+
+const PassedScreen: React.FC<{
+  title: string;
+  role: string;
+  prefill?: { name?: string; email?: string; linkedinUrl?: string };
+  onDone: () => void;
+}> = ({ title, role, prefill, onDone }) => {
+  const [stage, setStage] = useState<'jobs' | 'people'>('jobs');
+  return (
+    <div className="fixed inset-0 z-50 overflow-auto bg-[#eef6f1]">
+      <div className="flex min-h-full items-center justify-center px-4 py-10">
+        <div className="w-full max-w-3xl rounded-[28px] border border-white/80 bg-white px-6 py-7 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:px-8">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-600">{title} paper cleared</p>
+              <h2 className="text-xl font-black tracking-tight text-slate-900">
+                {stage === 'people' ? 'Get interviewed by these people' : 'You are suitable for these roles'}
+              </h2>
+            </div>
+          </div>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
+            {stage === 'people'
+              ? 'These are approved interviewers. Request one of them to take your interview.'
+              : 'These are the best open roles for that track. Apply, and the interviewer step opens next.'}
+          </p>
+          <div className="mt-6">
+            <PassedJobPicks roles={[role]} prefill={prefill} onStage={setStage} />
+          </div>
+          <button type="button" onClick={onDone} className="mt-6 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-bold text-white">
+            Back to dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const MockTestPage: React.FC = () => {
   const { setId } = useParams();
@@ -52,6 +95,7 @@ export const MockTestPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [verdictLine, setVerdictLine] = useState('');
+  const [resultReady, setResultReady] = useState(false);
   const [notice, setNotice] = useState('');
   const [entering, setEntering] = useState(true);
   const noticeTimer = useRef<number | null>(null);
@@ -75,7 +119,7 @@ export const MockTestPage: React.FC = () => {
   };
 
   const giveWarning = (kind: 'tab' | 'paste') => {
-    if (!integrityOn.current || integrityReason) return;
+    if (!WATCH_TAB_AND_PASTE || !integrityOn.current || integrityReason) return;
     if (kind === 'tab') {
       showNotice('Do not switch the tab.');
       tabWarningsRef.current += 1;
@@ -219,10 +263,11 @@ export const MockTestPage: React.FC = () => {
   }, [integrityReason]);
 
   useEffect(() => {
-    if (!verdictLine?.startsWith('Passed')) return;
-    const timer = window.setTimeout(() => navigate('/dashboard#mock-tests'), 2200);
+    if (!verdictLine) return;
+    setResultReady(false);
+    const timer = window.setTimeout(() => setResultReady(true), 1200);
     return () => window.clearTimeout(timer);
-  }, [verdictLine, navigate]);
+  }, [verdictLine]);
 
   if (entering) {
     return (
@@ -292,9 +337,20 @@ export const MockTestPage: React.FC = () => {
       setSubmitError('Log in so this paper can be saved.');
       return;
     }
+    setSubmitting(true);
+    setSubmitError('');
     const latest: Record<string, QuestionRun> = {};
-    for (const question of questions) {
-      latest[question.id] = await evaluate(question);
+    try {
+    await Promise.all(
+      questions.map(async (question) => {
+        latest[question.id] = await evaluate(question);
+      }),
+    );
+    } catch (error) {
+      const message = error instanceof ApiError || error instanceof Error ? error.message : 'Could not check the answers. Try again.';
+      setSubmitError(message);
+      setSubmitting(false);
+      return;
     }
     setRuns(latest);
     const reads = questions.map((question) => ({
@@ -303,8 +359,6 @@ export const MockTestPage: React.FC = () => {
     }));
     const verdict = withWarnings(paperVerdict(reads), tabWarningsRef.current, pasteWarningsRef.current);
     savedRef.current = true;
-    setSubmitting(true);
-    setSubmitError('');
     try {
       await api.submitMockTest({
         testId: test.id,
@@ -466,17 +520,22 @@ export const MockTestPage: React.FC = () => {
         </div>
       )}
 
-      {verdictLine && verdictLine.startsWith('Passed') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl dark:bg-charcoal-900">
-            <CheckCircle2 className="mx-auto mb-3 w-8 h-8 text-emerald-600" />
-            <h2 className="text-lg font-extrabold">Passed</h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{verdictLine}</p>
-          </div>
+      {verdictLine && !resultReady && (
+        <div className="fixed inset-0 z-[60]">
+          <FullPageSpinner
+            title={verdictLine.startsWith('Passed') ? 'Paper cleared' : 'Closing this paper'}
+            subtitle={verdictLine.startsWith('Passed') ? 'Opening the roles that fit this result.' : 'Opening the courses for your next attempt.'}
+            badge="ProfileReel AI"
+            variant={verdictLine.startsWith('Passed') ? 'success' : 'brand'}
+          />
         </div>
       )}
 
-      {verdictLine && !verdictLine.startsWith('Passed') && (
+      {verdictLine && resultReady && verdictLine.startsWith('Passed') && (
+        <PassedScreen title={test.title} role={test.role} prefill={{ name: user?.name, email: user?.email, linkedinUrl: user?.linkedinUrl }} onDone={() => navigate('/dashboard#mock-tests')} />
+      )}
+
+      {verdictLine && resultReady && !verdictLine.startsWith('Passed') && (
         <div className="fixed inset-0 z-50 overflow-hidden bg-[#f7f5fb]">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute left-[-80px] top-[-40px] h-56 w-56 rounded-full bg-violet-200/50 blur-3xl" />
@@ -486,12 +545,12 @@ export const MockTestPage: React.FC = () => {
           <div className="relative flex h-full items-start justify-center px-8 pt-[8vh]">
             <div className="w-full max-w-[1040px]">
               <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-rose-500">Paper closed</p>
-              <h2 className="mt-1.5 text-[30px] font-black tracking-tight text-slate-900">This attempt did not pass</h2>
-              <p className="mt-2 max-w-xl text-[13px] leading-5 text-slate-500">{verdictLine} These studios are what we recommend next, each for a different gap.</p>
-              <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.22em] text-violet-600">Picked for this fail</p>
-              <h3 className="mt-1 text-base font-black tracking-tight text-slate-900">Level up on these platforms</h3>
+              <h2 className="mt-1.5 text-[30px] font-black tracking-tight text-slate-900">This is your next move</h2>
+              <p className="mt-2 max-w-xl text-[13px] leading-5 text-slate-500">Go with these courses. They are the straight path back into the {test.title} paper.</p>
+              <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.22em] text-violet-600">For {test.title}</p>
+              <h3 className="mt-1 text-base font-black tracking-tight text-slate-900">Go with these courses</h3>
               <div className="mt-4">
-                <PracticeCourseCards heading="" />
+                <PracticeCourseCards heading="" roles={[test.role]} />
               </div>
               <button type="button" onClick={() => navigate('/dashboard#mock-tests')} className="mt-6 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-bold text-white">
                 Back to dashboard

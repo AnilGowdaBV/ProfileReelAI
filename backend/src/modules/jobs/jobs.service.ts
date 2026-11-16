@@ -280,14 +280,18 @@ export class JobsService {
     const name = dto.name.trim();
     const url = this.normalizeCourseUrl(dto.url);
     const purpose = (dto.purpose || '').trim();
+    const recommendFor = this.normalizeRecommendFor(dto.recommendFor);
     if (!name || !url) {
       throw new BadRequestException('Name and website link are required');
+    }
+    if (!recommendFor) {
+      throw new BadRequestException('Choose which failed paper this platform is for');
     }
     const exists = await this.coursePlatforms.findOne({ where: [{ url }, { name }] });
     if (exists) {
       throw new BadRequestException('That course platform is already saved');
     }
-    return this.coursePlatforms.save(this.coursePlatforms.create({ name, url, purpose }));
+    return this.coursePlatforms.save(this.coursePlatforms.create({ name, url, purpose, recommendFor }));
   }
 
   async updateCoursePlatform(id: string, dto: CreateCoursePlatformDto) {
@@ -299,8 +303,12 @@ export class JobsService {
     const name = dto.name.trim();
     const url = this.normalizeCourseUrl(dto.url);
     const purpose = (dto.purpose || '').trim();
+    const recommendFor = this.normalizeRecommendFor(dto.recommendFor);
     if (!name || !url) {
       throw new BadRequestException('Name and website link are required');
+    }
+    if (!recommendFor) {
+      throw new BadRequestException('Choose which failed paper this platform is for');
     }
     const exists = await this.coursePlatforms.findOne({ where: [{ url, id: Not(id) }, { name, id: Not(id) }] });
     if (exists) {
@@ -309,6 +317,7 @@ export class JobsService {
     row.name = name;
     row.url = url;
     row.purpose = purpose;
+    row.recommendFor = recommendFor;
     return this.coursePlatforms.save(row);
   }
 
@@ -320,6 +329,12 @@ export class JobsService {
     }
     await this.coursePlatforms.remove(row);
     return { success: true };
+  }
+
+  private normalizeRecommendFor(raw?: string) {
+    const allowed = new Set(['react', 'java', 'golang', 'dataengineer', 'sdet', 'dataanalyst', 'devops']);
+    const picked = [...new Set(String(raw || '').toLowerCase().split(/[^a-z]+/).filter((part) => allowed.has(part)))];
+    return picked.join(',');
   }
 
   private normalizeCourseUrl(raw: string) {
@@ -343,14 +358,30 @@ export class JobsService {
         created_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
       )
     `);
+    await this.coursePlatforms.query(`
+      ALTER TABLE course_platforms
+      ADD COLUMN recommend_for varchar(80) NOT NULL DEFAULT ''
+    `).catch(() => undefined);
+    await this.coursePlatforms.query(`
+      UPDATE course_platforms SET recommend_for = 'java'
+      WHERE recommend_for = '' AND (purpose LIKE '%DSA%' OR purpose LIKE '%LLD%' OR purpose LIKE '%Java%')
+    `);
+    await this.coursePlatforms.query(`
+      UPDATE course_platforms SET recommend_for = 'react'
+      WHERE recommend_for = '' AND (purpose LIKE '%full%' OR purpose LIKE '%React%' OR purpose LIKE '%front%')
+    `);
+    await this.coursePlatforms.query(`
+      UPDATE course_platforms SET recommend_for = 'golang'
+      WHERE recommend_for = '' AND (purpose LIKE '%System%' OR purpose LIKE '%DevOps%' OR purpose LIKE '%Go%')
+    `);
     const count = await this.coursePlatforms.count();
     if (count > 0) return;
     await this.coursePlatforms.save([
-      this.coursePlatforms.create({ name: 'CodeZym', url: 'https://codezym.com/', purpose: 'LLD' }),
-      this.coursePlatforms.create({ name: 'Fanout', url: 'https://fanout.sh/', purpose: 'System Design + AI' }),
-      this.coursePlatforms.create({ name: 'TakeUForward', url: 'https://takeuforward.org/', purpose: 'DSA' }),
-      this.coursePlatforms.create({ name: 'LLDCoding', url: 'https://lldcoding.com/', purpose: 'LLD' }),
-      this.coursePlatforms.create({ name: 'neoG Camp', url: 'https://neog.camp/', purpose: 'Full-stack development' }),
+      this.coursePlatforms.create({ name: 'CodeZym', url: 'https://codezym.com/', purpose: 'LLD', recommendFor: 'java' }),
+      this.coursePlatforms.create({ name: 'Fanout', url: 'https://fanout.sh/', purpose: 'System Design + AI', recommendFor: 'golang' }),
+      this.coursePlatforms.create({ name: 'TakeUForward', url: 'https://takeuforward.org/', purpose: 'DSA', recommendFor: 'java' }),
+      this.coursePlatforms.create({ name: 'LLDCoding', url: 'https://lldcoding.com/', purpose: 'LLD', recommendFor: 'java' }),
+      this.coursePlatforms.create({ name: 'neoG Camp', url: 'https://neog.camp/', purpose: 'Full-stack development', recommendFor: 'react' }),
     ]);
   }
 

@@ -234,11 +234,39 @@ function dartDefault(kind: Kind): string {
   return '[]';
 }
 function cStarter(args: Kind[], out: Kind): string {
-  const parts = args.map((kind, i) => (kind.endsWith('[]') ? `${cScalar(kind)}* ${names[i]}, int ${names[i]}n` : `${cScalar(kind)} ${names[i]}`));
-  return `#include <stdio.h>\n#include <stdlib.h>\n\n${cScalar(out)} solve(${parts.join(', ')}) {\n    return ${out === 'bool' ? '0' : out === 'str' ? '""' : '0'};\n}\n`;
+  const parts = args.map((kind, i) => cParam(kind, names[i]));
+  return `#include <stdio.h>\n#include <stdlib.h>\n\n${cTypes()}${cReturn(out)} solve(${parts.join(', ')}) {\n    return ${cReturnDefault(out)};\n}\n`;
 }
-function cScalar(kind: Kind): string {
-  if (kind === 'bool') return 'int';
-  if (kind === 'str' || kind === 'str[]' || kind === 'str[][]') return 'char*';
+function cTypes(): string {
+  return [
+    'typedef struct { int *data; int n; } IntArr;',
+    'typedef struct { char **data; int n; } StrArr;',
+    'typedef struct { int **data; int n; int *m; } IntMat;',
+    'typedef struct { char ***data; int n; int *m; } StrMat;',
+    '',
+  ].join('\n');
+}
+function cParam(kind: Kind, name: string): string {
+  if (kind === 'int[]') return `int *${name}, int ${name}n`;
+  if (kind === 'str[]') return `char **${name}, int ${name}n`;
+  if (kind === 'int[][]') return `int **${name}, int ${name}n, int *${name}m`;
+  if (kind === 'str[][]') return `char ***${name}, int ${name}n, int *${name}m`;
+  if (kind === 'str') return `char *${name}`;
+  return `int ${name}`;
+}
+function cReturn(kind: Kind): string {
+  if (kind === 'str') return 'char*';
+  if (kind === 'int[]') return 'IntArr';
+  if (kind === 'str[]') return 'StrArr';
+  if (kind === 'int[][]') return 'IntMat';
+  if (kind === 'str[][]') return 'StrMat';
   return 'int';
+}
+function cReturnDefault(kind: Kind): string {
+  if (kind === 'str') return '""';
+  if (kind === 'int[]') return '(IntArr){NULL, 0}';
+  if (kind === 'str[]') return '(StrArr){NULL, 0}';
+  if (kind === 'int[][]') return '(IntMat){NULL, 0, NULL}';
+  if (kind === 'str[][]') return '(StrMat){NULL, 0, NULL}';
+  return '0';
 }

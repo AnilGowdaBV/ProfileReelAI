@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardPage } from './pages/DashboardPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { CandidateRequestsPage } from './pages/CandidateRequestsPage';
 import { AdminLoginPage, AdminPage } from './pages/AdminLoginPage';
 import { MockTestPage } from './pages/MockTestPage';
 import { LandingPage } from './components/LandingPage';
@@ -71,6 +73,38 @@ const DashboardRoute: React.FC = () => {
   return <DashboardPage />;
 };
 
+const NotificationsRoute: React.FC = () => {
+  const { isLoggedIn, authTransition } = useAuth();
+  if (authTransition.isActive) {
+    return (
+      <FullPageSpinner
+        title={authTransition.title}
+        subtitle={authTransition.subtitle}
+        badge={authTransition.badge}
+        variant={authTransition.variant}
+      />
+    );
+  }
+  if (!isLoggedIn) return <Navigate to="/" replace />;
+  return <NotificationsPage />;
+};
+
+const MyRequestsRoute: React.FC = () => {
+  const { isLoggedIn, authTransition } = useAuth();
+  if (authTransition.isActive) {
+    return (
+      <FullPageSpinner
+        title={authTransition.title}
+        subtitle={authTransition.subtitle}
+        badge={authTransition.badge}
+        variant={authTransition.variant}
+      />
+    );
+  }
+  if (!isLoggedIn) return <Navigate to="/" replace />;
+  return <CandidateRequestsPage />;
+};
+
 const TestRoute: React.FC = () => {
   const { isLoggedIn, authTransition } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -123,6 +157,8 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/" element={<LandingRoute />} />
           <Route path="/dashboard" element={<DashboardRoute />} />
+          <Route path="/notifications" element={<NotificationsRoute />} />
+          <Route path="/my-requests" element={<MyRequestsRoute />} />
           <Route path="/test/:setId" element={<TestRoute />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminPage />} />

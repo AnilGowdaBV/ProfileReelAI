@@ -19,6 +19,7 @@ const LANGUAGE_MATCH: Record<string, RegExp> = {
 @Injectable()
 export class CodeRunnerService {
   private readonly logger = new Logger(CodeRunnerService.name);
+  private languageCache = new Map<string, { id: number; at: number }>();
 
   async run(language: string, source: string, tests: TestCase[]) {
     if (!LANGUAGE_MATCH[language]) throw new BadRequestException('Choose a supported language.');
@@ -77,18 +78,21 @@ export class CodeRunnerService {
   }
 
   private async languageId(language: string): Promise<number> {
+    const cached = this.languageCache.get(language);
+    if (cached && Date.now() - cached.at < 10 * 60 * 1000) return cached.id;
     const response = await fetch(`${this.baseUrl()}/languages`);
     if (!response.ok) throw new BadRequestException('Judge0 did not return its language list.');
     const list = (await response.json()) as Array<{ id: number; name: string }>;
     const match = LANGUAGE_MATCH[language];
     const found = list.filter((item) => match.test(item.name)).sort((a, b) => b.id - a.id)[0];
     if (!found) throw new BadRequestException(`Judge0 has no compiler for ${language}.`);
+    this.languageCache.set(language, { id: found.id, at: Date.now() });
     return found.id;
   }
 
   private async execute(language: string, source: string) {
     const languageId = await this.languageId(language);
-    const created = await fetch(`${this.baseUrl()}/submissions?base64_encoded=false&wait=false`, {
+    const created = await fetch(`${this.baseUrl()}/submissions?base64_encoded=false&wait=true`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -104,8 +108,8 @@ export class CodeRunnerService {
     }
     const { token } = (await created.json()) as { token?: string };
     if (!token) throw new BadRequestException('Judge0 did not return a submission token.');
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 700));
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 250 : 400));
       const polled = await fetch(`${this.baseUrl()}/submissions/${token}?base64_encoded=false`);
       if (!polled.ok) continue;
       const body = (await polled.json()) as {
@@ -155,6 +159,7 @@ export class CodeRunnerService {
     const output = kindOf(tests[0]?.output);
     const calls = tests.map((test) => test.args.map((value, index) => literal(language, value, kinds[index])).join(', '));
     if (language === 'java') {
+      if (/\bclass\s+Main\b/.test(source)) return source;
       return `${source}\npublic class Main {\n  public static void main(String[] args) {\n${calls.map((call) => `    print(Solution.solve(${call}));`).join('\n')}\n  }\n  ${javaPrint(output)}\n}\n`;
     }
     if (language === 'kotlin') {
@@ -162,18 +167,23 @@ export class CodeRunnerService {
     }
     if (language === 'cpp') {
       const body = source.includes('#include') ? source : `#include <bits/stdc++.h>\nusing namespace std;\n${source}`;
+      if (/\bint\s+main\s*\(/.test(source)) return body;
       return `${body}\n${cppPrint(output)}\nint main() {\n${calls.map((call) => `  print(solve(${call}));`).join('\n')}\n  return 0;\n}\n`;
     }
     if (language === 'csharp') {
       return `using System;\nusing System.Linq;\n${source}\npublic class Program {\n  public static void Main() {\n${calls.map((call) => `    System.Console.WriteLine(Canon(Solution.solve(${call})));`).join('\n')}\n  }\n  ${csCanon(output)}\n}\n`;
     }
     if (language === 'go') {
-      return `package main\nimport "fmt"\n${source}\nfunc main() {\n${calls.map((call) => `  fmt.Println(canon(solve(${call})))`).join('\n')}\n}\n${goCanon(output)}\n`;
+      const body = source.replace(/^\s*package\s+main\s*/, '');
+      const head = `package main\nimport "fmt"\n${body}`;
+      if (/\bfunc\s+main\s*\(/.test(source)) return `${head}\n${goCanon(output)}\n`;
+      return `${head}\nfunc main() {\n${calls.map((call) => `  fmt.Println(canon(solve(${call})))`).join('\n')}\n}\n${goCanon(output)}\n`;
     }
     if (language === 'swift') {
       return `${source}\n${calls.map((call) => `print(canon(solve(${call})))`).join('\n')}\n${swiftCanon(output)}\n`;
     }
     if (language === 'rust') {
+      if (/\bfn\s+main\s*\(/.test(source)) return source;
       return `${source}\nfn main() {\n${calls.map((call) => `  println!("{}", canon(solve(${call})));`).join('\n')}\n}\n${rustCanon(output)}\n`;
     }
     if (language === 'scala') {
@@ -189,25 +199,19 @@ export class CodeRunnerService {
   }
 
   private cProgram(source: string, tests: TestCase[], kinds: Kind[], output: Kind): string {
-    const calls = tests.map((test) => {
-      const bits: string[] = [];
-      test.args.forEach((value, index) => {
-        const kind = kinds[index];
-        if (kind === 'int' || kind === 'bool') bits.push(String(value));
-        else if (kind === 'str') bits.push(JSON.stringify(value));
-        else if (kind === 'int[]' && Array.isArray(value)) {
-          bits.push(`(int[]){${value.join(',')}}`, String(value.length));
-        } else bits.push('0');
-      });
-      return bits.join(', ');
+    const typed = source.includes('IntArr') ? source : `${cTypes()}${source}`;
+    const headed = typed.includes('stdio.h') ? typed : `#include <stdio.h>\n#include <stdlib.h>\n${typed}`;
+    if (/\bint\s+main\s*\(/.test(source)) return headed;
+    const prepared = tests.map((test, testIndex) => {
+      const decls: string[] = [];
+      const args = test.args.map((value, argIndex) => cArg(value, kinds[argIndex], `v${testIndex}_${argIndex}`, decls));
+      return { decls, call: args.join(', ') };
     });
-    const print =
-      output === 'bool'
-        ? 'printf("%s\\n", solve(CALL) ? "true" : "false");'
-        : output === 'str'
-          ? 'printf("\\"%s\\"\\n", solve(CALL));'
-          : 'printf("%d\\n", solve(CALL));';
-    return `${source.includes('#include') ? source : `#include <stdio.h>\n${source}`}\nint main() {\n${calls.map((call) => `  ${print.replace('CALL', call)}`).join('\n')}\n  return 0;\n}\n`;
+    const lines = prepared.flatMap((item) => [
+      ...item.decls.map((line) => `  ${line}`),
+      `  ${cPrintCall(output, item.call)}`,
+    ]);
+    return `${headed}\n${cPrintHelper(output)}\nint main() {\n${lines.join('\n')}\n  return 0;\n}\n`;
   }
 }
 
@@ -357,6 +361,82 @@ function scalaCanon(kind: Kind): string {
   if (kind === 'str[]') return 'def canon(v: Array[String]): String = v.map(s => "\\"" + s + "\\"").mkString("[", ",", "]")';
   if (kind === 'int[][]') return 'def canon(v: Array[Array[Int]]): String = v.map(_.mkString("[", ",", "]")).mkString("[", ",", "]")';
   return 'def canon(v: Array[Array[String]]): String = v.map(_.map(s => "\\"" + s + "\\"").mkString("[", ",", "]")).mkString("[", ",", "]")';
+}
+
+function cTypes(): string {
+  return [
+    'typedef struct { int *data; int n; } IntArr;',
+    'typedef struct { char **data; int n; } StrArr;',
+    'typedef struct { int **data; int n; int *m; } IntMat;',
+    'typedef struct { char ***data; int n; int *m; } StrMat;',
+    '',
+  ].join('\n');
+}
+
+function cArg(value: unknown, kind: Kind, id: string, decls: string[]): string {
+  if (value == null) {
+    if (kind === 'int[]' || kind === 'str[]') return 'NULL, 0';
+    if (kind === 'int[][]' || kind === 'str[][]') return 'NULL, 0, NULL';
+    if (kind === 'str') return 'NULL';
+    return '0';
+  }
+  if (kind === 'bool') return value ? '1' : '0';
+  if (kind === 'int') return String(value);
+  if (kind === 'str') return JSON.stringify(String(value));
+  if (!Array.isArray(value) || value.length === 0) {
+    if (kind === 'int[][]' || kind === 'str[][]') return 'NULL, 0, NULL';
+    return 'NULL, 0';
+  }
+  if (kind === 'int[]') {
+    decls.push(`int ${id}[] = {${(value as number[]).join(', ')}};`);
+    return `${id}, ${value.length}`;
+  }
+  if (kind === 'str[]') {
+    decls.push(`char *${id}[] = {${(value as string[]).map((item) => JSON.stringify(item)).join(', ')}};`);
+    return `${id}, ${value.length}`;
+  }
+  if (kind === 'int[][]') {
+    const rows = value as number[][];
+    rows.forEach((row, index) => {
+      decls.push(row.length ? `int ${id}r${index}[] = {${row.join(', ')}};` : `int *${id}r${index} = NULL;`);
+    });
+    decls.push(`int *${id}[] = {${rows.map((_, index) => `${id}r${index}`).join(', ')}};`);
+    decls.push(`int ${id}m[] = {${rows.map((row) => row.length).join(', ')}};`);
+    return `${id}, ${rows.length}, ${id}m`;
+  }
+  const rows = value as string[][];
+  rows.forEach((row, index) => {
+    decls.push(row.length ? `char *${id}r${index}[] = {${row.map((item) => JSON.stringify(item)).join(', ')}};` : `char **${id}r${index} = NULL;`);
+  });
+  decls.push(`char **${id}[] = {${rows.map((_, index) => `${id}r${index}`).join(', ')}};`);
+  decls.push(`int ${id}m[] = {${rows.map((row) => row.length).join(', ')}};`);
+  return `${id}, ${rows.length}, ${id}m`;
+}
+
+function cPrintCall(output: Kind, call: string): string {
+  if (output === 'bool') return `printf("%s\\n", solve(${call}) ? "true" : "false");`;
+  if (output === 'str') return `{ char *_s = solve(${call}); printf("\\"%s\\"\\n", _s ? _s : ""); }`;
+  if (output === 'int[]') return `print_int_arr(solve(${call}));`;
+  if (output === 'str[]') return `print_str_arr(solve(${call}));`;
+  if (output === 'int[][]') return `print_int_mat(solve(${call}));`;
+  if (output === 'str[][]') return `print_str_mat(solve(${call}));`;
+  return `printf("%d\\n", solve(${call}));`;
+}
+
+function cPrintHelper(output: Kind): string {
+  if (output === 'int[]') {
+    return 'void print_int_arr(IntArr a){ printf("["); if(a.data){ for(int i=0;i<a.n;i++){ if(i) printf(","); printf("%d", a.data[i]); } } printf("]\\n"); }';
+  }
+  if (output === 'str[]') {
+    return 'void print_str_arr(StrArr a){ printf("["); if(a.data){ for(int i=0;i<a.n;i++){ if(i) printf(","); printf("\\"%s\\"", a.data[i] ? a.data[i] : ""); } } printf("]\\n"); }';
+  }
+  if (output === 'int[][]') {
+    return 'void print_int_mat(IntMat a){ printf("["); if(a.data){ for(int i=0;i<a.n;i++){ if(i) printf(","); printf("["); int cols=a.m?a.m[i]:0; for(int j=0;j<cols;j++){ if(j) printf(","); printf("%d", a.data[i][j]); } printf("]"); } } printf("]\\n"); }';
+  }
+  if (output === 'str[][]') {
+    return 'void print_str_mat(StrMat a){ printf("["); if(a.data){ for(int i=0;i<a.n;i++){ if(i) printf(","); printf("["); int cols=a.m?a.m[i]:0; for(int j=0;j<cols;j++){ if(j) printf(","); printf("\\"%s\\"", a.data[i][j] ? a.data[i][j] : ""); } printf("]"); } } printf("]\\n"); }';
+  }
+  return '';
 }
 
 function dartCanon(kind: Kind): string {

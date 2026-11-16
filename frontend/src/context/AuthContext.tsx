@@ -188,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isLocal = window.location.hostname === 'localhost';
 
     const redirectUri = isLocal
-      ? 'http://localhost:5174/dashboard'
+      ? 'http://localhost:3000/api/auth/linkedin/callback'
       : `${window.location.origin}/dashboard`;
 
     const state = Math.random().toString(36).substring(2, 15);

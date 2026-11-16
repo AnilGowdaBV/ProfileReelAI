@@ -5,6 +5,7 @@ export interface RawExperienceItem {
   endDate?: string;
   description?: string;
   isCurrentRole?: boolean;
+  logo?: string;
 }
 
 export interface RawEducationItem {

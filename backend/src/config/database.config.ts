@@ -6,6 +6,7 @@ import { GenerationJob } from '../modules/jobs/entities/generation-job.entity';
 import { GeneratedVideo } from '../modules/video-generation/entities/generated-video.entity';
 import { CandidateScore } from '../modules/profile-scoring/entities/candidate-score.entity';
 import { JobApplication } from '../modules/jobs/entities/job-application.entity';
+import { InterviewRequest } from '../modules/interviewers/interview-request.entity';
 import { InterviewerApplication } from '../modules/interviewers/interviewer-application.entity';
 import { MockTestResult } from '../modules/jobs/entities/mock-test-result.entity';
 import { CoursePlatform } from '../modules/jobs/entities/course-platform.entity';
@@ -33,7 +34,7 @@ export const getDatabaseConfig = (): TypeOrmModuleOptions => {
     username: process.env.DB_USERNAME || process.env.MYSQL_USER || process.env.MYSQLUSER || 'root',
     password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || '',
     database: process.env.DB_DATABASE || process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || 'profilereel_ai',
-    entities: [User, Candidate, CandidateFact, GenerationJob, GeneratedVideo, CandidateScore, JobApplication, InterviewerApplication, MockTestResult, CoursePlatform],
+    entities: [User, Candidate, CandidateFact, GenerationJob, GeneratedVideo, CandidateScore, JobApplication, InterviewerApplication, InterviewRequest, MockTestResult, CoursePlatform],
     synchronize: false, // Migrations manage MySQL schema
     logging: process.env.DB_LOGGING === 'true',
   };

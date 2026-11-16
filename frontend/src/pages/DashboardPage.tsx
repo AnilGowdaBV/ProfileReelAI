@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
+import { InterviewerInbox } from '../components/InterviewerInbox';
 import { useAuth } from '../context/AuthContext';
 import {
   CandidateSubmissionCard,
@@ -181,6 +182,7 @@ export const DashboardPage: React.FC = () => {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+        <InterviewerInbox email={user?.email} />
 
         {/* Hero Banner & Feature Highlights (Commented out from UI per user request) */}
         {/*

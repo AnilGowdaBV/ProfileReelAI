@@ -14,6 +14,9 @@ export class CoursePlatform {
   @Column({ length: 255, default: '' })
   purpose: string;
 
+  @Column({ name: 'recommend_for', length: 80, default: '' })
+  recommendFor: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

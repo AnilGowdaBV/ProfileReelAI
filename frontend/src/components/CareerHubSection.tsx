@@ -12,7 +12,6 @@ import {
   Building,
   RefreshCw,
   MapPin,
-  Calendar,
   X,
   FileText,
   Upload,
@@ -43,7 +42,7 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
   candidateHeadline,
 }) => {
   const [activeTab, setActiveTab] = useState<'roles' | 'courses' | 'interviews'>('roles');
-  const [bookedInterviews, setBookedInterviews] = useState<Record<string, boolean>>({});
+  const [approvedInterviewers, setApprovedInterviewers] = useState<Array<{ id: string; fullName: string; currentCompany: string; previousCompanies: string }>>([]);
 
   // Dynamic Live Instahyre Jobs State
   const [dynamicJobs, setDynamicJobs] = useState<JobRole[]>(LIVE_ROLES);
@@ -253,166 +252,10 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
     }
   };
 
-  // Expert Panelists (15 Verified Technical Panelists)
-  const INTERVIEW_PANEL = [
-    {
-      id: 'p-1',
-      name: 'Arjun Sethi',
-      avatar: 'AS',
-      role: 'Staff Software Engineer at Google (ex-Uber)',
-      domain: 'System Design & Distributed Backend',
-      experience: '11+ yrs exp • 180+ Interviews',
-      rating: '4.9 ★',
-      slots: 'Tomorrow, 5:00 PM',
-    },
-    {
-      id: 'p-2',
-      name: 'Priya Narang',
-      avatar: 'PN',
-      role: 'Lead AI Architect at Microsoft AI',
-      domain: 'GenAI, LLMs & Machine Learning Systems',
-      experience: '9+ yrs exp • 140+ Interviews',
-      rating: '5.0 ★',
-      slots: 'Today, 7:00 PM',
-    },
-    {
-      id: 'p-3',
-      name: 'Rohan Mehta',
-      avatar: 'RM',
-      role: 'Director of Engineering at Swiggy (ex-Amazon)',
-      domain: 'Full-Stack Architecture & Leadership Round',
-      experience: '14+ yrs exp • 250+ Interviews',
-      rating: '4.9 ★',
-      slots: 'Thursday, 4:00 PM',
-    },
-    {
-      id: 'p-4',
-      name: 'Sneha Roy',
-      avatar: 'SR',
-      role: 'Engineering Manager at Netflix',
-      domain: 'High-Concurrency Streaming & Distributed Data',
-      experience: '10+ yrs exp • 160+ Interviews',
-      rating: '4.9 ★',
-      slots: 'Monday, 6:30 PM',
-    },
-    {
-      id: 'p-5',
-      name: 'Vikramaditya Singhania',
-      avatar: 'VS',
-      role: 'Principal Cloud Architect at AWS',
-      domain: 'Cloud Infrastructure & High-Scale Resilience',
-      experience: '13+ yrs exp • 210+ Interviews',
-      rating: '4.9 ★',
-      slots: 'Wednesday, 6:00 PM',
-    },
-    {
-      id: 'p-6',
-      name: 'Ananya Desai',
-      avatar: 'AD',
-      role: 'Senior Staff Engineer at Meta (ex-Stripe)',
-      domain: 'Frontend Architecture, Web Vitals & Microfrontends',
-      experience: '10+ yrs exp • 175+ Interviews',
-      rating: '5.0 ★',
-      slots: 'Friday, 5:30 PM',
-    },
-    {
-      id: 'p-7',
-      name: 'Karthik Sundaram',
-      avatar: 'KS',
-      role: 'Head of Platform Engineering at Razorpay',
-      domain: 'Fintech Scale, Distributed Caching & Kafka',
-      experience: '12+ yrs exp • 190+ Interviews',
-      rating: '4.9 ★',
-      slots: 'Tomorrow, 4:00 PM',
-    },
-    {
-      id: 'p-8',
-      name: 'Dr. Neha Kapoor',
-      avatar: 'NK',
-      role: 'Principal Research Scientist at Google DeepMind',
-      domain: 'Core ML Algorithms, Transformers & RLHF',
-      experience: '8+ yrs exp • 120+ Interviews',
-      rating: '5.0 ★',
-      slots: 'Tuesday, 6:30 PM',
-    },
-    {
-      id: 'p-9',
-      name: 'Tarun Raghavan',
-      avatar: 'TR',
-      role: 'VP of Mobile Engineering at CRED',
-      domain: 'Mobile Systems, React Native & Team Scaling',
-      experience: '15+ yrs exp • 300+ Interviews',
-      rating: '4.9 ★',
-      slots: 'Saturday, 11:00 AM',
-    },
-    {
-      id: 'p-10',
-      name: 'Meera Nambiar',
-      avatar: 'MN',
-      role: 'Staff Infrastructure Engineer at Uber',
-      domain: 'Low-Latency Golang Services & Kubernetes',
-      experience: '9+ yrs exp • 135+ Interviews',
-      rating: '4.9 ★',
-      slots: 'Thursday, 7:30 PM',
-    },
-    {
-      id: 'p-11',
-      name: 'Siddharth Banerjee',
-      avatar: 'SB',
-      role: 'Principal Site Reliability Lead at Apple',
-      domain: 'Zero-Downtime Deployments & SRE Practices',
-      experience: '11+ yrs exp • 165+ Interviews',
-      rating: '4.8 ★',
-      slots: 'Wednesday, 3:30 PM',
-    },
-    {
-      id: 'p-12',
-      name: 'Pooja Varma',
-      avatar: 'PV',
-      role: 'Director of Data Platforms at Flipkart',
-      domain: 'Big Data Lakes, Apache Flink & Analytics',
-      experience: '13+ yrs exp • 220+ Interviews',
-      rating: '4.9 ★',
-      slots: 'Friday, 4:00 PM',
-    },
-    {
-      id: 'p-13',
-      name: 'Aditya Kulkarni',
-      avatar: 'AK',
-      role: 'Staff Security Architect at Zscaler',
-      domain: 'Cloud Security, Threat Modeling & DevSecOps',
-      experience: '10+ yrs exp • 145+ Interviews',
-      rating: '4.8 ★',
-      slots: 'Monday, 5:00 PM',
-    },
-    {
-      id: 'p-14',
-      name: 'Divya Chawla',
-      avatar: 'DC',
-      role: 'Engineering Lead at Atlassian',
-      domain: 'GraphQL Federation, Node.js & Enterprise Scaling',
-      experience: '8+ yrs exp • 115+ Interviews',
-      rating: '4.9 ★',
-      slots: 'Saturday, 3:00 PM',
-    },
-    {
-      id: 'p-15',
-      name: 'Rajesh Sengupta',
-      avatar: 'RS',
-      role: 'Partner Technical Lead at Microsoft Azure',
-      domain: 'Enterprise Cloud Transformation & Executive Rounds',
-      experience: '16+ yrs exp • 340+ Interviews',
-      rating: '5.0 ★',
-      slots: 'Sunday, 11:30 AM',
-    },
-  ];
+  useEffect(() => {
+    api.interviewerPicks().then((rows) => setApprovedInterviewers(rows.slice(0, 3))).catch(() => setApprovedInterviewers([]));
+  }, []);
 
-  const handleToggleBooking = (id: string) => {
-    setBookedInterviews((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
 
   return (
     <section id="career-hub" className="scroll-mt-24 space-y-6">
@@ -792,94 +635,18 @@ export const CareerHubSection: React.FC<CareerHubSectionProps> = ({
       {/* TAB 3: 1-ON-1 INTERVIEW PANEL */}
       {activeTab === 'interviews' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1">
-            <span>
-              Showing {isPro ? 15 : 5} of 15 Verified Interview Panelists
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-brand-600 dark:text-brand-400 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-              Priority FAANG &amp; Tech Leader Rounds
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(isPro ? INTERVIEW_PANEL.slice(0, 15) : INTERVIEW_PANEL.slice(0, 5)).map((panelist) => {
-              const isBooked = !!bookedInterviews[panelist.id];
-
-              return (
-                <div
-                  key={panelist.id}
-                  className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-brand-500/40 dark:hover:border-brand-500/30 transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-brand-600 to-purple-600 text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-md">
-                        {panelist.avatar}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">{panelist.name}</h4>
-                          <span className="text-emerald-500 text-xs">✓</span>
-                          <span className="text-amber-500 dark:text-amber-400 text-[11px] font-semibold">
-                            {panelist.rating}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">{panelist.role}</div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400 mb-4">
-                      <div>🎯 {panelist.domain}</div>
-                      <div className="flex items-center gap-1 text-slate-500">
-                        <Calendar className="w-3 h-3 text-brand-500 dark:text-brand-400" />
-                        <span className="text-slate-700 dark:text-slate-300">Available: {panelist.slots}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleToggleBooking(panelist.id)}
-                    className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      isBooked
-                        ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
-                        : 'bg-slate-100 hover:bg-brand-600 hover:text-white text-slate-700 dark:bg-white/5 dark:hover:bg-brand-500 dark:text-slate-200 dark:hover:text-white border border-slate-200 dark:border-transparent'
-                    }`}
-                  >
-                    {isBooked ? (
-                      <>
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        <span>✓ Interview Slot Requested</span>
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="w-3.5 h-3.5" />
-                        <span>Request 1-on-1 Interview</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          {!isPro && (
-            <div className="rounded-2xl p-6 bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-charcoal-900 dark:to-charcoal-950 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                  Unlock All 15 FAANG Interview Panelists
-                </h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Free tier includes 5 mock interview slots. Pro subscription unlocks all 15 priority 1-on-1 rounds with Staff &amp; Director Engineers across Google, Swiggy, Netflix &amp; Apple.
-                </p>
-              </div>
-              <button
-                onClick={onOpenSubscribeModal}
-                className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 dark:bg-brand-500 dark:hover:bg-brand-400 text-white font-bold text-xs shadow-lg shadow-brand-500/25 flex items-center gap-2 cursor-pointer flex-shrink-0"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>Unlock with Pro</span>
-              </button>
+          <p className="px-1 text-xs text-slate-600 dark:text-slate-400">Three approved interviewer profiles. Anyone still under review stays hidden.</p>
+          {approvedInterviewers.length === 0 ? (
+            <p className="text-sm text-slate-500">No approved interviewer profiles yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2.5">
+              {approvedInterviewers.slice(0, 3).map((person) => (
+                <article key={person.id} className="flex h-[148px] w-[220px] shrink-0 flex-col rounded-2xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-charcoal-900">
+                  <p className="truncate text-sm font-black text-slate-900 dark:text-white">{person.fullName}</p>
+                  <p className="mt-1 truncate text-[11px] text-slate-500">{person.currentCompany}</p>
+                  {person.previousCompanies && <p className="mt-1 line-clamp-2 text-[11px] text-slate-400">{person.previousCompanies}</p>}
+                </article>
+              ))}
             </div>
           )}
         </div>

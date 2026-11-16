@@ -47,9 +47,28 @@ const Favicon: React.FC<{ host: string; name: string }> = ({ host, name }) => {
   );
 };
 
-export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string }> = ({
+const FIT: Record<string, string[]> = {
+  react: ['react', 'frontend', 'front-end', 'front end', 'full-stack', 'fullstack', 'full stack', 'ui'],
+  java: ['java', 'dsa', 'lld'],
+  golang: ['go', 'golang', 'backend', 'system'],
+  dataengineer: ['data engineer', 'pipeline', 'etl', 'spark', 'warehouse'],
+  sdet: ['sdet', 'playwright', 'testing', 'qa', 'automation'],
+  dataanalyst: ['data analyst', 'analytics', 'sql', 'excel', 'tableau'],
+  devops: ['devops', 'cloud', 'infra', 'kubernetes', 'ci'],
+};
+
+function fitsRole(course: CoursePlatformRow, roles: string[]) {
+  const tagged = (course.recommendFor || '').split(',').map((part) => part.trim()).filter(Boolean);
+  if (tagged.length > 0) return tagged.some((tag) => roles.includes(tag));
+  const key = course.purpose.toLowerCase();
+  if (!key.trim() || roles.length === 0) return false;
+  return roles.some((role) => (FIT[role] || []).some((word) => key.includes(word)));
+}
+
+export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string; roles?: string[] }> = ({
   heading = 'Recommended for you',
   kicker,
+  roles = [],
 }) => {
   const [courses, setCourses] = useState<CoursePlatformRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,11 +80,13 @@ export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string }
       .finally(() => setLoading(false));
   }, []);
 
+  const picked = courses.filter((course) => fitsRole(course, roles));
+
   if (loading) {
     return <SectionSpinner compact label="Loading platforms" />;
   }
 
-  if (courses.length === 0) return null;
+  if (picked.length === 0) return null;
 
   return (
     <div>
@@ -75,8 +96,8 @@ export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string }
           {heading && <h3 className="mt-1 text-lg font-black tracking-tight text-slate-900">{heading}</h3>}
         </div>
       )}
-      <div className="grid grid-cols-5 gap-2.5">
-        {courses.map((course, index) => {
+      <div className="flex flex-wrap gap-2.5">
+        {picked.map((course, index) => {
           const look = lookFor(course.purpose, index);
           const host = hostOf(course.url);
           return (
@@ -85,7 +106,7 @@ export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string }
               href={course.url}
               target="_blank"
               rel="noreferrer"
-              className="group relative flex h-[132px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 p-3 text-left shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+              className="group relative flex h-[132px] w-[200px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 p-3 text-left shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
               style={{ background: `linear-gradient(180deg, #ffffff 0%, ${look.wash} 100%)` }}
             >
               <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: look.accent }} />

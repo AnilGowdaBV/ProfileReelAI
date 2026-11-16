@@ -5,6 +5,25 @@ import { SectionSpinner, holdMin } from '../components/SectionSpinner';
 import { ApiError, api, type CoursePlatformRow, type InterviewerApplicationRow, type JobApplicationRow, type MockTestResultRow } from '../services/api';
 
 const TOKEN_KEY = 'profilereel_admin_token';
+const PAPERS = [
+  { id: 'react', label: 'React' },
+  { id: 'java', label: 'Java' },
+  { id: 'golang', label: 'Golang' },
+  { id: 'dataengineer', label: 'Data Engineer' },
+  { id: 'sdet', label: 'SDET Playwright' },
+  { id: 'dataanalyst', label: 'Data Analyst' },
+  { id: 'devops', label: 'DevOps' },
+];
+
+function togglePaper(current: string[], id: string) {
+  return current.includes(id) ? current.filter((item) => item !== id) : [...current, id];
+}
+
+function paperLabels(value?: string) {
+  const ids = (value || '').split(',').filter(Boolean);
+  const labels = PAPERS.filter((paper) => ids.includes(paper.id)).map((paper) => paper.label);
+  return labels.length ? labels.join(', ') : '—';
+}
 
 export function readAdminToken() {
   return sessionStorage.getItem(TOKEN_KEY) || '';
@@ -126,16 +145,25 @@ export const AdminPage: React.FC = () => {
   const [jobs, setJobs] = useState<JobApplicationRow[]>([]);
   const [interest, setInterest] = useState<JobApplicationRow[]>([]);
   const [courses, setCourses] = useState<CoursePlatformRow[]>([]);
+  const [recordings, setRecordings] = useState<Array<{ id: string; candidateName: string; candidateEmail: string; interviewerName: string; interviewDate: string; interviewTime: string; meetLink: string; state: string; watchUrl: string; detail?: string }>>([]);
   const [courseName, setCourseName] = useState('');
   const [courseUrl, setCourseUrl] = useState('');
   const [coursePurpose, setCoursePurpose] = useState('');
+  const [coursePapers, setCoursePapers] = useState<string[]>([]);
   const [editingId, setEditingId] = useState('');
   const [editName, setEditName] = useState('');
   const [editUrl, setEditUrl] = useState('');
   const [editPurpose, setEditPurpose] = useState('');
+  const [editPapers, setEditPapers] = useState<string[]>([]);
   const [section, setSection] = useState('');
   const [theme, setTheme] = useState(() => (localStorage.getItem('profilereel_admin_theme') === 'light' ? 'light' : 'dark'));
   const [filter, setFilter] = useState('ALL');
+  const [addName, setAddName] = useState('');
+  const [addEmail, setAddEmail] = useState('');
+  const [addPassword, setAddPassword] = useState('');
+  const [addLinkedin, setAddLinkedin] = useState('');
+  const [addCompany, setAddCompany] = useState('');
+  const [adding, setAdding] = useState(false);
   const [busyId, setBusyId] = useState('');
   const [error, setError] = useState('');
   const [booting, setBooting] = useState(true);
@@ -157,6 +185,12 @@ export const AdminPage: React.FC = () => {
     if (id === section) return;
     setSection(id);
     setPaneBusy(true);
+    if (id === 'recordings') {
+      const token = readAdminToken();
+      api.interviewRecordings(token)
+        .then(setRecordings)
+        .catch((err) => setError(err instanceof Error ? err.message : 'Could not load recordings.'));
+    }
     if (paneTimer.current) window.clearTimeout(paneTimer.current);
     paneTimer.current = window.setTimeout(() => setPaneBusy(false), 480);
   };
@@ -226,10 +260,12 @@ export const AdminPage: React.FC = () => {
   const paneLabel: Record<string, string> = {
     '': 'Opening home',
     review: 'Loading interviewer requests',
+    'add-interviewer': 'Opening add interviewer',
     tests: 'Loading test results',
     jobs: 'Loading job applications',
     interest: 'Loading company interest',
     courses: 'Loading course platforms',
+    recordings: 'Loading recordings',
   };
 
   if (booting) {
@@ -263,6 +299,12 @@ export const AdminPage: React.FC = () => {
             </span>
             <span className={pillClass('review')}>{rows.length}</span>
           </button>
+          <button type="button" onClick={() => openSection('add-interviewer')} className={navClass('add-interviewer')}>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">Add interviewer</span>
+              <span className={`block text-[11px] ${section === 'add-interviewer' ? 'text-white/70' : 'text-slate-500'}`}>Approved login</span>
+            </span>
+          </button>
           <button type="button" onClick={() => openSection('tests')} className={navClass('tests')}>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold">Test results</span>
@@ -283,6 +325,13 @@ export const AdminPage: React.FC = () => {
               <span className={`block text-[11px] ${section === 'interest' ? 'text-white/70' : 'text-slate-500'}`}>Company interest</span>
             </span>
             <span className={pillClass('interest')}>{interest.length}</span>
+          </button>
+          <button type="button" onClick={() => openSection('recordings')} className={navClass('recordings')}>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">Recordings</span>
+              <span className={`block text-[11px] ${section === 'recordings' ? 'text-white/70' : 'text-slate-500'}`}>Interview meetings</span>
+            </span>
+            <span className={pillClass('recordings')}>{recordings.length}</span>
           </button>
           <button type="button" onClick={() => openSection('courses')} className={navClass('courses')}>
             <span className="min-w-0 flex-1">
@@ -345,6 +394,81 @@ export const AdminPage: React.FC = () => {
             series={dailySeries([...rows, ...papers, ...jobs, ...interest].map((item) => item.createdAt))}
             onOpen={openSection}
           />
+        )}
+
+        {section === 'add-interviewer' && (
+          <form
+            className={`grid max-w-xl gap-3 rounded-xl p-5 ${panel}`}
+            onSubmit={(event) => {
+              event.preventDefault();
+              const token = readAdminToken();
+              setAdding(true);
+              setError('');
+              api.addInterviewer(token, {
+                fullName: addName.trim(),
+                email: addEmail.trim(),
+                password: addPassword,
+                linkedinUrl: addLinkedin.trim(),
+                currentCompany: addCompany.trim(),
+              })
+                .then((row) => {
+                  setRows((current) => [row, ...current.filter((item) => item.id !== row.id)]);
+                  setAddName('');
+                  setAddEmail('');
+                  setAddPassword('');
+                  setAddLinkedin('');
+                  setAddCompany('');
+                  setError('');
+                })
+                .catch((err) => setError(err instanceof Error ? err.message : 'Could not add this interviewer.'))
+                .finally(() => setAdding(false));
+            }}
+          >
+            <div>
+              <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${kicker}`}>Direct add</p>
+              <h1 className="text-lg font-black">Add an interviewer</h1>
+              <p className={`mt-1 text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}`}>They are saved as approved and can log in with this email and password.</p>
+            </div>
+            <input required value={addName} onChange={(event) => setAddName(event.target.value)} placeholder="Name" className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+            <input required type="email" value={addEmail} onChange={(event) => setAddEmail(event.target.value)} placeholder="Email" className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+            <input required minLength={6} type="password" value={addPassword} onChange={(event) => setAddPassword(event.target.value)} placeholder="Password" className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+            <input required value={addCompany} onChange={(event) => setAddCompany(event.target.value)} placeholder="Currently working at" className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+            <input required type="url" value={addLinkedin} onChange={(event) => setAddLinkedin(event.target.value)} placeholder="LinkedIn URL" className="rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+            {error && <p className="text-xs text-rose-600">{error}</p>}
+            <button type="submit" disabled={adding} className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">
+              {adding ? 'Reading LinkedIn and saving...' : 'Add as approved'}
+            </button>
+          </form>
+        )}
+
+        {section === 'recordings' && (
+          <section className={`rounded-xl p-5 ${panel}`}>
+            <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${kicker}`}>Meetings</p>
+            <h1 className="text-lg font-black">Recordings</h1>
+            <p className={`mt-1 text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}`}>A file appears here after the company Meet account finishes recording the interview.</p>
+            <div className="mt-4 grid gap-3">
+              {recordings.length === 0 && <p className={`text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}`}>No scheduled meetings yet.</p>}
+              {recordings.map((row) => (
+                <article key={row.id} className={`rounded-xl px-4 py-3 ${soft}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black">{row.candidateName}</p>
+                      <p className={`text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{row.candidateEmail} · with {row.interviewerName || 'interviewer'}</p>
+                      <p className={`mt-1 text-xs font-semibold ${dark ? 'text-slate-300' : 'text-slate-600'}`}>{row.interviewDate} {row.interviewTime}</p>
+                    </div>
+                    <span className="rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-bold text-violet-700">
+                      {row.state === 'FILE_GENERATED' ? 'Ready' : row.state === 'PASTED_LINK' ? 'Older pasted link' : 'Waiting for the meeting'}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs font-bold">
+                    {row.meetLink && <a href={row.meetLink} target="_blank" rel="noreferrer" className="text-sky-600">Open meeting</a>}
+                    {row.watchUrl && <a href={row.watchUrl} target="_blank" rel="noreferrer" className="text-violet-600">Watch recording</a>}
+                  </div>
+                  {row.detail && <p className="mt-2 text-xs text-rose-500">{row.detail}</p>}
+                </article>
+              ))}
+            </div>
+          </section>
         )}
 
         {section === 'review' && (
@@ -508,22 +632,36 @@ export const AdminPage: React.FC = () => {
               onSubmit={async (event) => {
                 event.preventDefault();
                 setError('');
+                if (coursePapers.length === 0) {
+                  setError('Choose which failed paper this platform is for.');
+                  return;
+                }
                 try {
-                  const saved = await api.addCoursePlatform(readAdminToken(), { name: courseName, url: courseUrl, purpose: coursePurpose });
+                  const saved = await api.addCoursePlatform(readAdminToken(), { name: courseName, url: courseUrl, purpose: coursePurpose, recommendFor: coursePapers.join(',') });
                   setCourses((current) => [...current, saved]);
                   setCourseName('');
                   setCourseUrl('');
                   setCoursePurpose('');
+                  setCoursePapers([]);
                 } catch (err) {
                   setError(err instanceof Error ? err.message : 'Could not save this platform.');
                 }
               }}
-              className={`mt-3 grid gap-2 rounded-2xl px-4 py-4 sm:grid-cols-[1fr_1.3fr_1fr_auto] ${panel}`}
+              className={`mt-3 grid gap-2 rounded-2xl px-4 py-4 sm:grid-cols-[1fr_1.2fr_1fr_auto] ${panel}`}
             >
               <input value={courseName} onChange={(event) => setCourseName(event.target.value)} placeholder="Name" required className={`rounded-xl px-3 py-2 text-sm ${dark ? 'bg-white/5 text-white' : 'border border-slate-200'}`} />
               <input value={courseUrl} onChange={(event) => setCourseUrl(event.target.value)} placeholder="Website link" required className={`rounded-xl px-3 py-2 text-sm ${dark ? 'bg-white/5 text-white' : 'border border-slate-200'}`} />
               <input value={coursePurpose} onChange={(event) => setCoursePurpose(event.target.value)} placeholder="Meant for, e.g. DSA" className={`rounded-xl px-3 py-2 text-sm ${dark ? 'bg-white/5 text-white' : 'border border-slate-200'}`} />
               <button type="submit" className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">Add</button>
+              <div className="flex flex-wrap items-center gap-2 sm:col-span-4">
+                <span className={`text-[11px] font-bold ${dark ? 'text-slate-300' : 'text-slate-500'}`}>Recommend after fail</span>
+                {PAPERS.map((paper) => (
+                  <label key={paper.id} className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${coursePapers.includes(paper.id) ? 'bg-violet-600 text-white' : dark ? 'bg-white/10 text-slate-200' : 'bg-violet-50 text-violet-800'}`}>
+                    <input type="checkbox" className="sr-only" checked={coursePapers.includes(paper.id)} onChange={() => setCoursePapers((current) => togglePaper(current, paper.id))} />
+                    {paper.label}
+                  </label>
+                ))}
+              </div>
             </form>
             {error && <p className="mt-2 text-xs text-rose-500">{error}</p>}
             <div className={`mt-3 overflow-visible rounded-2xl ${panel}`}>
@@ -532,7 +670,7 @@ export const AdminPage: React.FC = () => {
                 <table className="w-full text-left text-sm">
                   <thead className={`${dark ? 'bg-white/5 text-violet-200' : 'bg-[#f6f4fb] text-violet-800'} text-[10px] uppercase tracking-[0.12em]`}>
                     <tr>
-                      {['Name', 'Website', 'Meant for', ''].map((label) => (
+                      {['Name', 'Website', 'Meant for', 'After fail', ''].map((label) => (
                         <th key={label || 'actions'} className="px-3 py-2 font-bold">{label}</th>
                       ))}
                     </tr>
@@ -556,6 +694,18 @@ export const AdminPage: React.FC = () => {
                           <td className="px-3 py-2 text-xs">
                             {editing ? <input value={editPurpose} onChange={(event) => setEditPurpose(event.target.value)} className={field} /> : (course.purpose || '—')}
                           </td>
+                          <td className="px-3 py-2 text-xs">
+                            {editing ? (
+                              <div className="flex flex-wrap gap-1">
+                                {PAPERS.map((paper) => (
+                                  <label key={paper.id} className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${editPapers.includes(paper.id) ? 'bg-violet-600 text-white' : dark ? 'bg-white/10' : 'bg-violet-50 text-violet-800'}`}>
+                                    <input type="checkbox" className="sr-only" checked={editPapers.includes(paper.id)} onChange={() => setEditPapers((current) => togglePaper(current, paper.id))} />
+                                    {paper.label}
+                                  </label>
+                                ))}
+                              </div>
+                            ) : paperLabels(course.recommendFor)}
+                          </td>
                           <td className="px-3 py-2">
                             <div className="flex justify-end gap-1">
                               {editing ? (
@@ -564,7 +714,11 @@ export const AdminPage: React.FC = () => {
                                     label="Save"
                                     className={dark ? 'text-emerald-300 hover:bg-white/10' : 'text-emerald-600 hover:bg-emerald-50'}
                                     onClick={() => {
-                                      void api.updateCoursePlatform(readAdminToken(), course.id, { name: editName, url: editUrl, purpose: editPurpose }).then((saved) => {
+                                      if (editPapers.length === 0) {
+                                        setError('Choose which failed paper this platform is for.');
+                                        return;
+                                      }
+                                      void api.updateCoursePlatform(readAdminToken(), course.id, { name: editName, url: editUrl, purpose: editPurpose, recommendFor: editPapers.join(',') }).then((saved) => {
                                         setCourses((current) => current.map((row) => (row.id === saved.id ? saved : row)));
                                         setEditingId('');
                                         setError('');
@@ -591,6 +745,7 @@ export const AdminPage: React.FC = () => {
                                       setEditName(course.name);
                                       setEditUrl(course.url);
                                       setEditPurpose(course.purpose || '');
+                                      setEditPapers((course.recommendFor || '').split(',').filter(Boolean));
                                       setError('');
                                     }}
                                   >

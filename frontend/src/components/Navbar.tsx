@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { api } from '../services/api';
 import { BeInterviewerModal } from './BeInterviewerModal';
 import { Film, Database, CheckCircle, AlertCircle, Zap, Sun, Moon, LogOut } from 'lucide-react';
 import { HealthStatus } from '../types/candidate';
@@ -21,6 +22,26 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const [interviewerOpen, setInterviewerOpen] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(user?.avatarUrl || '');
+
+  useEffect(() => {
+    if (!user?.email) return;
+    if (user.avatarUrl) {
+      setPhotoUrl(user.avatarUrl);
+      return;
+    }
+    let cancelled = false;
+    api.interviewerStatus(user.email).then(async (row) => {
+      if (cancelled) return;
+      if (row.photoUrl) {
+        setPhotoUrl(row.photoUrl);
+        return;
+      }
+      const photo = await api.candidatePhoto(user.email);
+      if (!cancelled && photo.photoUrl) setPhotoUrl(photo.photoUrl);
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [user?.email, user?.avatarUrl]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/90 dark:border-white/5 bg-white/90 dark:bg-charcoal-950/80 backdrop-blur-xl transition-colors duration-200 shadow-xs">
@@ -120,9 +141,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           {user && (
             <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-white/10">
               <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200/80 dark:border-white/10">
-                <div className="w-6 h-6 rounded-full bg-[#0A66C2] text-white flex items-center justify-center text-[10px] font-bold">
-                  {user.name ? user.name.substring(0, 2).toUpperCase() : 'IN'}
-                </div>
+                {photoUrl ? (
+                  <img src={photoUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[#0A66C2] text-white flex items-center justify-center text-xs font-bold">
+                    {user.name ? user.name.substring(0, 2).toUpperCase() : 'IN'}
+                  </div>
+                )}
                 <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 hidden sm:inline">
                   {user.name}
                 </span>

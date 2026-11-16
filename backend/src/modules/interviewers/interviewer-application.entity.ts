@@ -23,6 +23,12 @@ export class InterviewerApplication {
   @Column({ name: 'previous_companies', type: 'text', default: '' })
   previousCompanies: string;
 
+  @Column({ name: 'photo_url', type: 'varchar', length: 1000, default: '' })
+  photoUrl: string;
+
+  @Column({ name: 'company_logos', type: 'text', default: '' })
+  companyLogos: string;
+
   @Column({ length: 40, default: 'UNDER_REVIEW' })
   status: string;
 

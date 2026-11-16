@@ -8,6 +8,16 @@ export const MOCK_TEST_UNLOCK_MS = 60 * 60 * 1000;
 export const MOCK_TEST_MINUTES = 75;
 const COMPLETED_KEY = 'profilereel_completed_tests';
 const RESULTS_KEY = 'profilereel_test_results';
+
+function accountKey(base: string): string {
+  try {
+    const raw = sessionStorage.getItem('profilereel_user');
+    const email = raw ? String(JSON.parse(raw).email || '').trim().toLowerCase() : '';
+    return `${base}:${email || 'guest'}`;
+  } catch {
+    return `${base}:guest`;
+  }
+}
 const ATTEMPT_KEY = 'profilereel_test_attempts';
 const USED_QUESTIONS_KEY = 'profilereel_used_leetcode_ids';
 export const MOCK_TEST_PAID_EVENT = 'profilereel-mock-test-paid';
@@ -125,7 +135,7 @@ function readJson<T>(key: string, fallback: T): T {
 }
 
 export function getCompletedMockTests(): string[] {
-  const parsed = readJson<unknown>(COMPLETED_KEY, []);
+  const parsed = readJson<unknown>(accountKey(COMPLETED_KEY), []);
   return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string' && id.length > 0) : [];
 }
 
@@ -137,7 +147,7 @@ export function isMockTestCompleted(testId?: string | null): boolean {
 
 export function getMockTestResult(testId?: string | null): MockTestResult | null {
   if (!isKnownMockTestId(testId)) return null;
-  const all = readJson<Record<string, MockTestResult>>(RESULTS_KEY, {});
+  const all = readJson<Record<string, MockTestResult>>(accountKey(RESULTS_KEY), {});
   return all[testId as string] || null;
 }
 
@@ -146,11 +156,11 @@ export function markMockTestCompleted(testId: string, result: MockTestResult): v
   const completed = getCompletedMockTests();
   if (!completed.includes(testId)) {
     completed.push(testId);
-    localStorage.setItem(COMPLETED_KEY, JSON.stringify(completed));
+    localStorage.setItem(accountKey(COMPLETED_KEY), JSON.stringify(completed));
   }
-  const all = readJson<Record<string, MockTestResult>>(RESULTS_KEY, {});
+  const all = readJson<Record<string, MockTestResult>>(accountKey(RESULTS_KEY), {});
   all[testId] = result;
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(all));
+  localStorage.setItem(accountKey(RESULTS_KEY), JSON.stringify(all));
   if (result.questionIds?.length) rememberUsedQuestionIds(result.questionIds);
   const attempts = readJson<Record<string, unknown>>(ATTEMPT_KEY, {});
   delete attempts[testId];
@@ -177,7 +187,7 @@ export function startFreshMockTestAttempt(testId: string): void {
   const result = getMockTestResult(testId);
   if (result?.questionIds?.length) rememberUsedQuestionIds(result.questionIds);
   localStorage.setItem(
-    COMPLETED_KEY,
+    accountKey(COMPLETED_KEY),
     JSON.stringify(getCompletedMockTests().filter((id) => id !== testId)),
   );
   const attempts = readJson<Record<string, unknown>>(ATTEMPT_KEY, {});
@@ -186,9 +196,9 @@ export function startFreshMockTestAttempt(testId: string): void {
   const clocks = readJson<Record<string, number>>(EXAM_START_KEY, {});
   delete clocks[testId];
   localStorage.setItem(EXAM_START_KEY, JSON.stringify(clocks));
-  const results = readJson<Record<string, MockTestResult>>(RESULTS_KEY, {});
+  const results = readJson<Record<string, MockTestResult>>(accountKey(RESULTS_KEY), {});
   delete results[testId];
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+  localStorage.setItem(accountKey(RESULTS_KEY), JSON.stringify(results));
 }
 
 export type MockTestAttempt = {

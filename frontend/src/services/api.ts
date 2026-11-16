@@ -83,6 +83,7 @@ export type CoursePlatformRow = {
   name: string;
   url: string;
   purpose: string;
+  recommendFor: string;
   createdAt: string;
 };
 
@@ -171,6 +172,11 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
 
+  interviewRecordings: (token: string) =>
+    request<Array<{ id: string; candidateName: string; candidateEmail: string; interviewerName: string; interviewDate: string; interviewTime: string; meetLink: string; state: string; watchUrl: string; detail?: string }>>('/interviewers/recordings', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
   adminSession: (token: string) =>
     request<{ username: string }>('/admin/session', {
       headers: { Authorization: `Bearer ${token}` },
@@ -195,7 +201,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  updateCoursePlatform: (token: string, id: string, data: { name: string; url: string; purpose?: string }) =>
+  updateCoursePlatform: (token: string, id: string, data: { name: string; url: string; purpose?: string; recommendFor?: string }) =>
     request<CoursePlatformRow>(`/jobs/course-platforms/${id}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
@@ -213,6 +219,13 @@ export const api = {
       headers: { Authorization: `Bearer ${token}` },
     }),
 
+  addInterviewer: (token: string, data: { fullName: string; email: string; password: string; linkedinUrl: string; currentCompany: string }) =>
+    request<InterviewerApplicationRow>('/interviewers/applications', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    }),
+
   interviewerApplications: (token: string) =>
     request<InterviewerApplicationRow[]>('/interviewers/applications', {
       headers: { Authorization: `Bearer ${token}` },
@@ -225,8 +238,70 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
 
+  interviewerPicks: () =>
+    request<Array<{ id: string; fullName: string; currentCompany: string; currentTitle: string; previousCompanies: string; linkedinUrl: string; photoUrl: string; companies: Array<{ name: string; logo: string; title: string }> }>>('/interviewers/picks'),
+
+  requestInterview: (data: {
+    interviewerId: string;
+    candidateName: string;
+    candidateEmail: string;
+    jobTitle: string;
+    companyName: string;
+    date: string;
+    time: string;
+    meetLink?: string;
+    note?: string;
+  }) =>
+    request<{ success: boolean; message: string }>('/interviewers/requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  myInterviewRequests: (email: string) =>
+    request<Array<{ id: string; interviewerName: string; photoUrl: string; jobTitle: string; companyName: string; status: string; interviewDate: string; interviewTime: string; note: string; meetLink: string; notice: string; createdAt: string }>>(
+      `/interviewers/mine-requests?email=${encodeURIComponent(email)}`,
+    ),
+
+  interviewerInbox: (email: string) =>
+    request<{
+      approved: boolean;
+      requests: Array<{ id: string; candidateName: string; candidateEmail: string; jobTitle: string; companyName: string; status: string; interviewDate: string; interviewTime: string; note: string; meetLink: string; notice: string; resumeFileName: string; resumeUrl: string; photoUrl: string; headline: string; createdAt: string }>;
+    }>(`/interviewers/inbox?email=${encodeURIComponent(email)}`),
+
+  interviewCandidate: (id: string, email: string) =>
+    request<{
+      fullName: string;
+      email: string;
+      phone: string;
+      linkedinUrl: string;
+      currentSalary: string;
+      expectedSalary: string;
+      location: string;
+      interviewingAt: string;
+      jobTitle: string;
+      companyName: string;
+      resumeFileName: string;
+      resumeUrl: string;
+      resumeData: string;
+    }>(`/interviewers/inbox/${id}/profile?email=${encodeURIComponent(email)}`),
+
+  rescheduleInterview: (id: string, email: string, schedule: { date: string; time: string; note: string; meetLink: string }) =>
+    request<{ success: boolean; interviewDate: string; interviewTime: string; note: string; meetLink: string }>(
+      `/interviewers/requests/${id}?email=${encodeURIComponent(email)}`,
+      { method: 'PATCH', body: JSON.stringify(schedule) },
+    ),
+
+  acceptInterviewRequest: (id: string, email: string) =>
+    request<{ success: boolean }>(`/interviewers/inbox/${id}?email=${encodeURIComponent(email)}`, { method: 'PATCH' }),
+
+  rejectInterviewRequest: (id: string, email: string) =>
+    request<{ success: boolean }>(`/interviewers/inbox/${id}/reject?email=${encodeURIComponent(email)}`, { method: 'PATCH' }),
+
+  candidatePhoto: (email: string) =>
+    request<{ photoUrl: string }>(`/interviewers/photo?email=${encodeURIComponent(email)}`),
+
   interviewerStatus: (email: string) =>
-    request<{ found: boolean; status?: string; fullName?: string }>(
+    request<{ found: boolean; status?: string; fullName?: string; photoUrl?: string }>(
       `/interviewers/mine?email=${encodeURIComponent(email)}`,
     ),
 

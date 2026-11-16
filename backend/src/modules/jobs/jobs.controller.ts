@@ -81,9 +81,8 @@ export class JobsController {
   async submitMockTest(@Body() dto: SubmitMockTestDto) {
     const result = await this.jobsService.submitMockTest(dto);
     return {
-      success: true,
-      message: 'Mock test saved to Sheet 3',
       ...result,
+      message: 'Mock test saved to Sheet 3',
     };
   }
 

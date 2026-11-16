@@ -150,27 +150,13 @@ export const MockTestsSection: React.FC = () => {
             <ClipboardCheck className="w-3.5 h-3.5" />
             Interview preparation
           </div>
-          <h2 className="flex flex-wrap items-center justify-center gap-3 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-            <span>Best suitable for</span>
-            {[
-              { name: 'Swiggy', domain: 'swiggy.com' },
-              { name: 'Flipkart', domain: 'flipkart.com' },
-              { name: 'Zepto', domain: 'zeptonow.com' },
-              { name: 'Uber', domain: 'uber.com' },
-            ].map((company) => (
-              <img
-                key={company.name}
-                src={`https://www.google.com/s2/favicons?domain=${company.domain}&sz=128`}
-                alt={company.name}
-                title={company.name}
-                className="h-9 w-9 rounded-lg bg-white object-contain p-1 shadow-sm border border-slate-200"
-              />
-            ))}
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+            Best suitable for Product companies
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
             {MOCK_TEST_PAYWALL_ENABLED
-              ? 'Four coding questions for React, Java, or Golang. You solve them on this page. ₹10 for this attempt.'
-              : 'Four coding questions for React, Java, or Golang. You solve them on this page. Payment is paused while we review the test.'}
+              ? 'Four coding questions on each track. You solve them on this page. ₹10 for this attempt.'
+              : 'Four coding questions on each track. You solve them on this page. Payment is paused while we review the test.'}
           </p>
         </div>
 
@@ -256,11 +242,20 @@ export const MockTestsSection: React.FC = () => {
             );
           })}
         </div>
-        {completedIds.some((id) => getMockTestResult(id)?.verdict === 'Failed') && (
-          <div className="mt-8 overflow-hidden rounded-3xl border border-violet-100 bg-white px-5 py-5 sm:px-6">
-            <PracticeCourseCards kicker="Because a paper was failed" heading="Keep going on these platforms" />
-          </div>
-        )}
+        {(() => {
+          const failed = MOCK_TESTS.filter((item) => completedIds.includes(item.id) && getMockTestResult(item.id)?.verdict === 'Failed');
+          if (failed.length === 0) return null;
+          const names = failed.map((item) => item.title).join(', ');
+          return (
+            <div className="mt-8 overflow-hidden rounded-3xl border border-violet-100 bg-white px-5 py-5 sm:px-6">
+              <PracticeCourseCards
+                kicker={`For ${names}`}
+                heading="This is your next move. Go with these courses."
+                roles={failed.map((item) => item.role)}
+              />
+            </div>
+          );
+        })()}
       </div>
 
       {detailsTestId && (

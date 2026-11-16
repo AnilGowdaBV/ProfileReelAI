@@ -19,4 +19,10 @@ export class CreateCoursePlatformDto {
   @IsString()
   @MaxLength(255)
   purpose?: string;
+
+  @ApiPropertyOptional({ description: 'Failed papers this platform is for: react, java, golang' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  recommendFor?: string;
 }
