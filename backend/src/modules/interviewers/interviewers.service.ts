@@ -584,6 +584,9 @@ export class InterviewersService {
   }
 
   private async ensureTable() {
+    const createdAt = this.applications.manager.connection.options.type === 'postgres'
+      ? 'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP'
+      : 'datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)';
     await this.applications.query(`
       CREATE TABLE IF NOT EXISTS interviewer_applications (
         id varchar(36) NOT NULL PRIMARY KEY,
@@ -595,7 +598,7 @@ export class InterviewersService {
         previous_companies text,
         status varchar(40) NOT NULL DEFAULT 'UNDER_REVIEW',
         photo_url varchar(1000) NOT NULL DEFAULT '',
-        created_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+        created_at ${createdAt}
       )
     `);
     try {
@@ -617,7 +620,7 @@ export class InterviewersService {
         job_title varchar(255) NOT NULL,
         company_name varchar(255) NOT NULL,
         status varchar(20) NOT NULL DEFAULT 'REQUESTED',
-        created_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+        created_at ${createdAt}
       )
     `);
     try {

@@ -45,12 +45,21 @@ export class GoogleMeetService {
     if (!token.refresh_token) {
       throw new BadRequestException('Google did not return a refresh token. Open the connect link again and accept every permission.');
     }
-    await this.dataSource.query(
-      `INSERT INTO google_meet_organizer (id, email, refresh_token)
-       VALUES (1, ?, ?)
-       ON DUPLICATE KEY UPDATE email = VALUES(email), refresh_token = VALUES(refresh_token)`,
-      [email, token.refresh_token],
-    );
+    if (this.dataSource.options.type === 'postgres') {
+      await this.dataSource.query(
+        `INSERT INTO google_meet_organizer (id, email, refresh_token)
+         VALUES (1, $1, $2)
+         ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, refresh_token = EXCLUDED.refresh_token`,
+        [email, token.refresh_token],
+      );
+    } else {
+      await this.dataSource.query(
+        `INSERT INTO google_meet_organizer (id, email, refresh_token)
+         VALUES (1, ?, ?)
+         ON DUPLICATE KEY UPDATE email = VALUES(email), refresh_token = VALUES(refresh_token)`,
+        [email, token.refresh_token],
+      );
+    }
     return email;
   }
 
