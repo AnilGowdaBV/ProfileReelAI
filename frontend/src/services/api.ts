@@ -194,7 +194,7 @@ export const api = {
 
   coursePlatforms: () => request<CoursePlatformRow[]>('/jobs/course-platforms'),
 
-  addCoursePlatform: (token: string, data: { name: string; url: string; purpose?: string }) =>
+  addCoursePlatform: (token: string, data: { name: string; url: string; purpose?: string; recommendFor?: string }) =>
     request<CoursePlatformRow>('/jobs/course-platforms', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },

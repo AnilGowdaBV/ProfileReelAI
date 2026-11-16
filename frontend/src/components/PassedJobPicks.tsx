@@ -220,7 +220,7 @@ export const PassedJobPicks: React.FC<{
                   <button
                     type="button"
                     disabled={sent || asking === person.id}
-                    onClick={() => { setSchedulePerson({ id: person.id, fullName: person.fullName }); setSlotDate(''); setSlotHour('10'); setSlotMinute('00'); setSlotPeriod('AM'); setSlotLink(''); setSlotNote(''); setError(''); }}
+                    onClick={() => { setSchedulePerson({ id: person.id, fullName: person.fullName }); setSlotDate(''); setSlotHour('10'); setSlotMinute('00'); setSlotPeriod('AM'); setSlotNote(''); setError(''); }}
                     className="mt-4 rounded-xl bg-slate-900 px-3 py-2 text-[11px] font-bold text-white disabled:bg-emerald-600"
                   >
                     {sent ? 'Requested' : asking === person.id ? 'Sending...' : 'Request interview'}
