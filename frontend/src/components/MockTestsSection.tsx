@@ -178,11 +178,14 @@ export const MockTestsSection: React.FC = () => {
             const completed = MOCK_TEST_PAYWALL_ENABLED && completedIds.includes(test.id);
             const unlocked = !completed && (paidIds.includes(test.id) || !MOCK_TEST_PAYWALL_ENABLED);
             const paying = payingId === test.id;
+            const soon = Boolean(test.comingSoon);
             return (
               <div
                 key={test.id}
                 className={`glass-panel p-5 rounded-2xl border flex flex-col justify-between ${
-                  unlocked
+                  soon
+                    ? 'border-slate-200 dark:border-white/5 opacity-80'
+                    : unlocked
                     ? 'border-emerald-500/40 ring-2 ring-emerald-500/15'
                     : 'border-slate-200 dark:border-white/5'
                 }`}
@@ -208,11 +211,12 @@ export const MockTestsSection: React.FC = () => {
                       </div>
                       <h3 className="text-base font-bold text-slate-900 dark:text-white">{test.title}</h3>
                     </div>
-                    <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                      {MOCK_TEST_PAYWALL_ENABLED ? (unlocked ? 'Unlocked' : '₹10') : 'Open'}
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${soon ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'}`}>
+                      {soon ? 'Soon' : MOCK_TEST_PAYWALL_ENABLED ? (unlocked ? 'Unlocked' : '₹10') : 'Open'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">{test.blurb}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">{soon ? 'This track is not open yet.' : test.blurb}</p>
+                  {!soon && (
                   <p className="text-[11px] text-slate-500 mt-3">
                     {test.minutes} min · {test.questionCount} questions · solved here
                     {MOCK_TEST_PAYWALL_ENABLED
@@ -221,14 +225,17 @@ export const MockTestsSection: React.FC = () => {
                         : ' · ₹10 · open for 1 hour after payment'
                       : ' · payment paused'}
                   </p>
+                  )}
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleStart(test.id)}
-                  disabled={paying}
-                  className="mt-4 w-full py-2.5 rounded-xl text-xs font-bold disabled:opacity-60 bg-emerald-600 hover:bg-emerald-500 text-white"
+                  onClick={() => { if (!soon) handleStart(test.id); }}
+                  disabled={paying || soon}
+                  className={`mt-4 w-full py-2.5 rounded-xl text-xs font-bold disabled:opacity-60 ${soon ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
                 >
-                  {paying
+                  {soon
+                    ? 'Coming soon'
+                    : paying
                     ? 'Opening Razorpay...'
                     : completed
                       ? 'Pay ₹10 for this attempt'

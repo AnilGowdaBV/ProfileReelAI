@@ -218,12 +218,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <p className="mt-2 text-sm text-slate-500">75 min · 4 questions · Swiggy, Flipkart, Zepto, Uber</p>
         </div>
         <div className="flex flex-wrap justify-center gap-4">
-          {MOCK_TESTS.map((test, index) => (
+          {MOCK_TESTS.map((test, index) => {
+            const soon = Boolean(test.comingSoon);
+            return (
             <button
               key={test.id}
               type="button"
-              onClick={onOpenLogin}
-              className="flex w-[calc((100%-3rem)/4)] flex-col rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_16px_36px_rgba(15,23,42,0.1)]"
+              onClick={soon ? undefined : onOpenLogin}
+              disabled={soon}
+              className={`flex w-[calc((100%-3rem)/4)] flex-col rounded-2xl border bg-white p-4 text-left shadow-[0_10px_28px_rgba(15,23,42,0.06)] ${soon ? 'cursor-default border-slate-200 opacity-80' : 'border-slate-200 transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_16px_36px_rgba(15,23,42,0.1)]'}`}
             >
               <div className={`mb-3 h-1 w-full rounded-full bg-gradient-to-r ${accents[index % accents.length]}`} />
               <div className="flex items-center justify-between">
@@ -238,18 +241,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     />
                   ))}
                 </div>
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700">₹10</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${soon ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-700'}`}>
+                  {soon ? 'Soon' : '₹10'}
+                </span>
               </div>
               <h2 className="mt-3 text-lg font-black text-slate-950">{test.title}</h2>
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                {test.minutes} min · {test.questionCount} questions · open for 1 hour after payment
+                {soon ? 'This track is not open yet.' : `${test.minutes} min · ${test.questionCount} questions · open for 1 hour after payment`}
               </p>
-              <span className="mt-4 flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white">
-                Pay ₹10 to take test
-                <ArrowRight className="h-3.5 w-3.5" />
+              <span className={`mt-4 flex w-full items-center justify-center gap-1 rounded-xl py-2.5 text-xs font-bold ${soon ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white'}`}>
+                {soon ? 'Coming soon' : 'Pay ₹10 to take test'}
+                {!soon && <ArrowRight className="h-3.5 w-3.5" />}
               </span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </main>
     </div>

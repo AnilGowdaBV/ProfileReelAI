@@ -11,6 +11,7 @@ export type MockTest = {
   minutes: number;
   blurb: string;
   questionCount: number;
+  comingSoon?: boolean;
 };
 
 export const MOCK_TESTS: MockTest[] = [
@@ -45,6 +46,7 @@ export const MOCK_TESTS: MockTest[] = [
     minutes: 75,
     blurb: '4 coding questions, solved inside this test.',
     questionCount: MOCK_TEST_QUESTION_COUNT,
+    comingSoon: true,
   },
   {
     id: 'set-5',
@@ -53,6 +55,7 @@ export const MOCK_TESTS: MockTest[] = [
     minutes: 75,
     blurb: '4 coding questions, solved inside this test.',
     questionCount: MOCK_TEST_QUESTION_COUNT,
+    comingSoon: true,
   },
   {
     id: 'set-6',
@@ -61,6 +64,7 @@ export const MOCK_TESTS: MockTest[] = [
     minutes: 75,
     blurb: '4 coding questions, solved inside this test.',
     questionCount: MOCK_TEST_QUESTION_COUNT,
+    comingSoon: true,
   },
   {
     id: 'set-7',
@@ -69,5 +73,6 @@ export const MOCK_TESTS: MockTest[] = [
     minutes: 75,
     blurb: '4 coding questions, solved inside this test.',
     questionCount: MOCK_TEST_QUESTION_COUNT,
+    comingSoon: true,
   },
 ];

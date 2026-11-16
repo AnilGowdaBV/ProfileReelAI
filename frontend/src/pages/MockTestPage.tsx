@@ -405,7 +405,17 @@ export const MockTestPage: React.FC = () => {
     }
   };
 
-  return (
+  return test?.comingSoon ? (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-6">
+      <div className="max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
+        <h1 className="text-2xl font-black text-slate-950">{test.title}</h1>
+        <p className="mt-2 text-sm text-slate-500">Coming soon</p>
+        <button type="button" onClick={() => navigate('/dashboard')} className="mt-6 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white">
+          Back to dashboard
+        </button>
+      </div>
+    </div>
+  ) : (
     <div className="min-h-screen bg-slate-100 dark:bg-charcoal-950 text-slate-900 dark:text-slate-100" onContextMenu={(event) => event.preventDefault()}>
       {notice && (
         <div className="fixed top-4 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white shadow-xl">
