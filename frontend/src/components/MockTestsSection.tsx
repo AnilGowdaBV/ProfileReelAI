@@ -44,6 +44,12 @@ export const MockTestsSection: React.FC = () => {
   const [locationValue, setLocationValue] = useState('');
   const [interviewingAt, setInterviewingAt] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [shownJobs, setShownJobs] = useState<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
+  const [incomingJobs, setIncomingJobs] = useState<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
+  const [applyJob, setApplyJob] = useState<{ id: string; title: string; company: string } | null>(null);
+  const [interviewers, setInterviewers] = useState<Array<{ id: string; fullName: string; currentCompany: string; currentTitle: string; photoUrl: string; companies: Array<{ name: string; logo: string; title: string }> }>>([]);
+  const jobQueue = React.useRef<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
+  const jobOffset = React.useRef(0);
 
   useEffect(() => {
     let flagged = false;
@@ -106,7 +112,66 @@ export const MockTestsSection: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+    const pullIntoQueue = async () => {
+      const rows = await api.getLiveInstahyreJobs('Java', 12, jobOffset.current);
+      jobOffset.current += 12;
+      if (!alive || !Array.isArray(rows)) return;
+      const seen = new Set(jobQueue.current.map((job) => job.id));
+      const javaRole = /java|spring|j2ee|jvm|hibernate|microservices/i;
+      rows.forEach((job: any) => {
+        const id = String(job.id);
+        const title = job.title || '';
+        const skills = Array.isArray(job.skills) ? job.skills.join(' ') : '';
+        if (seen.has(id) || !javaRole.test(`${title} ${skills}`)) return;
+        seen.add(id);
+        jobQueue.current.push({
+          id,
+          title: title || 'Java Developer',
+          company: job.company || job.companyName || 'Company',
+          location: job.location || 'India',
+          logo: job.logo || job.companyLogo || '',
+        });
+      });
+    };
+    const takeThree = () => jobQueue.current.splice(0, 3);
+    const boot = async () => {
+      for (let attempt = 0; attempt < 4 && jobQueue.current.length < 6; attempt += 1) {
+        await pullIntoQueue();
+      }
+      if (!alive) return;
+      setShownJobs(takeThree());
+      if (jobQueue.current.length < 3) await pullIntoQueue();
+    };
+    boot().catch(() => undefined);
+    const timer = window.setInterval(() => {
+      const swap = async () => {
+        if (jobQueue.current.length < 3) await pullIntoQueue();
+        if (!alive || jobQueue.current.length < 3) return;
+        const incoming = takeThree();
+        setIncomingJobs(incoming);
+        window.setTimeout(() => {
+          if (!alive) return;
+          setShownJobs(incoming);
+          setIncomingJobs([]);
+          if (jobQueue.current.length < 3) pullIntoQueue().catch(() => undefined);
+        }, 700);
+      };
+      swap().catch(() => undefined);
+    }, 60_000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    api.interviewerPicks().then((rows) => setInterviewers(rows)).catch(() => setInterviewers([]));
+  }, []);
+
   const openDetailsForm = (testId: string) => {
+    setApplyJob(null);
     setDetailsTestId(testId);
     setFormSaved(false);
     setFormError('');
@@ -174,7 +239,7 @@ export const MockTestsSection: React.FC = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 max-w-5xl mx-auto gap-4">
-          {MOCK_TESTS.map((test) => {
+          {MOCK_TESTS.filter((test) => !test.comingSoon).map((test) => {
             const completed = MOCK_TEST_PAYWALL_ENABLED && completedIds.includes(test.id);
             const unlocked = !completed && (paidIds.includes(test.id) || !MOCK_TEST_PAYWALL_ENABLED);
             const paying = payingId === test.id;
@@ -251,6 +316,102 @@ export const MockTestsSection: React.FC = () => {
             );
           })}
         </div>
+        {shownJobs.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-center text-lg font-black text-slate-900 dark:text-white">Open roles</h3>
+            <div className="relative mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+              {[0, 1, 2].map((slot) => {
+                const current = shownJobs[slot];
+                const incoming = incomingJobs[slot];
+                const card = (job: (typeof shownJobs)[number]) => (
+                  <>
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          {job.logo ? <img src={job.logo} alt="" className="h-8 w-8 rounded-lg border border-slate-200 bg-white object-contain" /> : null}
+                          <div>
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white">{job.title}</h3>
+                            <p className="text-xs text-slate-500">{job.company}</p>
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">Open</span>
+                      </div>
+                      <p className="mt-3 text-xs text-slate-600 dark:text-slate-400">{job.location}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setApplyJob(job);
+                        setDetailsTestId(job.id);
+                        setFormSaved(false);
+                        setFormError('');
+                        setResumeFile(null);
+                        setFullName((name) => name || user?.name || '');
+                        setEmail((value) => value || user?.email || '');
+                        setLinkedinUrl((value) => value || user?.linkedinUrl || '');
+                      }}
+                      className="mt-4 w-full rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white"
+                    >
+                      Apply
+                    </button>
+                  </>
+                );
+                return (
+                  <div key={current?.id || slot} className="relative min-h-[148px]">
+                    {current && (
+                      <div className={`glass-panel flex h-full flex-col justify-between rounded-2xl border border-slate-200 p-5 transition-all duration-700 ease-in-out dark:border-white/5 ${incoming ? 'pointer-events-none -translate-x-4 opacity-0' : 'translate-x-0 opacity-100'}`}>
+                        {card(current)}
+                      </div>
+                    )}
+                    {incoming && (
+                      <div className="glass-panel absolute inset-0 flex translate-x-4 flex-col justify-between rounded-2xl border border-slate-200 p-5 opacity-0 animate-[roleIn_700ms_ease-in-out_forwards] dark:border-white/5">
+                        {card(incoming)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {interviewers.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-center text-lg font-black text-slate-900 dark:text-white">Clear the test. Get interviewed by experts.</h3>
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
+              {interviewers.map((person) => {
+                const initials = person.fullName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
+                const currentKey = (person.currentCompany || '').trim().toLowerCase();
+                const currentLogo = (person.companies || []).find((company) => {
+                  const name = company.name.trim().toLowerCase();
+                  return name === currentKey || name.includes(currentKey) || currentKey.includes(name);
+                });
+                const past = (person.companies || []).filter((company) => company.logo && company.name !== currentLogo?.name).slice(0, 4);
+                return (
+                  <article key={person.id} className="flex w-[240px] flex-col items-center rounded-3xl border border-slate-200 bg-white px-4 pb-4 pt-5 text-center shadow-sm">
+                    {person.photoUrl ? (
+                      <img src={person.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
+                    ) : (
+                      <span className="grid h-16 w-16 place-items-center rounded-full bg-slate-900 text-sm font-black text-white">{initials || 'IN'}</span>
+                    )}
+                    <p className="mt-3 text-sm font-black text-slate-950">{person.fullName}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">{person.currentTitle}</p>
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-[12px] font-bold text-violet-700">
+                      {currentLogo?.logo && <img src={currentLogo.logo} alt="" className="h-4 w-4 rounded bg-white object-contain" />}
+                      {person.currentCompany}
+                    </p>
+                    {past.length > 0 && (
+                      <div className="mt-3 flex items-center justify-center gap-1.5">
+                        {past.map((company) => (
+                          <img key={company.name} src={company.logo} alt={company.name} title={company.name} className="h-7 w-7 rounded-lg border border-slate-200 bg-white object-contain p-0.5" />
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {(() => {
           const failed = MOCK_TESTS.filter((item) => completedIds.includes(item.id) && getMockTestResult(item.id)?.verdict === 'Failed');
           if (failed.length === 0) return null;
@@ -284,7 +445,8 @@ export const MockTestsSection: React.FC = () => {
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Submitted successfully</h3>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Your details are saved. You can take the test now.</p>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{applyJob ? 'Your application is saved.' : 'Your details are saved. You can take the test now.'}</p>
+                {!applyJob && (
                 <button
                   type="button"
                   onClick={() => navigate(`/test/${detailsTestId}`)}
@@ -292,13 +454,14 @@ export const MockTestsSection: React.FC = () => {
                 >
                   Take test
                 </button>
+                )}
               </div>
             ) : (
               <>
                 <div className="mb-5">
                   <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">Your details</h3>
                   <p className="notice-blink mt-2 inline-block rounded-lg bg-brand-500/15 px-2.5 py-1 text-sm font-extrabold text-brand-700 dark:text-brand-300">
-                    Fill this in before you start the test.
+                    {applyJob ? 'Fill this in to apply for the role.' : 'Fill this in before you start the test.'}
                   </p>
                 </div>
                 <form
@@ -319,9 +482,9 @@ export const MockTestsSection: React.FC = () => {
                       }
                       const test = MOCK_TESTS.find((item) => item.id === detailsTestId);
                       await api.applyForJob({
-                        jobId: detailsTestId,
-                        jobTitle: test?.title || 'Mock Test',
-                        companyName: 'Swiggy, Flipkart, Zepto, Uber',
+                        jobId: applyJob?.id || detailsTestId,
+                        jobTitle: applyJob?.title || test?.title || 'Mock Test',
+                        companyName: applyJob?.company || 'Swiggy, Flipkart, Zepto, Uber',
                         fullName: fullName.trim(),
                         linkedinUrl: linkedinUrl.trim(),
                         email: email.trim(),

@@ -39,6 +39,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { MOCK_TESTS } from '../data/mockTests';
+import { api } from '../services/api';
 
 interface LandingPageProps {
   onOpenLogin: () => void;
@@ -194,9 +195,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     { name: 'Uber', domain: 'uber.com' },
   ];
   const accents = ['from-cyan-400 to-blue-600', 'from-orange-400 to-rose-500', 'from-sky-400 to-indigo-600', 'from-violet-400 to-fuchsia-600', 'from-emerald-400 to-teal-600', 'from-amber-400 to-orange-500', 'from-pink-400 to-purple-600'];
+  const [landingJobs, setLandingJobs] = useState<Array<{ id: string; title: string; company: string; location: string; logo: string }>>([]);
+  const [landingPeople, setLandingPeople] = useState<Array<{ id: string; fullName: string; currentCompany: string; currentTitle: string; photoUrl: string; companies: Array<{ name: string; logo: string }> }>>([]);
+
+  useEffect(() => {
+    let alive = true;
+    api.getLiveInstahyreJobs('Java', 12, 0).then((rows) => {
+      if (!alive || !Array.isArray(rows)) return;
+      const javaRole = /java|spring|j2ee|jvm|hibernate|microservices/i;
+      const jobs = rows
+        .filter((job: any) => javaRole.test(`${job.title || ''} ${Array.isArray(job.skills) ? job.skills.join(' ') : ''}`))
+        .slice(0, 3)
+        .map((job: any) => ({
+          id: String(job.id),
+          title: job.title || 'Java Developer',
+          company: job.company || job.companyName || 'Company',
+          location: job.location || 'India',
+          logo: job.logo || job.companyLogo || '',
+        }));
+      setLandingJobs(jobs);
+    }).catch(() => undefined);
+    api.interviewerPicks().then((rows) => {
+      if (alive) setLandingPeople(rows);
+    }).catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
-    <div className="h-screen overflow-hidden bg-[#f4f7fb] text-slate-900">
+    <div className="min-h-screen overflow-x-hidden bg-[#f4f7fb] text-slate-900">
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-sky-200/70 blur-3xl" />
         <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-violet-200/60 blur-3xl" />
@@ -210,7 +238,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           Sign in
         </button>
       </header>
-      <main className="mx-auto flex h-[calc(100vh-4rem)] max-w-[1320px] flex-col justify-center px-8 pb-6">
+      <main className="mx-auto max-w-[1320px] px-8 pb-16">
         <div className="pb-6 text-center">
           <h1 className="text-4xl font-black tracking-tight text-slate-950">
             Best suitable for <span className="bg-gradient-to-r from-sky-600 to-violet-600 bg-clip-text text-transparent">Product companies</span>
@@ -218,7 +246,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <p className="mt-2 text-sm text-slate-500">75 min · 4 questions · Swiggy, Flipkart, Zepto, Uber</p>
         </div>
         <div className="flex flex-wrap justify-center gap-4">
-          {MOCK_TESTS.map((test, index) => {
+          {MOCK_TESTS.filter((test) => !test.comingSoon).map((test, index) => {
             const soon = Boolean(test.comingSoon);
             return (
             <button
@@ -257,6 +285,55 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             );
           })}
         </div>
+        {landingJobs.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-center text-lg font-black text-slate-950">Open roles</h2>
+            <div className="mt-4 flex flex-wrap justify-center gap-4">
+              {landingJobs.map((job, index) => (
+                <button
+                  key={job.id}
+                  type="button"
+                  onClick={onOpenLogin}
+                  className="flex w-[calc((100%-3rem)/4)] min-h-[210px] flex-col rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-[0_10px_28px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-[0_16px_36px_rgba(15,23,42,0.1)]"
+                >
+                  <div className={`mb-3 h-1 w-full rounded-full bg-gradient-to-r ${accents[(index + 3) % accents.length]}`} />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                      {job.logo ? <img src={job.logo} alt="" className="h-8 w-8 object-contain" /> : <span className="text-[10px] font-black text-slate-400">JOB</span>}
+                    </span>
+                    <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">Open</span>
+                  </div>
+                  <p className="mt-3 line-clamp-2 text-base font-black leading-5 text-slate-950">{job.title}</p>
+                  <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-600">{job.company}</p>
+                  <p className="mt-2 text-[11px] text-slate-400">{job.location}</p>
+                  <span className="mt-auto flex w-full items-center justify-center rounded-xl bg-slate-950 py-2.5 text-xs font-bold text-white">Apply</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {landingPeople.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-center text-lg font-black text-slate-950">Clear the test. Get interviewed by experts.</h2>
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
+              {landingPeople.map((person) => {
+                const initials = person.fullName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
+                return (
+                  <button key={person.id} type="button" onClick={onOpenLogin} className="flex w-[240px] flex-col items-center rounded-3xl border border-slate-200 bg-white px-4 pb-4 pt-5 text-center shadow-sm">
+                    {person.photoUrl ? (
+                      <img src={person.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
+                    ) : (
+                      <span className="grid h-16 w-16 place-items-center rounded-full bg-slate-900 text-sm font-black text-white">{initials || 'IN'}</span>
+                    )}
+                    <p className="mt-3 text-sm font-black text-slate-950">{person.fullName}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">{person.currentTitle}</p>
+                    <p className="mt-1 text-[12px] font-bold text-violet-700">{person.currentCompany}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
