@@ -495,11 +495,6 @@ export class JobsService {
       ADD COLUMN submitted_by varchar(255) NOT NULL DEFAULT ''
     `).catch(() => undefined);
     await this.coursePlatforms.query(`
-      ALTER TABLE course_platforms
-      MODIFY COLUMN name text NOT NULL,
-      MODIFY COLUMN url text NOT NULL
-    `).catch(() => undefined);
-    await this.coursePlatforms.query(`
       UPDATE course_platforms SET recommend_for = 'java'
       WHERE recommend_for = '' AND (purpose LIKE '%DSA%' OR purpose LIKE '%LLD%' OR purpose LIKE '%Java%')
     `);

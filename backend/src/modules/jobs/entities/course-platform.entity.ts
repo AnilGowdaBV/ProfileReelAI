@@ -5,10 +5,10 @@ export class CoursePlatform {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'text' })
+  @Column({ length: 255 })
   name: string;
 
-  @Column({ type: 'text' })
+  @Column({ length: 500 })
   url: string;
 
   @Column({ length: 255, default: '' })
