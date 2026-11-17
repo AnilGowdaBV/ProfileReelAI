@@ -119,7 +119,7 @@ export const MockTestsSection: React.FC = () => {
     let alive = true;
     const pullIntoQueue = async () => {
       const live = await Promise.race([
-        api.getLiveInstahyreJobs('Java', 8, 0, 'companies').catch(() => []),
+        api.getLiveInstahyreJobs('Java', 40, 0, 'companies').catch(() => []),
         new Promise<any[]>((resolve) => window.setTimeout(() => resolve([]), 2000)),
       ]);
       const rows = Array.isArray(live) && live.length > 0 ? live : [
@@ -137,7 +137,7 @@ export const MockTestsSection: React.FC = () => {
         logo: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
       }));
       if (!alive) return;
-      const seen = new Set(jobQueue.current.map((job) => job.company.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^target.*/, 'target')));
+      const seen = new Set(jobQueue.current.map((job) => job.id));
       const javaRole = /java|spring|j2ee|jvm|hibernate|microservices/i;
       const featuredCompany = (name: string) => {
         const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -148,9 +148,8 @@ export const MockTestsSection: React.FC = () => {
         const title = job.title || '';
         const company = job.company || job.companyName || '';
         const skills = Array.isArray(job.skills) ? job.skills.join(' ') : '';
-        const companyKey = company.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^target.*/, 'target');
-        if (seen.has(companyKey) || !featuredCompany(company) || !javaRole.test(`${title} ${skills}`)) return;
-        seen.add(companyKey);
+        if (seen.has(id) || !featuredCompany(company) || !javaRole.test(`${title} ${skills}`)) return;
+        seen.add(id);
         jobQueue.current.push({
           id,
           title: title || 'Java Developer',
@@ -160,7 +159,22 @@ export const MockTestsSection: React.FC = () => {
         });
       });
     };
-    const takeThree = () => jobQueue.current.splice(0, 3);
+    const takeThree = () => {
+      const picked: typeof jobQueue.current = [];
+      const companies = new Set<string>();
+      const left: typeof jobQueue.current = [];
+      for (const job of jobQueue.current) {
+        const key = job.company.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^target.*/, 'target');
+        if (picked.length < 3 && !companies.has(key)) {
+          companies.add(key);
+          picked.push(job);
+        } else {
+          left.push(job);
+        }
+      }
+      jobQueue.current = left;
+      return picked;
+    };
     const boot = async () => {
       await pullIntoQueue();
       if (!alive) return;

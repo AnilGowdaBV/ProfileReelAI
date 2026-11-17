@@ -25,4 +25,10 @@ export class CreateCoursePlatformDto {
   @IsString()
   @MaxLength(80)
   recommendFor?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  submittedBy?: string;
 }

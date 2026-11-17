@@ -310,26 +310,73 @@ export class JobsService {
 
   async listCoursePlatforms() {
     await this.courseTableReady;
-    return this.coursePlatforms.find({ order: { createdAt: 'ASC' } });
+    return this.coursePlatforms.find({ where: { status: 'APPROVED' }, order: { createdAt: 'ASC' } });
+  }
+
+  async listCoursePlatformsForAdmin() {
+    await this.courseTableReady;
+    return this.coursePlatforms.find({ order: { createdAt: 'DESC' } });
+  }
+
+  async suggestCoursePlatform(dto: CreateCoursePlatformDto, submittedBy: string) {
+    await this.courseTableReady;
+    const name = dto.name.trim();
+    const url = this.normalizeCourseUrl(dto.url);
+    if (!name || !url) {
+      throw new BadRequestException('Name and website link are required');
+    }
+    const exists = await this.coursePlatforms.findOne({ where: [{ url }, { name }] });
+    if (exists) {
+      throw new BadRequestException('That course platform is already saved');
+    }
+    const about = await this.readCoursePage(url);
+    const sorted = this.sortCourse(`${name} ${url} ${dto.purpose || ''} ${about}`);
+    return this.coursePlatforms.save(this.coursePlatforms.create({
+      name,
+      url,
+      purpose: (dto.purpose || '').trim() || sorted.purpose,
+      recommendFor: this.normalizeRecommendFor(dto.recommendFor) || sorted.recommendFor,
+      status: 'PENDING',
+      submittedBy: submittedBy.trim(),
+    }));
+  }
+
+  async reviewCoursePlatform(id: string, status: string) {
+    await this.courseTableReady;
+    const row = await this.coursePlatforms.findOne({ where: { id } });
+    if (!row) throw new NotFoundException('Course platform not found');
+    if (status !== 'APPROVED' && status !== 'REJECTED') {
+      throw new BadRequestException('Choose approve or reject');
+    }
+    if (status === 'REJECTED') {
+      await this.coursePlatforms.delete(row.id);
+      return { ...row, status: 'REJECTED' };
+    }
+    row.status = status;
+    return this.coursePlatforms.save(row);
   }
 
   async addCoursePlatform(dto: CreateCoursePlatformDto) {
     await this.courseTableReady;
     const name = dto.name.trim();
     const url = this.normalizeCourseUrl(dto.url);
-    const purpose = (dto.purpose || '').trim();
-    const recommendFor = this.normalizeRecommendFor(dto.recommendFor);
     if (!name || !url) {
       throw new BadRequestException('Name and website link are required');
-    }
-    if (!recommendFor) {
-      throw new BadRequestException('Choose which failed paper this platform is for');
     }
     const exists = await this.coursePlatforms.findOne({ where: [{ url }, { name }] });
     if (exists) {
       throw new BadRequestException('That course platform is already saved');
     }
-    return this.coursePlatforms.save(this.coursePlatforms.create({ name, url, purpose, recommendFor }));
+    const about = await this.readCoursePage(url);
+    const sorted = this.sortCourse(`${name} ${url} ${dto.purpose || ''} ${about}`);
+    return this.coursePlatforms.save(this.coursePlatforms.create({
+      name,
+      url,
+      purpose: (dto.purpose || '').trim() || sorted.purpose,
+      recommendFor: this.normalizeRecommendFor(dto.recommendFor) || sorted.recommendFor,
+      status: 'APPROVED',
+      submittedBy: '',
+    }));
   }
 
   async updateCoursePlatform(id: string, dto: CreateCoursePlatformDto) {
@@ -369,6 +416,42 @@ export class JobsService {
     return { success: true };
   }
 
+  private sortCourse(text: string) {
+    const haystack = text.toLowerCase();
+    const groups: Array<{ id: string; purpose: string; words: string[] }> = [
+      { id: 'java', purpose: 'DSA', words: ['java', 'dsa', 'leetcode', 'data structure', 'algorithm'] },
+      { id: 'java', purpose: 'LLD', words: ['lld', 'low level design', 'object oriented'] },
+      { id: 'react', purpose: 'Full-stack development', words: ['react', 'frontend', 'front-end', 'javascript', 'full stack', 'fullstack'] },
+      { id: 'golang', purpose: 'System Design', words: ['golang', ' go ', 'system design'] },
+      { id: 'dataengineer', purpose: 'Data engineering', words: ['data engineer', 'spark', 'etl', 'airflow', 'warehouse'] },
+      { id: 'sdet', purpose: 'Testing', words: ['sdet', 'playwright', 'selenium', 'automation', 'qa'] },
+      { id: 'dataanalyst', purpose: 'Analytics', words: ['data analyst', 'tableau', 'power bi', 'excel'] },
+      { id: 'devops', purpose: 'DevOps', words: ['devops', 'kubernetes', 'docker', 'terraform', 'ci/cd'] },
+    ];
+    const hits = groups.filter((group) => group.words.some((word) => haystack.includes(word)));
+    const papers = [...new Set(hits.map((group) => group.id))];
+    const purposes = [...new Set(hits.map((group) => group.purpose))];
+    return {
+      purpose: purposes[0] || 'General',
+      recommendFor: papers.join(','),
+    };
+  }
+
+  private async readCoursePage(url: string) {
+    try {
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'text/html' },
+        signal: AbortSignal.timeout(4000),
+      });
+      const html = await response.text();
+      const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || '';
+      const description = html.match(/name=["']description["'][^>]*content=["']([^"']+)/i)?.[1] || '';
+      return `${title} ${description}`.replace(/\s+/g, ' ').slice(0, 500);
+    } catch {
+      return '';
+    }
+  }
+
   private normalizeRecommendFor(raw?: string) {
     const allowed = new Set(['react', 'java', 'golang', 'dataengineer', 'sdet', 'dataanalyst', 'devops']);
     const picked = [...new Set(String(raw || '').toLowerCase().split(/[^a-z]+/).filter((part) => allowed.has(part)))];
@@ -380,7 +463,10 @@ export class JobsService {
     if (!trimmed) return '';
     try {
       const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-      return new URL(withProtocol).toString();
+      const parsed = new URL(withProtocol);
+      parsed.search = '';
+      parsed.hash = '';
+      return parsed.toString();
     } catch {
       throw new BadRequestException('Enter a valid website link');
     }
@@ -390,8 +476,8 @@ export class JobsService {
     await this.coursePlatforms.query(`
       CREATE TABLE IF NOT EXISTS course_platforms (
         id varchar(36) NOT NULL PRIMARY KEY,
-        name varchar(255) NOT NULL,
-        url varchar(500) NOT NULL,
+        name text NOT NULL,
+        url text NOT NULL,
         purpose varchar(255) NOT NULL DEFAULT '',
         created_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
       )
@@ -399,6 +485,19 @@ export class JobsService {
     await this.coursePlatforms.query(`
       ALTER TABLE course_platforms
       ADD COLUMN recommend_for varchar(80) NOT NULL DEFAULT ''
+    `).catch(() => undefined);
+    await this.coursePlatforms.query(`
+      ALTER TABLE course_platforms
+      ADD COLUMN status varchar(40) NOT NULL DEFAULT 'APPROVED'
+    `).catch(() => undefined);
+    await this.coursePlatforms.query(`
+      ALTER TABLE course_platforms
+      ADD COLUMN submitted_by varchar(255) NOT NULL DEFAULT ''
+    `).catch(() => undefined);
+    await this.coursePlatforms.query(`
+      ALTER TABLE course_platforms
+      MODIFY COLUMN name text NOT NULL,
+      MODIFY COLUMN url text NOT NULL
     `).catch(() => undefined);
     await this.coursePlatforms.query(`
       UPDATE course_platforms SET recommend_for = 'java'

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { BeInterviewerModal } from './BeInterviewerModal';
+import { AddCourseButton } from './AddCourseButton';
 import { Film, Database, CheckCircle, AlertCircle, Zap, Sun, Moon, LogOut } from 'lucide-react';
 import { HealthStatus } from '../types/candidate';
 import { useTheme } from '../context/ThemeContext';
@@ -64,6 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Navigation Links, Theme Toggle & Pro Action */}
         <div className="flex items-center gap-2.5 sm:gap-4">
+          <AddCourseButton submittedBy={user?.name || user?.email || ''} className="md:hidden px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-500/10" />
           <button type="button" onClick={() => setInterviewerOpen(true)} className="md:hidden px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10">
             Interviewer
           </button>
@@ -73,12 +75,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ⚡ 15 Verified Roles
               </a>
             )}
-            <a href="#pricing" className="px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 hover:text-brand-600 dark:hover:text-white transition-all">
-              Pricing Plans
-            </a>
             <button type="button" onClick={() => setInterviewerOpen(true)} className="px-3 py-1.5 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-500/10 text-violet-700 dark:text-violet-300 transition-all">
               Be an interviewer
             </button>
+            <AddCourseButton submittedBy={user?.name || user?.email || ''} className="px-3 py-1.5 rounded-lg text-emerald-700 transition-all hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-500/10" />
           </nav>
 
           {/* Database Health Pill */}

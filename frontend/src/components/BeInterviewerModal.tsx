@@ -38,6 +38,7 @@ export const BeInterviewerModal: React.FC<{ open: boolean; onClose: () => void }
   const [done, setDone] = useState(false);
   const [previous, setPrevious] = useState<string[]>([]);
   const [existingStatus, setExistingStatus] = useState('');
+  const [reapplyAt, setReapplyAt] = useState('');
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
@@ -49,7 +50,10 @@ export const BeInterviewerModal: React.FC<{ open: boolean; onClose: () => void }
     }
     setChecking(true);
     api.interviewerStatus(user.email)
-      .then((result) => setExistingStatus(result.found ? result.status || 'UNDER_REVIEW' : ''))
+      .then((result) => {
+        setExistingStatus(result.found ? result.status || 'UNDER_REVIEW' : '');
+        setReapplyAt(result.reapplyAt || '');
+      })
       .catch(() => setExistingStatus(''))
       .finally(() => setChecking(false));
   }, [open, user?.email]);
@@ -92,7 +96,11 @@ export const BeInterviewerModal: React.FC<{ open: boolean; onClose: () => void }
               {STATUS_COPY[existingStatus]?.stamp || 'Under review'}
             </div>
             <h3 className="mt-5 text-lg font-extrabold text-slate-900 dark:text-white">{STATUS_COPY[existingStatus]?.title || 'Profile under review'}</h3>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{STATUS_COPY[existingStatus]?.detail || 'Your profile is under review.'}</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              {existingStatus === 'REJECTED' && reapplyAt
+                ? `You can fill this form again on ${new Date(reapplyAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}, one week after you applied.`
+                : STATUS_COPY[existingStatus]?.detail || 'Your profile is under review.'}
+            </p>
             <button type="button" onClick={onClose} className="mt-6 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold">
               Close
             </button>

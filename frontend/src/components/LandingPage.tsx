@@ -203,7 +203,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   useEffect(() => {
     let alive = true;
     Promise.race([
-      api.getLiveInstahyreJobs('Java', 8, 0, 'companies').catch(() => []),
+      api.getLiveInstahyreJobs('Java', 40, 0, 'companies').catch(() => []),
       new Promise<any[]>((resolve) => window.setTimeout(() => resolve([]), 2000)),
     ]).then((rows) => {
       if (!alive) return;

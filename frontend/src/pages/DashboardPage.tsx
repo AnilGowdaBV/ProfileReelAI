@@ -182,7 +182,9 @@ export const DashboardPage: React.FC = () => {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-        <InterviewerInbox email={user?.email} />
+        <div className="flex items-center justify-end">
+          <InterviewerInbox email={user?.email} />
+        </div>
 
         {/* Hero Banner & Feature Highlights (Commented out from UI per user request) */}
         {/*

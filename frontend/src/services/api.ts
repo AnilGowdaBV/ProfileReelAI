@@ -84,6 +84,8 @@ export type CoursePlatformRow = {
   url: string;
   purpose: string;
   recommendFor: string;
+  status?: string;
+  submittedBy?: string;
   createdAt: string;
 };
 
@@ -199,6 +201,24 @@ export const api = {
 
   coursePlatforms: () => request<CoursePlatformRow[]>('/jobs/course-platforms'),
 
+  reviewCoursePlatforms: (token: string) =>
+    request<CoursePlatformRow[]>('/jobs/course-platforms/review', {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  suggestCoursePlatform: (data: { name: string; url: string; purpose?: string; recommendFor?: string; submittedBy?: string }) =>
+    request<CoursePlatformRow>('/jobs/course-platforms/suggest', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  reviewCoursePlatform: (token: string, id: string, status: 'APPROVED' | 'REJECTED') =>
+    request<CoursePlatformRow>(`/jobs/course-platforms/${id}/review`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status }),
+    }),
+
   addCoursePlatform: (token: string, data: { name: string; url: string; purpose?: string; recommendFor?: string }) =>
     request<CoursePlatformRow>('/jobs/course-platforms', {
       method: 'POST',
@@ -306,7 +326,7 @@ export const api = {
     request<{ photoUrl: string }>(`/interviewers/photo?email=${encodeURIComponent(email)}`),
 
   interviewerStatus: (email: string) =>
-    request<{ found: boolean; status?: string; fullName?: string; photoUrl?: string }>(
+    request<{ found: boolean; status?: string; fullName?: string; photoUrl?: string; reapplyAt?: string; canReapply?: boolean }>(
       `/interviewers/mine?email=${encodeURIComponent(email)}`,
     ),
 

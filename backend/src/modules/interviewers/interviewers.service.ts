@@ -335,12 +335,11 @@ export class InterviewersService {
 
   async statusFor(email: string) {
     await this.tableReady;
-    const row = await this.applications
-      .createQueryBuilder('application')
-      .where('LOWER(application.email) = LOWER(:email)', { email: email.trim() })
-      .orderBy('application.createdAt', 'DESC')
-      .getOne();
+    const row = await this.latestApplication(email);
     if (!row) return { found: false };
+    const reapplyAt = new Date(new Date(row.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000);
+    const canReapply = row.status === 'REJECTED' && Date.now() >= reapplyAt.getTime();
+    if (canReapply) return { found: false, canReapply: true };
     if (!row.photoUrl && row.linkedinUrl) {
       const photo = await this.profilePhoto(row.linkedinUrl);
       if (photo) {
@@ -348,7 +347,15 @@ export class InterviewersService {
         await this.applications.save(row);
       }
     }
-    return { found: true, status: row.status, fullName: row.fullName, photoUrl: row.photoUrl || '' };
+    return { found: true, status: row.status, fullName: row.fullName, photoUrl: row.photoUrl || '', reapplyAt: row.status === 'REJECTED' ? reapplyAt.toISOString() : undefined };
+  }
+
+  private latestApplication(email: string) {
+    return this.applications
+      .createQueryBuilder('application')
+      .where('LOWER(application.email) = LOWER(:email)', { email: email.trim() })
+      .orderBy('application.createdAt', 'DESC')
+      .getOne();
   }
 
   async candidatePhoto(email: string) {
@@ -439,9 +446,38 @@ export class InterviewersService {
 
   async apply(dto: ApplyInterviewerDto) {
     await this.tableReady;
-    const existing = await this.statusFor(dto.email);
-    if (existing.found) {
-      throw new BadRequestException('You already applied. Your profile is under review.');
+    const existing = await this.latestApplication(dto.email);
+    const reapplyAt = existing ? new Date(new Date(existing.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000) : null;
+    const canReapply = Boolean(existing && existing.status === 'REJECTED' && reapplyAt && Date.now() >= reapplyAt.getTime());
+    if (existing && !canReapply) {
+      throw new BadRequestException(
+        existing.status === 'REJECTED' && reapplyAt
+          ? `You can apply again on ${reapplyAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}.`
+          : 'You already applied. Your profile is under review.',
+      );
+    }
+    if (existing && canReapply) {
+      const linkedinUrl = this.normalizeLinkedIn(dto.linkedinUrl);
+      const slug = this.slugFrom(linkedinUrl);
+      const facts = await this.linkedInFacts(linkedinUrl, slug, dto.currentCompany);
+      existing.fullName = dto.fullName.trim();
+      existing.email = dto.email.trim();
+      existing.phone = dto.phone.trim();
+      existing.linkedinUrl = linkedinUrl;
+      existing.currentCompany = dto.currentCompany.trim();
+      existing.previousCompanies = facts.previous.join(', ');
+      existing.photoUrl = facts.photo;
+      existing.companyLogos = JSON.stringify(facts.companies);
+      existing.status = 'UNDER_REVIEW';
+      existing.createdAt = new Date();
+      const saved = await this.applications.save(existing);
+      await this.syncSheet(saved);
+      return {
+        success: true,
+        message: 'Application submitted successfully. Profile is under review.',
+        id: saved.id,
+        previousCompanies: facts.previous,
+      };
     }
     const linkedinUrl = this.normalizeLinkedIn(dto.linkedinUrl);
     const slug = this.slugFrom(linkedinUrl);

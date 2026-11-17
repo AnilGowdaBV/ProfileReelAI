@@ -175,14 +175,14 @@ export const AdminPage: React.FC = () => {
       api.mockTestResults(token).then(setTests).catch(() => setTests([])),
       api.jobApplications(token, 'jobs').then(setJobs).catch(() => setJobs([])),
       api.jobApplications(token, 'interest').then(setInterest).catch(() => setInterest([])),
-      api.coursePlatforms().then(setCourses).catch(() => setCourses([])),
+      api.reviewCoursePlatforms(readAdminToken()).then(setCourses).catch(() => setCourses([])),
       api.interviewerApplications(token).then(setRows).catch((err) => {
         setError(err instanceof Error ? err.message : 'Could not load applications.');
       }),
     ]);
 
   const openSection = (id: string) => {
-    if (id === section) return;
+    if (id === section && id !== 'courses' && id !== 'course-approval') return;
     setSection(id);
     setPaneBusy(true);
     if (id === 'recordings') {
@@ -190,6 +190,9 @@ export const AdminPage: React.FC = () => {
       api.interviewRecordings(token)
         .then(setRecordings)
         .catch((err) => setError(err instanceof Error ? err.message : 'Could not load recordings.'));
+    }
+    if (id === 'courses' || id === 'course-approval') {
+      api.reviewCoursePlatforms(readAdminToken()).then(setCourses).catch(() => undefined);
     }
     if (paneTimer.current) window.clearTimeout(paneTimer.current);
     paneTimer.current = window.setTimeout(() => setPaneBusy(false), 480);
@@ -338,7 +341,14 @@ export const AdminPage: React.FC = () => {
               <span className="block text-sm font-bold">Course platforms</span>
               <span className={`block text-[11px] ${section === 'courses' ? 'text-white/70' : 'text-slate-500'}`}>Name and website</span>
             </span>
-            <span className={pillClass('courses')}>{courses.length}</span>
+            <span className={pillClass('courses')}>{courses.filter((course) => course.status !== 'PENDING' && course.status !== 'REJECTED').length}</span>
+          </button>
+          <button type="button" onClick={() => openSection('course-approval')} className={navClass('course-approval')}>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">Course approval</span>
+              <span className={`block text-[11px] ${section === 'course-approval' ? 'text-white/70' : 'text-slate-500'}`}>Waiting to go live</span>
+            </span>
+            <span className={pillClass('course-approval')}>{courses.filter((course) => course.status === 'PENDING').length}</span>
           </button>
         </nav>
 
@@ -623,22 +633,18 @@ export const AdminPage: React.FC = () => {
           <>
             <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 ${panel}`}>
               <div>
-                <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${kicker}`}>Failed-test recommendations</p>
+                <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${kicker}`}>Recommended for</p>
                 <h1 className="text-lg font-black leading-tight">Course platforms</h1>
               </div>
-              <p className={`text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{courses.length} platforms</p>
+              <p className={`text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{courses.filter((course) => course.status !== 'REJECTED' && course.status !== 'PENDING').length} live</p>
             </div>
             <form
               onSubmit={async (event) => {
                 event.preventDefault();
                 setError('');
-                if (coursePapers.length === 0) {
-                  setError('Choose which failed paper this platform is for.');
-                  return;
-                }
                 try {
                   const saved = await api.addCoursePlatform(readAdminToken(), { name: courseName, url: courseUrl, purpose: coursePurpose, recommendFor: coursePapers.join(',') });
-                  setCourses((current) => [...current, saved]);
+                  setCourses((current) => [saved, ...current]);
                   setCourseName('');
                   setCourseUrl('');
                   setCoursePurpose('');
@@ -654,7 +660,7 @@ export const AdminPage: React.FC = () => {
               <input value={coursePurpose} onChange={(event) => setCoursePurpose(event.target.value)} placeholder="Meant for, e.g. DSA" className={`rounded-xl px-3 py-2 text-sm ${dark ? 'bg-white/5 text-white' : 'border border-slate-200'}`} />
               <button type="submit" className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">Add</button>
               <div className="flex flex-wrap items-center gap-2 sm:col-span-4">
-                <span className={`text-[11px] font-bold ${dark ? 'text-slate-300' : 'text-slate-500'}`}>Recommend after fail</span>
+                <span className={`text-[11px] font-bold ${dark ? 'text-slate-300' : 'text-slate-500'}`}>Recommended for</span>
                 {PAPERS.map((paper) => (
                   <label key={paper.id} className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${coursePapers.includes(paper.id) ? 'bg-violet-600 text-white' : dark ? 'bg-white/10 text-slate-200' : 'bg-violet-50 text-violet-800'}`}>
                     <input type="checkbox" className="sr-only" checked={coursePapers.includes(paper.id)} onChange={() => setCoursePapers((current) => togglePaper(current, paper.id))} />
@@ -663,20 +669,20 @@ export const AdminPage: React.FC = () => {
                 ))}
               </div>
             </form>
-            {error && <p className="mt-2 text-xs text-rose-500">{error}</p>}
+            {error && section === 'courses' && <p className="mt-2 text-xs text-rose-500">{error}</p>}
             <div className={`mt-3 overflow-visible rounded-2xl ${panel}`}>
-              {courses.length === 0 && <p className="px-4 py-10 text-center text-sm text-slate-500">No platforms saved yet.</p>}
-              {courses.length > 0 && (
+              {courses.filter((course) => course.status !== 'PENDING' && course.status !== 'REJECTED').length === 0 && <p className="px-4 py-10 text-center text-sm text-slate-500">No platforms saved yet.</p>}
+              {courses.filter((course) => course.status !== 'PENDING' && course.status !== 'REJECTED').length > 0 && (
                 <table className="w-full text-left text-sm">
                   <thead className={`${dark ? 'bg-white/5 text-violet-200' : 'bg-[#f6f4fb] text-violet-800'} text-[10px] uppercase tracking-[0.12em]`}>
                     <tr>
-                      {['Name', 'Website', 'Meant for', 'After fail', ''].map((label) => (
+                      {['Name', 'Website', 'Meant for', 'Recommended for', 'Status', ''].map((label) => (
                         <th key={label || 'actions'} className="px-3 py-2 font-bold">{label}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {courses.map((course) => {
+                    {courses.filter((course) => course.status !== 'PENDING' && course.status !== 'REJECTED').map((course) => {
                       const editing = editingId === course.id;
                       const field = `w-full rounded-lg px-2 py-1.5 text-sm ${dark ? 'bg-white/5 text-white' : 'border border-slate-200 bg-white'}`;
                       return (
@@ -705,6 +711,9 @@ export const AdminPage: React.FC = () => {
                                 ))}
                               </div>
                             ) : paperLabels(course.recommendFor)}
+                          </td>
+                          <td className="px-3 py-2 text-xs">
+                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Live</span>
                           </td>
                           <td className="px-3 py-2">
                             <div className="flex justify-end gap-1">
@@ -773,6 +782,58 @@ export const AdminPage: React.FC = () => {
                   </tbody>
                 </table>
               )}
+            </div>
+          </>
+        )}
+
+        {section === 'course-approval' && (
+          <>
+            <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 ${panel}`}>
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${kicker}`}>Sent by candidates</p>
+                <h1 className="text-lg font-black leading-tight">Course approval</h1>
+              </div>
+              <p className={`text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{courses.filter((course) => course.status === 'PENDING').length} waiting</p>
+            </div>
+            <div className="mt-3 space-y-3">
+              {courses.filter((course) => course.status === 'PENDING').length === 0 && (
+                <div className={`rounded-xl px-4 py-8 text-center text-sm ${dark ? 'text-slate-400' : 'text-slate-500'} ${panel}`}>Nothing is waiting. Approved courses show under Course platforms.</div>
+              )}
+              {courses.filter((course) => course.status === 'PENDING').map((course) => {
+                const fields = [
+                  ['Sent by', course.submittedBy || 'Candidate'],
+                  ['Meant for', course.purpose || '—'],
+                  ['Recommended for', paperLabels(course.recommendFor)],
+                  ['Submitted', course.createdAt ? new Date(course.createdAt).toLocaleString() : '—'],
+                ];
+                return (
+                  <article key={course.id} className={`rounded-2xl px-5 py-4 ${panel}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-violet-700 text-[11px] font-black text-white">{initials(course.name) || 'CR'}</div>
+                        <h2 className="text-base font-black">{course.name}</h2>
+                      </div>
+                      <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">Waiting</span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      {fields.map(([label, value]) => (
+                        <div key={label} className={`rounded-xl px-3 py-2 ${soft}`}>
+                          <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${kicker}`}>{label}</p>
+                          <p className={`mt-1 text-sm font-semibold ${dark ? 'text-slate-100' : 'text-slate-800'}`}>{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className={`mt-3 rounded-xl px-3 py-2 ${soft}`}>
+                      <p className={`text-[10px] font-bold uppercase tracking-[0.14em] ${kicker}`}>Website</p>
+                      <a href={course.url} target="_blank" rel="noreferrer" className={`mt-1 block truncate text-sm font-semibold ${kicker}`}>{course.url.replace(/[?#].*$/, '')}</a>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <button type="button" className="rounded-lg bg-teal-700 px-3 py-1.5 text-[11px] font-bold text-white" onClick={() => { void api.reviewCoursePlatform(readAdminToken(), course.id, 'APPROVED').then((saved) => setCourses((current) => current.map((row) => (row.id === saved.id ? saved : row)))); }}>Approve</button>
+                      <button type="button" className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-bold text-white" onClick={() => { void api.reviewCoursePlatform(readAdminToken(), course.id, 'REJECTED').then(() => setCourses((current) => current.filter((row) => row.id !== course.id))); }}>Reject</button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </>
         )}

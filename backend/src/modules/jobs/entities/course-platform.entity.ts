@@ -5,10 +5,10 @@ export class CoursePlatform {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 255 })
+  @Column({ type: 'text' })
   name: string;
 
-  @Column({ length: 500 })
+  @Column({ type: 'text' })
   url: string;
 
   @Column({ length: 255, default: '' })
@@ -16,6 +16,12 @@ export class CoursePlatform {
 
   @Column({ name: 'recommend_for', length: 80, default: '' })
   recommendFor: string;
+
+  @Column({ length: 40, default: 'APPROVED' })
+  status: string;
+
+  @Column({ name: 'submitted_by', length: 255, default: '' })
+  submittedBy: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

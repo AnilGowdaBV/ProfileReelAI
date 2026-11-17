@@ -60,7 +60,7 @@ export const InterviewerInbox: React.FC<{ email?: string }> = ({ email }) => {
   if (!email) return null;
 
   return (
-    <div className="flex justify-end">
+    <div>
       <div className="relative">
         <button
           type="button"

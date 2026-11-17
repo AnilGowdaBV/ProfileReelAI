@@ -1,3 +1,5 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { Controller, Get, Post, Patch, Delete, Body, Headers, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { AdminService } from '../admin/admin.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
@@ -10,7 +12,19 @@ import { CourseRecommendationsService } from './course-recommendations.service';
 import { RunCodeDto } from './dto/run-code.dto';
 import { CreateCoursePlatformDto } from './dto/create-course-platform.dto';
 
+const FEATURED_JOB_TTL = 2 * 24 * 60 * 60 * 1000;
+const featuredJobFile = join(process.cwd(), '.cache', 'featured-java-jobs.json');
 let featuredJobCache: { at: number; jobs: any[] } | null = null;
+
+function readFeaturedJobFile() {
+  try {
+    const saved = JSON.parse(readFileSync(featuredJobFile, 'utf8')) as { at: number; jobs: any[] };
+    if (!saved?.at || !Array.isArray(saved.jobs) || saved.jobs.length === 0) return null;
+    return saved;
+  } catch {
+    return null;
+  }
+}
 
 const featuredRoleFallback = [
   ['target', 'Target in India', 'Java Developer', 'Bangalore', 'target.com'],
@@ -34,7 +48,8 @@ const featuredRoleFallback = [
 }));
 
 async function loadFeaturedJavaJobs(headers: Record<string, string>) {
-  if (featuredJobCache && Date.now() - featuredJobCache.at < 60_000) {
+  if (!featuredJobCache) featuredJobCache = readFeaturedJobFile();
+  if (featuredJobCache && Date.now() - featuredJobCache.at < FEATURED_JOB_TTL) {
     return featuredJobCache.jobs;
   }
   const companyKey = (name: string) => {
@@ -49,29 +64,43 @@ async function loadFeaturedJavaJobs(headers: Record<string, string>) {
     if (bucket.includes('arcticwolf')) return 'arcticwolf';
     return '';
   };
-  const pages = await Promise.all(
-    [0, 40, 80, 120, 160, 200].map(async (offset) => {
-      const pageRes = await fetch(
-        `https://www.instahyre.com/api/v1/job_search?skills=Java&offset=${offset}&count=40`,
-        { headers },
-      );
-      const pageData = (await pageRes.json().catch(() => null)) as any;
-      return pageData?.objects || [];
-    }),
-  );
+  let pages: any[][] = [];
+  try {
+    pages = await Promise.all(
+      [0, 40, 80, 120, 160, 200, 240, 280].map(async (offset) => {
+        const pageRes = await fetch(
+          `https://www.instahyre.com/api/v1/job_search?skills=Java&offset=${offset}&count=40`,
+          { headers },
+        );
+        if (!pageRes.ok) return [];
+        const pageData = (await pageRes.json().catch(() => null)) as any;
+        return pageData?.objects || [];
+      }),
+    );
+  } catch {
+    pages = [];
+  }
   const seen = new Set<string>();
   const jobs: any[] = [];
   for (const batch of pages) {
     for (const job of batch) {
       const key = companyKey(job.employer?.company_name || '');
       const text = `${job.title || ''} ${job.candidate_title || ''} ${(job.keywords || []).join(' ')}`;
-      if (!key || seen.has(key) || !/java|spring|j2ee|jvm|hibernate|microservices/i.test(text)) continue;
-      seen.add(key);
+      const id = String(job.id || '');
+      if (!key || !id || seen.has(id) || !/java|spring|j2ee|jvm|hibernate|microservices/i.test(text)) continue;
+      seen.add(id);
       jobs.push(job);
     }
   }
+  if (!jobs.length && featuredJobCache?.jobs?.length) return featuredJobCache.jobs;
   const ready = jobs.length ? jobs : featuredRoleFallback;
   featuredJobCache = { at: Date.now(), jobs: ready };
+  try {
+    mkdirSync(join(process.cwd(), '.cache'), { recursive: true });
+    writeFileSync(featuredJobFile, JSON.stringify(featuredJobCache));
+  } catch {
+    // The in-memory copy still covers this process.
+  }
   return ready;
 }
 
@@ -117,6 +146,27 @@ export class JobsController {
   @Get('course-platforms')
   listCoursePlatforms() {
     return this.jobsService.listCoursePlatforms();
+  }
+
+  @Get('course-platforms/review')
+  listCoursesForReview(@Headers('authorization') authorization: string | undefined) {
+    this.admin.session(authorization);
+    return this.jobsService.listCoursePlatformsForAdmin();
+  }
+
+  @Post('course-platforms/suggest')
+  suggestCourse(@Body() dto: CreateCoursePlatformDto & { submittedBy?: string }) {
+    return this.jobsService.suggestCoursePlatform(dto, dto.submittedBy || '');
+  }
+
+  @Patch('course-platforms/:id/review')
+  reviewCourse(
+    @Headers('authorization') authorization: string | undefined,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: { status?: string },
+  ) {
+    this.admin.session(authorization);
+    return this.jobsService.reviewCoursePlatform(id, body.status || '');
   }
 
   @Post('course-platforms')
@@ -221,6 +271,8 @@ export class JobsController {
       };
 
       let items: any[] = [];
+      let res: Response | null = null;
+      let data: any = null;
       if (focus === 'companies') {
         items = [...(await loadFeaturedJavaJobs(headers))];
         for (let i = items.length - 1; i > 0; i -= 1) {
@@ -230,11 +282,11 @@ export class JobsController {
           items[swap] = current;
         }
         items = items.slice(0, take);
+      } else {
+        res = await fetch(searchUrl, { headers });
+        data = (await res.json().catch(() => null)) as any;
+        items = data?.objects || [];
       }
-
-      let res = await fetch(searchUrl, { headers });
-      let data = (await res.json().catch(() => null)) as any;
-      if (focus !== 'companies') items = data?.objects || [];
 
       // If targeted skill search returned 0 items, fallback to broader feed and rank locally
       if (focus !== 'companies' && items.length === 0 && rawTokens.length > 0) {
