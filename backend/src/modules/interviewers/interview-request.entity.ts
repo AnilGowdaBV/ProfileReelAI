@@ -29,7 +29,7 @@ export class InterviewRequest {
   @Column({ name: 'interview_time', length: 20, default: '' })
   interviewTime: string;
 
-  @Column({ type: 'text', default: '' })
+  @Column({ type: 'text', nullable: true })
   note: string;
 
   @Column({ name: 'meet_link', length: 1000, default: '' })
