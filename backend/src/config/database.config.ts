@@ -20,7 +20,7 @@ export const getDatabaseConfig = (): TypeOrmModuleOptions => {
       type: 'postgres',
       url: databaseUrl,
       ssl: { rejectUnauthorized: false }, // Required for Supabase SSL connection
-      entities: [User, Candidate, CandidateFact, GenerationJob, GeneratedVideo, CandidateScore, JobApplication, InterviewerApplication, MockTestResult, CoursePlatform],
+      entities: [User, Candidate, CandidateFact, GenerationJob, GeneratedVideo, CandidateScore, JobApplication, InterviewerApplication, InterviewRequest, MockTestResult, CoursePlatform],
       synchronize: true, // Auto-initializes schema on Supabase
       logging: process.env.DB_LOGGING === 'true',
     };
