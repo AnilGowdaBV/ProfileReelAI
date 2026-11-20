@@ -9,13 +9,14 @@ import {
 import { CandidateDetailsCard } from '../components/CandidateDetailsCard';
 import { CareerHubSection } from '../components/CareerHubSection';
 import { MockTestsSection } from '../components/MockTestsSection';
+import { CareerProfileModal } from '../components/CareerProfileModal';
 import { PricingSection } from '../components/PricingSection';
 import { SubscriptionModal } from '../components/SubscriptionModal';
 import { PolicyModals, PolicyType } from '../components/PolicyModals';
 import { Footer } from '../components/Footer';
 import { Candidate, HealthStatus, CandidateScore } from '../types/candidate';
 import { api, ApiError } from '../services/api';
-import { Sparkles, Database, ShieldCheck, Zap } from 'lucide-react';
+import { Sparkles, Database, ShieldCheck, Zap, UserRound } from 'lucide-react';
 import { FullPageSpinner } from '../components/FullPageSpinner';
 import { holdMin } from '../components/SectionSpinner';
 import { MOCK_TEST_PAID_MESSAGE, markMockTestPaid } from '../lib/mockTestAccess';
@@ -29,13 +30,30 @@ export const DashboardPage: React.FC = () => {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const [profileChecked, setProfileChecked] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Pro Subscription State strictly tied to authenticated user database status
   const [isPro, setIsPro] = useState<boolean>(() => {
     return Boolean(user?.isPro);
   });
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setProfileChecked(true);
+      return;
+    }
+    let alive = true;
+    api.account(user.id).then((account) => {
+      if (!alive) return;
+      updateUser({ ...user, ...account, loginMethod: user.loginMethod });
+    }).catch(() => undefined).finally(() => {
+      if (alive) setProfileChecked(true);
+    });
+    return () => { alive = false; };
+  }, [user?.id]);
 
   // Synchronize Pro Subscription status from MySQL database for this specific user
   useEffect(() => {
@@ -180,9 +198,22 @@ export const DashboardPage: React.FC = () => {
         onOpenSubscribeModal={() => setIsSubModalOpen(true)}
         hasScore={Boolean(selectedCandidate && candidateScore)}
       />
+      {user && ((profileChecked && user.profileReady === false) || profileOpen) && (
+        <CareerProfileModal user={user} onSaved={updateUser} onClose={profileOpen ? () => setProfileOpen(false) : undefined} />
+      )}
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-2">
+          {user && (
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-sm"
+              aria-label="Open profile"
+            >
+              <UserRound className="h-5 w-5" />
+            </button>
+          )}
           <InterviewerInbox email={user?.email} />
         </div>
 

@@ -146,6 +146,44 @@ export const api = {
       method: 'POST',
     }),
 
+  account: (id: string) =>
+    request<{
+      id: string;
+      name?: string;
+      email: string;
+      linkedinUrl?: string;
+      avatarUrl?: string;
+      headline?: string;
+      isPro?: boolean;
+      profileReady: boolean;
+      jobTrack: string;
+      jobSkill: string;
+    }>(`/auth/me?id=${encodeURIComponent(id)}`),
+
+  saveCareerProfile: (data: {
+    userId: string;
+    name: string;
+    linkedinUrl: string;
+    track: 'frontend' | 'backend';
+    resumeFileName: string;
+    resumeData: string;
+  }) =>
+    request<{
+      id: string;
+      name: string;
+      email: string;
+      linkedinUrl: string;
+      profileReady: boolean;
+      jobTrack: string;
+      jobSkill: string;
+      avatarUrl?: string;
+      headline?: string;
+      isPro?: boolean;
+    }>('/auth/career-profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   jobApplyAllowance: (email: string, linkedinUrl?: string) =>
     request<{ needsPayment: boolean }>(
       `/jobs/apply-allowance?email=${encodeURIComponent(email)}&linkedin=${encodeURIComponent(linkedinUrl || '')}`,
@@ -290,7 +328,7 @@ export const api = {
   interviewerInbox: (email: string) =>
     request<{
       approved: boolean;
-      requests: Array<{ id: string; candidateName: string; candidateEmail: string; jobTitle: string; companyName: string; status: string; interviewDate: string; interviewTime: string; note: string; meetLink: string; notice: string; resumeFileName: string; resumeUrl: string; photoUrl: string; headline: string; createdAt: string }>;
+      requests: Array<{ id: string; candidateName: string; candidateEmail: string; jobTitle: string; companyName: string; status: string; interviewDate: string; interviewTime: string; note: string; meetLink: string; linkClicked: boolean; notice: string; resumeFileName: string; resumeUrl: string; photoUrl: string; headline: string; createdAt: string; reviewOutcome: string; needsReview: boolean }>;
     }>(`/interviewers/inbox?email=${encodeURIComponent(email)}`),
 
   interviewCandidate: (id: string, email: string) =>
@@ -316,8 +354,17 @@ export const api = {
       { method: 'PATCH', body: JSON.stringify(schedule) },
     ),
 
+  startInterview: (id: string, email: string) =>
+    request<{ success: boolean; meetLink: string; linkOpen: boolean }>(`/interviewers/inbox/${id}/start?email=${encodeURIComponent(email)}`, { method: 'PATCH' }),
+
   acceptInterviewRequest: (id: string, email: string) =>
     request<{ success: boolean }>(`/interviewers/inbox/${id}?email=${encodeURIComponent(email)}`, { method: 'PATCH' }),
+
+  reviewInterview: (id: string, email: string, body: { outcome: 'GOOD' | 'BAD' | 'NOT_YET'; rating?: number; feedback?: string }) =>
+    request<{ success: boolean; outcome: string; post: string; linkedinUrl?: string; resumeUrl?: string; resumeFileName?: string }>(
+      `/interviewers/inbox/${id}/review?email=${encodeURIComponent(email)}`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
 
   rejectInterviewRequest: (id: string, email: string) =>
     request<{ success: boolean }>(`/interviewers/inbox/${id}/reject?email=${encodeURIComponent(email)}`, { method: 'PATCH' }),
