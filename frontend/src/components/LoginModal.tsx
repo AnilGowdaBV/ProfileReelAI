@@ -13,9 +13,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
   const { loginWithLinkedIn, loginWithCredentials } = useAuth();
   const [activeTab, setActiveTab] = useState<'linkedin' | 'email'>('linkedin');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [isForgotMode, setIsForgotMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   // Form fields
-  const [name, setName] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,7 +28,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
     if (isOpen) {
       setActiveTab('linkedin');
       setIsRegisterMode(false);
-      setName('');
+      setIsForgotMode(false);
+      setResetSent(false);
+      setLinkedinUrl('');
       setEmail('');
       setPassword('');
       setIsSubmitting(false);
@@ -47,12 +51,38 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
 
   const handleModalClose = () => {
     setErrorMsg(null);
-    setName('');
+    setLinkedinUrl('');
     setEmail('');
     setPassword('');
     setIsSubmitting(false);
     setIsRegisterMode(false);
+    setIsForgotMode(false);
+    setResetSent(false);
     onClose();
+  };
+
+  const sendReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setErrorMsg('Enter the email for this account.');
+      return;
+    }
+    setIsSubmitting(true);
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Could not send the reset email.');
+      setResetSent(true);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Could not send the reset email.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleTabSwitch = (tab: 'linkedin' | 'email') => {
@@ -64,8 +94,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      setErrorMsg('Please enter both email and password.');
+    if (!email.trim() || !password.trim() || (isRegisterMode && !linkedinUrl.trim())) {
+      setErrorMsg(isRegisterMode ? 'Enter the LinkedIn URL, email, and password.' : 'Please enter both email and password.');
       return;
     }
 
@@ -97,7 +127,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
         body: JSON.stringify({
           email: email.trim(),
           password: password.trim(),
-          name: name.trim() || undefined,
+          linkedinUrl: isRegisterMode ? linkedinUrl.trim() : undefined,
         }),
       });
 
@@ -127,7 +157,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
         name: data.user.name || 'Member',
         headline: data.user.headline || 'Verified Member',
         avatarUrl: data.user.avatarUrl,
+        linkedinUrl: data.user.linkedinUrl,
         isPro: data.user.isPro,
+        profileReady: data.user.profileReady,
+        jobTrack: data.user.jobTrack,
+        jobSkill: data.user.jobSkill,
         loginMethod: 'database',
       });
 
@@ -231,20 +265,45 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
         )}
 
         {/* Tab 2: Database Email / Password Authentication */}
-        {activeTab === 'email' && (
+        {activeTab === 'email' && isForgotMode && (
+          <form onSubmit={sendReset} className="space-y-3.5">
+            <p className="text-[11px] text-slate-500 text-center">We will email a link to set a new database password.</p>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="LinkedIn email"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-800 border border-slate-200 dark:border-white/10 text-xs"
+              />
+            </div>
+            {resetSent && <p className="text-[11px] text-emerald-600 text-center">Reset link sent. Check your email.</p>}
+            <button type="submit" disabled={isSubmitting} className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 text-white font-bold text-xs disabled:opacity-50">
+              {isSubmitting ? 'Sending...' : 'Send reset link'}
+            </button>
+            <button type="button" onClick={() => { setIsForgotMode(false); setErrorMsg(null); }} className="w-full text-[11px] text-brand-600 font-semibold">
+              Back to sign in
+            </button>
+          </form>
+        )}
+
+        {activeTab === 'email' && !isForgotMode && (
           <form onSubmit={handleEmailAuth} className="space-y-3.5">
             {isRegisterMode && (
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Full Name
+                  LinkedIn URL
                 </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Anil BV"
+                    type="url"
+                    required
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    placeholder="https://www.linkedin.com/in/your-name"
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-800 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
                   />
                 </div>
@@ -253,7 +312,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
 
             <div>
               <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Email or username
+                Email
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -262,7 +321,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com or admin"
+                  placeholder="LinkedIn email"
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-charcoal-800 border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-500"
                 />
               </div>
@@ -299,6 +358,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
                 <span>{isRegisterMode ? 'Create Database Account' : 'Sign In with Database'}</span>
               )}
             </button>
+
+            {!isRegisterMode && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotMode(true);
+                    setResetSent(false);
+                    setErrorMsg(null);
+                  }}
+                  className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold hover:underline cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             <div className="text-center pt-1">
               <button

@@ -10,6 +10,9 @@ export interface User {
   avatarUrl?: string;
   loginMethod: 'linkedin' | 'database';
   isPro?: boolean;
+  profileReady?: boolean;
+  jobTrack?: string;
+  jobSkill?: string;
 }
 
 export interface AuthTransitionState {
@@ -27,6 +30,7 @@ interface AuthContextType {
   setAuthTransition: React.Dispatch<React.SetStateAction<AuthTransitionState>>;
   loginWithLinkedIn: () => void;
   loginWithCredentials: (user: User) => void;
+  updateUser: (user: User) => void;
   logout: () => void;
 }
 
@@ -174,6 +178,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    document.cookie = `profilereel_plugin=${encodeURIComponent(JSON.stringify(user))}; Path=/; Max-Age=2592000; SameSite=Lax`;
+  }, [user]);
+
   // Directly navigate to official linkedin.com with smooth pre-transition spinner
   const loginWithLinkedIn = () => {
     setAuthTransition({
@@ -207,8 +216,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     setTimeout(() => {
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'PROFILEREEL_PLUGIN_LINKEDIN' }, '*');
+        return;
+      }
       window.location.href = `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
     }, 350);
+  };
+
+  const updateUser = (next: User) => {
+    setUser(next);
+    try {
+      sessionStorage.setItem('profilereel_user', JSON.stringify(next));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const loginWithCredentials = (authenticatedUser: User) => {
@@ -247,6 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         sessionStorage.removeItem('profilereel_user');
         localStorage.removeItem('profilereel_user');
+        document.cookie = 'profilereel_plugin=; Path=/; Max-Age=0; SameSite=Lax';
       } catch (e) {
         console.error(e);
       }
@@ -264,6 +287,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthTransition,
         loginWithLinkedIn,
         loginWithCredentials,
+        updateUser,
         logout,
       }}
     >

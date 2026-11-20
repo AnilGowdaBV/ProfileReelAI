@@ -34,19 +34,7 @@ export class AuthController {
       throw new BadRequestException('Authorization code is required');
     }
     const user = await this.authService.handleLinkedInCallback(body.code, body.redirectUri);
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        headline: user.headline || 'Verified LinkedIn Member',
-        avatarUrl: user.avatarUrl,
-        linkedinUrl: user.linkedinId ? `https://linkedin.com/in/${user.linkedinId}` : undefined,
-        isPro: user.isPro,
-        loginMethod: 'linkedin',
-      },
-    };
+    return { success: true, user: { ...this.authService.toPublic(user), loginMethod: 'linkedin' } };
   }
 
   @Get('linkedin/callback')
@@ -67,16 +55,7 @@ export class AuthController {
     try {
       const user = await this.authService.handleLinkedInCallback(code);
 
-      const safeUser = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        headline: user.headline || 'Verified LinkedIn Member',
-        avatarUrl: user.avatarUrl,
-        linkedinId: user.linkedinId,
-        isPro: user.isPro,
-        loginMethod: 'linkedin',
-      };
+      const safeUser = { ...this.authService.toPublic(user), loginMethod: 'linkedin' };
 
       const userJson = JSON.stringify(safeUser);
       const redirectUrl = `${frontendUrl}/dashboard?login_success=true&user=${encodeURIComponent(userJson)}`;
@@ -138,20 +117,37 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new database user account' })
-  async register(@Body() body: { email: string; password?: string; name?: string }) {
+  async register(@Body() body: { email: string; password?: string; name?: string; linkedinUrl?: string }) {
     if (!body.email) {
       throw new BadRequestException('Email is required');
     }
     const user = await this.authService.register(body);
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        isPro: user.isPro,
-      },
-    };
+    return { success: true, user: { ...this.authService.toPublic(user), loginMethod: 'database' } };
+  }
+
+  @Post('plugin-account')
+  @ApiOperation({ summary: 'Create or attach the plugin password on an existing email' })
+  async pluginAccount(@Body() body: { email?: string; password?: string; linkedinUrl?: string }) {
+    const user = await this.authService.savePluginAccount({
+      email: body.email || '',
+      password: body.password || '',
+      linkedinUrl: body.linkedinUrl || '',
+    });
+    return { success: true, user: { ...this.authService.toPublic(user), loginMethod: 'database' } };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Email a database password reset link' })
+  forgotPassword(@Body() body: { email?: string }) {
+    return this.authService.forgotPassword(body.email || '');
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Save the new database password from a reset link' })
+  resetPassword(@Body() body: { token?: string; password?: string }) {
+    return this.authService.resetPassword(body.token || '', body.password || '');
   }
 
   @Post('login')
@@ -162,17 +158,7 @@ export class AuthController {
       throw new BadRequestException('Email is required');
     }
     const user = await this.authService.login(body);
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        isPro: user.isPro,
-        avatarUrl: user.avatarUrl,
-        headline: user.headline,
-      },
-    };
+    return { success: true, user: { ...this.authService.toPublic(user), loginMethod: 'database' } };
   }
 
   @Get('me')
@@ -181,15 +167,27 @@ export class AuthController {
     if (!id) throw new BadRequestException('User ID is required');
     const user = await this.authService.getUserById(id);
     if (!user) throw new BadRequestException('User not found');
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatarUrl: user.avatarUrl,
-      headline: user.headline,
-      isPro: user.isPro,
-      proExpiresAt: user.proExpiresAt,
-    };
+    return this.authService.toPublic(user);
+  }
+
+  @Post('career-profile')
+  @ApiOperation({ summary: 'Save the first-login name, LinkedIn, resume, and job interest' })
+  saveCareerProfile(@Body() body: {
+    userId?: string;
+    name?: string;
+    linkedinUrl?: string;
+    track?: string;
+    resumeFileName?: string;
+    resumeData?: string;
+  }) {
+    return this.authService.saveCareerProfile({
+      userId: body.userId || '',
+      name: body.name || '',
+      linkedinUrl: body.linkedinUrl || '',
+      track: body.track || '',
+      resumeFileName: body.resumeFileName || '',
+      resumeData: body.resumeData || '',
+    });
   }
 }
 

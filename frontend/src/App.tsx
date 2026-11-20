@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { CandidateRequestsPage } from './pages/CandidateRequestsPage';
 import { AdminLoginPage, AdminPage } from './pages/AdminLoginPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { MockTestPage } from './pages/MockTestPage';
 import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/LoginModal';
@@ -21,11 +22,19 @@ const queryClient = new QueryClient({
   },
 });
 
+function openLogin(setOpen: (open: boolean) => void) {
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'PROFILEREEL_PLUGIN_SIGNIN' }, '*');
+    return;
+  }
+  setOpen(true);
+}
+
 const LandingRoute: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   return (
     <>
-      <LandingPage onOpenLogin={() => setIsLoginModalOpen(true)} />
+      <LandingPage onOpenLogin={() => openLogin(setIsLoginModalOpen)} />
       {isLoginModalOpen && (
         <LoginModal
           isOpen={isLoginModalOpen}
@@ -58,9 +67,9 @@ const DashboardRoute: React.FC = () => {
   if (!isLoggedIn) {
     return (
       <>
-        <LandingPage onOpenLogin={() => setIsLoginModalOpen(true)} />
+        <LandingPage onOpenLogin={() => openLogin(setIsLoginModalOpen)} />
         <LoginModal
-          isOpen={true}
+          isOpen={window.parent === window}
           onClose={() => setIsLoginModalOpen(false)}
           onSuccess={() => {
             window.location.href = '/dashboard';
@@ -123,7 +132,7 @@ const TestRoute: React.FC = () => {
   if (!isLoggedIn) {
     return (
       <>
-        <LandingPage onOpenLogin={() => setIsLoginModalOpen(true)} />
+        <LandingPage onOpenLogin={() => openLogin(setIsLoginModalOpen)} />
         <LoginModal
           isOpen={true}
           onClose={() => setIsLoginModalOpen(false)}
@@ -160,6 +169,7 @@ const AppContent: React.FC = () => {
           <Route path="/notifications" element={<NotificationsRoute />} />
           <Route path="/my-requests" element={<MyRequestsRoute />} />
           <Route path="/test/:setId" element={<TestRoute />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
