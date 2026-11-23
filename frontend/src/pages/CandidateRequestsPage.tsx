@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check, Clock, Home, Inbox, LayoutList, XCircle } from 'lucide-react';
+import { Bell, Briefcase, Check, Clock, Home, Inbox, LayoutList, XCircle } from 'lucide-react';
 import { markNoticesSeen } from '../components/InterviewerInbox';
 import { ScheduleEdit } from '../components/ScheduleEdit';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,7 @@ type Row = {
   interviewTime?: string;
   note?: string;
   meetLink?: string;
+  linkOpen?: boolean;
   notice?: string;
 };
 
@@ -25,7 +26,8 @@ export const CandidateRequestsPage: React.FC = () => {
   const { user } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [ready, setReady] = useState(false);
-  const [filter, setFilter] = useState<'requested' | 'accepted' | 'rejected'>('requested');
+  const [filter, setFilter] = useState<'requested' | 'accepted' | 'rejected' | 'jobs'>('requested');
+  const [jobs, setJobs] = useState<Array<{ id: string; jobTitle: string; companyName: string; location: string; createdAt: string }>>([]);
   const [editing, setEditing] = useState<Row | null>(null);
   const [editError, setEditError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -39,6 +41,7 @@ export const CandidateRequestsPage: React.FC = () => {
       })
       .catch(() => setRows([]))
       .finally(() => setReady(true));
+    api.myJobApplications(user.email).then(setJobs).catch(() => setJobs([]));
   }, [user?.email]);
 
   const waiting = rows.filter((row) => row.status !== 'ACCEPTED' && row.status !== 'REJECTED');
@@ -70,6 +73,10 @@ export const CandidateRequestsPage: React.FC = () => {
               <span className="inline-flex items-center gap-2"><XCircle className="h-4 w-4" /> Rejected</span>
               <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[10px] font-bold ${filter === 'rejected' ? 'bg-violet-600 text-white' : 'bg-slate-200 text-slate-600'}`}>{rejected.length}</span>
             </button>
+            <button type="button" onClick={() => setFilter('jobs')} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold ${filter === 'jobs' ? 'bg-violet-100 text-violet-700' : 'text-slate-500 hover:bg-white'}`}>
+              <span className="inline-flex items-center gap-2"><Briefcase className="h-4 w-4" /> Applied jobs</span>
+              <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[10px] font-bold ${filter === 'jobs' ? 'bg-violet-600 text-white' : 'bg-slate-200 text-slate-600'}`}>{jobs.length}</span>
+            </button>
             <button type="button" onClick={() => navigate('/dashboard')} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-500 hover:bg-white">
               <Home className="h-4 w-4" /> Dashboard
             </button>
@@ -89,8 +96,8 @@ export const CandidateRequestsPage: React.FC = () => {
                 {filter === 'accepted' ? <Check className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
               </span>
               <div>
-                <h1 className="text-2xl font-black">{filter === 'accepted' ? 'Accepted' : filter === 'rejected' ? 'Rejected' : 'Requested'}</h1>
-                <p className="text-sm text-slate-500">{filter === 'accepted' ? 'Interviewers who accepted you.' : filter === 'rejected' ? 'Requests that were turned down.' : 'Waiting for the interviewer to respond.'}</p>
+                <h1 className="text-2xl font-black">{filter === 'jobs' ? 'Applied jobs' : filter === 'accepted' ? 'Accepted' : filter === 'rejected' ? 'Rejected' : 'Requested'}</h1>
+                <p className="text-sm text-slate-500">{filter === 'jobs' ? 'Roles you have applied for.' : filter === 'accepted' ? 'Interviewers who accepted you.' : filter === 'rejected' ? 'Requests that were turned down.' : 'Waiting for the interviewer to respond.'}</p>
               </div>
             </div>
             <span className="relative grid h-10 w-10 place-items-center rounded-full bg-white text-slate-600 shadow-sm">
@@ -101,6 +108,33 @@ export const CandidateRequestsPage: React.FC = () => {
           <div className="mt-6">
             {!ready ? (
               <p className="text-sm text-slate-500">Opening your requests...</p>
+            ) : filter === 'jobs' ? (
+              jobs.length === 0 ? (
+                <p className="rounded-2xl bg-white px-5 py-8 text-sm text-slate-500">You have not applied for a job yet.</p>
+              ) : (
+                <ul className="grid gap-4 sm:grid-cols-2">
+                  {jobs.map((job) => {
+                    const mark = (job.companyName || 'J').slice(0, 1).toUpperCase();
+                    const applied = new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                    return (
+                      <li key={job.id} className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow-[0_10px_30px_rgba(91,33,182,0.06)]">
+                        <div className="h-1.5 bg-gradient-to-r from-violet-500 to-sky-400" />
+                        <div className="flex items-start gap-3 px-5 py-4">
+                          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-violet-600 text-lg font-black text-white">{mark}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-base font-black leading-5 text-slate-950">{job.jobTitle}</p>
+                              <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-700">Applied</span>
+                            </div>
+                            <p className="mt-1 text-sm font-semibold text-slate-600">{job.companyName}</p>
+                            <p className="mt-3 text-xs font-semibold text-slate-400">{job.location || 'Location not added'} · {applied}</p>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )
             ) : visible.length === 0 ? (
               <p className="rounded-2xl bg-white px-5 py-8 text-sm text-slate-500">{filter === 'accepted' ? 'None accepted yet.' : filter === 'rejected' ? 'Nothing rejected.' : 'You have not requested an interviewer yet.'}</p>
             ) : (
@@ -118,7 +152,7 @@ export const CandidateRequestsPage: React.FC = () => {
                       {row.interviewDate && (
                         <div className="mt-2 text-sm text-slate-700">
                           <p className="font-bold text-emerald-700">{row.interviewDate} · {row.interviewTime}</p>
-                          {row.meetLink && <a href={row.meetLink} target="_blank" rel="noreferrer" className="font-bold text-sky-700">Open meeting</a>}
+                          {row.linkOpen && row.meetLink ? <a href={row.meetLink} target="_blank" rel="noreferrer" className="font-bold text-sky-700" onClick={(event) => { if (window.parent === window) return; event.preventDefault(); window.parent.postMessage({ type: 'PROFILEREEL_PLUGIN_WEBSITE', purpose: 'meeting', url: `${window.location.origin}/my-requests` }, '*'); }}>Open meeting</a> : <span className="font-semibold text-slate-400">Link opens at {row.interviewTime}</span>}
                         </div>
                       )}
                     </div>

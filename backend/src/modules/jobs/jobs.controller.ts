@@ -225,6 +225,12 @@ export class JobsController {
     return this.jobsService.listApplications(kind === 'interest' ? 'expressed_interest' : 'applied');
   }
 
+  @Get('applications/mine')
+  @ApiOperation({ summary: 'List the jobs this email applied for' })
+  mineApplications(@Query('email') email?: string) {
+    return this.jobsService.mine(email || '');
+  }
+
   @Get('applications')
   @ApiOperation({ summary: 'Retrieve all submitted candidate job applications' })
   async getAllApplications() {

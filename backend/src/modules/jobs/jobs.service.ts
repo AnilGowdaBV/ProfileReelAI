@@ -627,6 +627,24 @@ export class JobsService {
     };
   }
 
+  async mine(email: string) {
+    const normalized = (email || '').trim().toLowerCase();
+    if (!normalized) return [];
+    const rows = await this.applicationRepo
+      .createQueryBuilder('app')
+      .where('LOWER(app.email) = :email', { email: normalized })
+      .andWhere('app.status = :status', { status: 'applied' })
+      .orderBy('app.createdAt', 'DESC')
+      .getMany();
+    return rows.map((row) => ({
+      id: row.id,
+      jobTitle: row.jobTitle,
+      companyName: row.companyName,
+      location: row.location || '',
+      createdAt: row.createdAt,
+    }));
+  }
+
   async getAllApplications(): Promise<JobApplication[]> {
     return this.applicationRepo.find({
       order: { createdAt: 'DESC' },

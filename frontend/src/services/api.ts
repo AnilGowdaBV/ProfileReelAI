@@ -320,6 +320,11 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  myJobApplications: (email: string) =>
+    request<Array<{ id: string; jobTitle: string; companyName: string; location: string; createdAt: string }>>(
+      `/jobs/applications/mine?email=${encodeURIComponent(email)}`,
+    ),
+
   myInterviewRequests: (email: string) =>
     request<Array<{ id: string; interviewerName: string; photoUrl: string; jobTitle: string; companyName: string; status: string; interviewDate: string; interviewTime: string; note: string; meetLink: string; notice: string; createdAt: string }>>(
       `/interviewers/mine-requests?email=${encodeURIComponent(email)}`,

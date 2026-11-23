@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check, Clock, Home, Inbox, LayoutList, Search, Users, X, XCircle } from 'lucide-react';
+import { InterviewReviewModal } from '../components/InterviewReviewModal';
 import { markNoticesSeen } from '../components/InterviewerInbox';
 import { ScheduleEdit } from '../components/ScheduleEdit';
 import { useAuth } from '../context/AuthContext';
@@ -17,12 +18,18 @@ type RequestRow = {
   interviewTime?: string;
   note?: string;
   meetLink?: string;
+  linkClicked?: boolean;
   notice?: string;
   resumeFileName?: string;
   resumeUrl?: string;
   photoUrl?: string;
   headline?: string;
   createdAt: string;
+  reviewOutcome?: string;
+  reviewFeedback?: string;
+  reviewRating?: number;
+  needsReview?: boolean;
+  reviewReady?: boolean;
 };
 
 export const NotificationsPage: React.FC = () => {
@@ -39,14 +46,18 @@ export const NotificationsPage: React.FC = () => {
   const [editing, setEditing] = useState<RequestRow | null>(null);
   const [editError, setEditError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [review, setReview] = useState<RequestRow | null>(null);
 
   useEffect(() => {
     if (!user?.email) return;
     api.interviewerInbox(user.email)
       .then((result) => {
+        const next = result.requests || [];
         setApproved(result.approved);
-        setRows(result.requests || []);
-        if (user?.email) markNoticesSeen(user.email, result.requests || []);
+        setRows(next);
+        const waitingReview = next.find((row) => row.needsReview);
+        if (waitingReview) setReview(waitingReview);
+        if (user?.email) markNoticesSeen(user.email, next);
       })
       .catch(() => {
         setApproved(false);
@@ -222,7 +233,31 @@ export const NotificationsPage: React.FC = () => {
                           <p className="truncate text-sm text-slate-500">{row.candidateEmail}</p>
                           {row.headline && <p className="mt-0.5 truncate text-sm font-semibold text-slate-700">{row.headline}</p>}
                           {row.interviewDate && <p className="mt-1 text-xs font-bold text-emerald-700">{row.interviewDate} · {row.interviewTime}</p>}
-                          {row.meetLink && <a href={row.meetLink} target="_blank" rel="noreferrer" className="mr-3 text-xs font-bold text-sky-700">Meeting link</a>}
+                          {row.status === 'ACCEPTED' && row.meetLink && (
+                            <a
+                              href={row.meetLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mr-3 text-xs font-bold text-sky-700"
+                              onClick={(event) => {
+                                if (window.parent !== window) {
+                                  event.preventDefault();
+                                  window.parent.postMessage({ type: 'PROFILEREEL_PLUGIN_WEBSITE', purpose: 'meeting', url: `${window.location.origin}/notifications` }, '*');
+                                  return;
+                                }
+                                if (!user?.email || row.reviewOutcome) return;
+                                api.startInterview(row.id, user.email).then(() => {
+                                  setRows((current) => current.map((item) => (item.id === row.id ? { ...item, linkClicked: true, needsReview: true } : item)));
+                                  setReview(row);
+                                }).catch(() => undefined);
+                              }}
+                            >
+                              Meeting link
+                            </a>
+                          )}
+                          {row.reviewOutcome === 'GOOD' && (
+                            <button type="button" onClick={() => setReview(row)} className="text-xs font-bold text-[#0a66c2] underline">Share post</button>
+                          )}
                           {row.resumeUrl && <a href={row.resumeUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-violet-700">Resume{row.resumeFileName ? ` · ${row.resumeFileName}` : ''}</a>}
                         </div>
                         <button type="button" onClick={() => void openProfile(row.id)} className="rounded-xl border border-violet-200 px-3 py-2 text-xs font-bold text-violet-700">
@@ -255,6 +290,14 @@ export const NotificationsPage: React.FC = () => {
           </div>
         </main>
       </div>
+      {review && user?.email && (
+        <InterviewReviewModal
+          row={review}
+          email={user.email}
+          onClose={() => setReview(null)}
+          onDone={(id, outcome) => setRows((current) => current.map((row) => (row.id === id ? { ...row, reviewOutcome: outcome === 'NOT_YET' ? '' : outcome, linkClicked: outcome !== 'NOT_YET', needsReview: false } : row)))}
+        />
+      )}
       {editing && user?.email && (
         <ScheduleEdit
           title={editing.candidateName}

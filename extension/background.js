@@ -48,8 +48,7 @@ chrome.runtime.onMessage.addListener((message, sender) => {
     });
     return;
   }
-  if (message.type !== 'linkedin-login') return;
-  openLinkedIn();
+  if (message.type === 'linkedin-login') return;
 });
 
 function pullDashboard(tabId, windowId) {

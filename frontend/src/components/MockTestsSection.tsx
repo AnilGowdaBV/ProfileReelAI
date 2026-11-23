@@ -117,12 +117,22 @@ export const MockTestsSection: React.FC = () => {
 
   useEffect(() => {
     let alive = true;
+    jobQueue.current = [];
+    const track = user?.jobTrack === 'frontend' ? 'frontend' : 'backend';
+    const skill = track === 'frontend' ? (user?.jobSkill || 'React') : (user?.jobSkill || 'Java');
     const pullIntoQueue = async () => {
       const live = await Promise.race([
-        api.getLiveInstahyreJobs('Java', 40, 0, 'companies').catch(() => []),
+        api.getLiveInstahyreJobs(skill, 40, 0, track === 'frontend' ? undefined : 'companies').catch(() => []),
         new Promise<any[]>((resolve) => window.setTimeout(() => resolve([]), 2000)),
       ]);
-      const rows = Array.isArray(live) && live.length > 0 ? live : [
+      const rows = Array.isArray(live) && live.length > 0 ? live : track === 'frontend' ? [
+        ['razorpay', 'Razorpay', 'Frontend Engineer', 'Bangalore', 'razorpay.com'],
+        ['meesho-fe', 'Meesho', 'Frontend Developer', 'Bangalore', 'meesho.com'],
+        ['cred', 'CRED', 'React Developer', 'Bangalore', 'cred.club'],
+      ].map(([id, company, title, location, domain]) => ({
+        id, title, company, location, skills: ['React'],
+        logo: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+      })) : [
         ['target', 'Target in India', 'Java Developer', 'Bangalore', 'target.com'],
         ['omnissa', 'Omnissa', 'SMTS - Java', 'Bangalore', 'omnissa.com'],
         ['kla', 'KLA-Tencor', 'Java Developer', 'Chennai', 'kla.com'],
@@ -138,7 +148,9 @@ export const MockTestsSection: React.FC = () => {
       }));
       if (!alive) return;
       const seen = new Set(jobQueue.current.map((job) => job.id));
-      const javaRole = /java|spring|j2ee|jvm|hibernate|microservices/i;
+      const roleMatch = track === 'frontend'
+        ? /react|frontend|front-end|ui|angular|vue/i
+        : /java|spring|j2ee|jvm|hibernate|microservices|backend|python|golang|node/i;
       const featuredCompany = (name: string) => {
         const key = name.toLowerCase().replace(/[^a-z0-9]/g, '');
         return key.startsWith('target') || key.includes('omnissa') || key.includes('omnisa') || key.includes('kla') || key.includes('innovaccer') || key.includes('innovacer') || key.includes('meesho') || key === 'ey' || key.startsWith('eyg') || key.startsWith('eyi') || key.includes('ernstyoung') || key.includes('greyorange') || key.includes('arcticwolf');
@@ -148,7 +160,7 @@ export const MockTestsSection: React.FC = () => {
         const title = job.title || '';
         const company = job.company || job.companyName || '';
         const skills = Array.isArray(job.skills) ? job.skills.join(' ') : '';
-        if (seen.has(id) || !featuredCompany(company) || !javaRole.test(`${title} ${skills}`)) return;
+        if (seen.has(id) || (track === 'backend' && !featuredCompany(company)) || !roleMatch.test(`${title} ${skills}`)) return;
         seen.add(id);
         jobQueue.current.push({
           id,
@@ -202,7 +214,7 @@ export const MockTestsSection: React.FC = () => {
       alive = false;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [user?.jobTrack, user?.jobSkill]);
 
   useEffect(() => {
     api.interviewerPicks().then((rows) => setInterviewers(rows)).catch(() => setInterviewers([]));
@@ -220,6 +232,10 @@ export const MockTestsSection: React.FC = () => {
   };
 
   const handleStart = async (testId: string) => {
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'PROFILEREEL_PLUGIN_WEBSITE', purpose: 'test', url: `${window.location.origin}/dashboard` }, '*');
+      return;
+    }
     if (!MOCK_TEST_PAYWALL_ENABLED) {
       navigate(`/test/${testId}`);
       return;
