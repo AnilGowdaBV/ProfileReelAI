@@ -84,7 +84,7 @@ export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string; 
           {heading && <h3 className={compact ? 'text-sm font-black text-slate-950' : 'text-lg font-black text-slate-900'}>{heading}</h3>}
         </div>
       )}
-      <div className={compact ? 'mt-1.5 grid grid-cols-3 gap-2' : 'mt-4 grid grid-cols-1 gap-4 md:grid-cols-3'}>
+      <div className={compact ? 'mt-1.5 grid grid-cols-3 gap-2' : 'mt-2 grid grid-cols-3 gap-2 md:mt-4 md:gap-4'}>
         {shown.map((course) => {
           const host = hostOf(course.url);
           return (
@@ -96,19 +96,19 @@ export const PracticeCourseCards: React.FC<{ heading?: string; kicker?: string; 
               onClick={onSelect ? (event) => { event.preventDefault(); onSelect(); } : undefined}
               className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm"
             >
-              <span className={`flex items-center justify-center border-b border-slate-100 bg-slate-50 ${compact ? 'h-8' : 'h-14'}`}>
-                <img src={`https://www.google.com/s2/favicons?domain=${host}&sz=128`} alt="" className={`rounded-lg border border-slate-200 bg-white object-contain ${compact ? 'h-5 w-5' : 'h-9 w-9 rounded-xl p-1'}`} />
+              <span className={`flex items-center justify-center border-b border-slate-100 bg-slate-50 ${compact ? 'h-8' : 'h-8 md:h-14'}`}>
+                <img src={`https://www.google.com/s2/favicons?domain=${host}&sz=128`} alt="" className={`rounded-lg border border-slate-200 bg-white object-contain ${compact ? 'h-5 w-5' : 'h-5 w-5 md:h-9 md:w-9 md:rounded-xl md:p-1'}`} />
               </span>
-              <span className={`flex flex-1 flex-col ${compact ? 'px-2.5 py-1.5' : 'px-4 py-3'}`}>
+              <span className={`flex flex-1 flex-col ${compact ? 'px-2.5 py-1.5' : 'px-2 py-1.5 md:px-4 md:py-3'}`}>
                 <span className="flex items-start justify-between gap-2">
-                  <span className={`font-bold text-slate-900 ${compact ? 'line-clamp-1 text-xs' : 'text-base'}`}>{course.name}</span>
-                  {course.purpose && (
-                    <span className="shrink-0 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">{course.purpose}</span>
+                  <span className={`font-bold text-slate-900 ${compact ? 'line-clamp-1 text-xs' : 'line-clamp-1 text-[11px] md:text-base'}`}>{course.name}</span>
+                  {course.purpose && !compact && (
+                    <span className="hidden md:inline shrink-0 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">{course.purpose}</span>
                   )}
                 </span>
-                {!compact && <span className="mt-2 text-xs text-slate-500">{host}</span>}
-                <span className={`flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 font-bold text-white ${compact ? 'mt-1.5 py-1 text-[11px]' : 'mt-3 py-2 text-xs'}`}>
-                  Start learning
+                {!compact && <span className="mt-2 hidden text-xs text-slate-500 md:block">{host}</span>}
+                <span className={`flex w-full items-center justify-center gap-1 rounded-lg bg-emerald-600 font-bold text-white md:rounded-xl ${compact ? 'mt-1.5 py-1 text-[11px]' : 'mt-1.5 py-1 text-[10px] md:mt-3 md:py-2 md:text-xs'}`}>
+                  {compact ? 'Start' : <><span className="md:hidden">Start</span><span className="hidden md:inline">Start learning</span></>}
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 </span>
               </span>

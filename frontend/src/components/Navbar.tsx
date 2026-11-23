@@ -46,28 +46,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/90 dark:border-white/5 bg-white/90 dark:bg-charcoal-950/80 backdrop-blur-xl transition-colors duration-200 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 md:h-16 flex items-center justify-between gap-2">
         
         {/* Brand */}
-        <div className="flex items-center gap-3 group cursor-pointer">
-          <div className="relative">
+        <div className="flex min-w-0 items-center gap-2 md:gap-3 group cursor-pointer">
+          <div className="relative shrink-0">
             <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-brand-500 to-indigo-500 opacity-60 blur-xs group-hover:opacity-100 transition-opacity" />
             <img
               src="/logo.jpg"
               alt="ProfileReel AI"
-              className="relative w-9 h-9 rounded-xl object-cover shadow-md border border-slate-200/50 dark:border-white/20 group-hover:scale-105 transition-transform"
+              className="relative h-8 w-8 md:w-9 md:h-9 rounded-xl object-cover shadow-md border border-slate-200/50 dark:border-white/20 group-hover:scale-105 transition-transform"
             />
           </div>
-          <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-indigo-900 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
+          <span className="truncate whitespace-nowrap font-extrabold text-sm md:text-lg tracking-tight bg-gradient-to-r from-slate-900 via-brand-700 to-indigo-900 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
             ProfileReel AI
           </span>
         </div>
 
         {/* Navigation Links, Theme Toggle & Pro Action */}
-        <div className="flex items-center gap-2.5 sm:gap-4">
-          <AddCourseButton submittedBy={user?.name || user?.email || ''} className="md:hidden px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-500/10" />
-          <button type="button" onClick={() => setInterviewerOpen(true)} className="md:hidden px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10">
-            Interviewer
+        <div className="flex shrink-0 items-center gap-1 md:gap-2.5">
+          <AddCourseButton label="Course" submittedBy={user?.name || user?.email || ''} className="md:hidden px-2 py-1 rounded-lg text-[10px] font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-500/10" />
+          <button type="button" onClick={() => setInterviewerOpen(true)} className="md:hidden px-2 py-1 rounded-lg text-[10px] font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10">
+            Interview
           </button>
           <nav className="hidden md:flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
             {hasScore && (
@@ -101,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             type="button"
             id="theme-toggle-button"
             onClick={toggleTheme}
-            className="p-2 rounded-xl transition-all cursor-pointer border border-slate-200 hover:border-slate-300 dark:border-white/10 bg-white hover:bg-slate-100 dark:bg-charcoal-900 dark:hover:bg-charcoal-800 text-slate-700 dark:text-slate-300 shadow-xs hover:shadow-sm flex items-center justify-center"
+            className="hidden md:flex p-2 rounded-xl transition-all cursor-pointer border border-slate-200 hover:border-slate-300 dark:border-white/10 bg-white hover:bg-slate-100 dark:bg-charcoal-900 dark:hover:bg-charcoal-800 text-slate-700 dark:text-slate-300 shadow-xs hover:shadow-sm items-center justify-center"
             title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
             aria-label="Toggle theme"
           >
@@ -117,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onOpenSubscribeModal}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
+              className={`hidden md:flex px-3.5 py-1.5 rounded-xl text-xs font-bold items-center gap-1.5 transition-all cursor-pointer shadow-md ${
                 isPro
                   ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 shadow-emerald-500/10'
                   : 'bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white shadow-brand-500/25 hover:shadow-brand-500/40 transform hover:scale-[1.02] active:scale-[0.98]'
@@ -142,9 +142,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-white/10">
               <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200/80 dark:border-white/10">
                 {photoUrl ? (
-                  <img src={photoUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+                  <img src={photoUrl} alt="" className="h-8 w-8 md:h-10 md:w-10 rounded-full object-cover" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-[#0A66C2] text-white flex items-center justify-center text-xs font-bold">
+                  <div className="h-8 w-8 md:w-10 md:h-10 rounded-full bg-[#0A66C2] text-white flex items-center justify-center text-xs font-bold">
                     {user.name ? user.name.substring(0, 2).toUpperCase() : 'IN'}
                   </div>
                 )}

@@ -202,13 +202,13 @@ export const DashboardPage: React.FC = () => {
         <CareerProfileModal user={user} onSaved={updateUser} onClose={profileOpen ? () => setProfileOpen(false) : undefined} />
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8 space-y-6 md:space-y-12">
         <div className="flex items-center justify-end gap-2">
           {user && (
             <button
               type="button"
               onClick={() => setProfileOpen(true)}
-              className="grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-sm"
+              className="grid h-9 w-9 md:h-11 md:w-11 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-800 shadow-sm"
               aria-label="Open profile"
             >
               <UserRound className="h-5 w-5" />

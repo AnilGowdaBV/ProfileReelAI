@@ -264,15 +264,15 @@ export const MockTestsSection: React.FC = () => {
   return (
     <section id="mock-tests" className="scroll-mt-24">
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider mb-3">
+        <div className="text-center mb-4 md:mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-3">
             <ClipboardCheck className="w-3.5 h-3.5" />
             Interview preparation
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white">
             Best suitable for Product companies
           </h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+          <p className="hidden md:block text-sm text-slate-600 dark:text-slate-400 mt-2">
             {MOCK_TEST_PAYWALL_ENABLED
               ? 'Four coding questions on each track. You solve them on this page. ₹10 for this attempt.'
               : 'Four coding questions on each track. You solve them on this page. Payment is paused while we review the test.'}
@@ -292,7 +292,7 @@ export const MockTestsSection: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 max-w-5xl mx-auto gap-4">
+        <div className="grid grid-cols-3 max-w-5xl mx-auto gap-2 md:gap-4">
           {MOCK_TESTS.filter((test) => !test.comingSoon).map((test) => {
             const completed = MOCK_TEST_PAYWALL_ENABLED && completedIds.includes(test.id);
             const unlocked = !completed && (paidIds.includes(test.id) || !MOCK_TEST_PAYWALL_ENABLED);
@@ -301,7 +301,7 @@ export const MockTestsSection: React.FC = () => {
             return (
               <div
                 key={test.id}
-                className={`glass-panel p-5 rounded-2xl border flex flex-col justify-between ${
+                className={`glass-panel overflow-hidden p-2 md:p-5 rounded-2xl border flex flex-col justify-between ${
                   soon
                     ? 'border-slate-200 dark:border-white/5 opacity-80'
                     : unlocked
@@ -313,7 +313,7 @@ export const MockTestsSection: React.FC = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       {!soon && (
-                      <div className="flex items-center gap-1.5 mb-2">
+                      <div className="mb-1 flex min-w-0 flex-wrap items-center gap-1 md:mb-2 md:gap-1.5">
                         {[
                           { name: 'Swiggy', domain: 'swiggy.com' },
                           { name: 'Flipkart', domain: 'flipkart.com' },
@@ -325,20 +325,20 @@ export const MockTestsSection: React.FC = () => {
                             src={`https://www.google.com/s2/favicons?domain=${company.domain}&sz=64`}
                             alt={company.name}
                             title={company.name}
-                            className="h-6 w-6 rounded-md bg-white object-contain p-0.5 border border-slate-200"
+                            className="h-4 w-4 rounded border border-slate-200 bg-white object-contain md:h-6 md:w-6 md:rounded-md md:p-0.5"
                           />
                         ))}
                       </div>
                       )}
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white">{test.title}</h3>
+                      <h3 className="text-[11px] font-bold leading-4 text-slate-900 dark:text-white md:text-base">{test.title}</h3>
                     </div>
-                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${soon ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'}`}>
+                    <span className={`hidden md:inline shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${soon ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'}`}>
                       {soon ? 'Soon' : MOCK_TEST_PAYWALL_ENABLED ? (unlocked ? 'Unlocked' : '₹10') : 'Open'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">{soon ? 'This track is not open yet.' : test.blurb}</p>
+                  <p className="mt-2 hidden text-xs text-slate-600 dark:text-slate-400 md:block">{soon ? 'This track is not open yet.' : test.blurb}</p>
                   {!soon && (
-                  <p className="text-[11px] text-slate-500 mt-3">
+                  <p className="mt-3 hidden text-[11px] text-slate-500 md:block">
                     {test.minutes} min · {test.questionCount} questions · solved here
                     {MOCK_TEST_PAYWALL_ENABLED
                       ? unlocked
@@ -352,9 +352,10 @@ export const MockTestsSection: React.FC = () => {
                   type="button"
                   onClick={() => { if (!soon) handleStart(test.id); }}
                   disabled={paying || soon}
-                  className={`mt-4 w-full py-2.5 rounded-xl text-xs font-bold disabled:opacity-60 ${soon ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+                  className={`mt-2 md:mt-4 w-full py-1.5 md:py-2.5 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold disabled:opacity-60 ${soon ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
                 >
-                  {soon
+                  <span className="md:hidden">{soon ? 'Soon' : paying ? '…' : unlocked ? 'Start' : 'Pay ₹10'}</span>
+                  <span className="hidden md:inline">{soon
                     ? 'Coming soon'
                     : paying
                     ? 'Opening Razorpay...'
@@ -364,7 +365,7 @@ export const MockTestsSection: React.FC = () => {
                         ? hasOpenMockTestAttempt(test.id)
                           ? 'Continue test'
                           : 'Start test'
-                        : 'Pay ₹10 to take test'}
+                        : 'Pay ₹10 to take test'}</span>
                 </button>
               </div>
             );
@@ -374,7 +375,7 @@ export const MockTestsSection: React.FC = () => {
           <div className="mt-8">
             <h3 className="text-center text-lg font-black text-slate-900 dark:text-white">Open roles</h3>
             {jobsLoading && shownJobs.length === 0 ? (
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="mt-2 grid grid-cols-3 gap-2 md:mt-4 md:gap-4">
                 {[0, 1, 2].map((slot) => (
                   <div key={slot} className="animate-pulse overflow-hidden rounded-2xl border border-slate-200 bg-white">
                     <div className="h-14 bg-slate-100" />
@@ -388,28 +389,28 @@ export const MockTestsSection: React.FC = () => {
                 ))}
               </div>
             ) : (
-            <div className="relative mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="relative mt-2 grid grid-cols-3 gap-2 md:mt-4 md:gap-4">
               {[0, 1, 2].map((slot) => {
                 const current = shownJobs[slot];
                 const incoming = incomingJobs[slot];
                 const card = (job: (typeof shownJobs)[number]) => (
                   <>
-                    <div className="flex h-14 items-center justify-center border-b border-slate-100 bg-slate-50 px-4">
+                    <div className="flex h-8 items-center justify-center border-b border-slate-100 bg-slate-50 px-1.5 md:h-14 md:px-4">
                       {job.logo ? (
-                        <img src={job.logo} alt="" className="max-h-10 max-w-[148px] object-contain" />
+                        <img src={job.logo} alt="" className="max-h-6 max-w-full object-contain md:max-h-10 md:max-w-[148px]" />
                       ) : (
-                        <span className="text-xs font-black text-slate-400">{job.company}</span>
+                        <span className="text-[10px] font-black text-slate-400 md:text-xs">{job.company}</span>
                       )}
                     </div>
-                    <div className="flex flex-1 flex-col px-4 py-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="text-base font-bold text-slate-900 dark:text-white">{job.title}</h3>
-                          <p className="text-xs text-slate-500">{job.company}</p>
+                    <div className="flex flex-1 flex-col px-1.5 py-2 md:px-4 md:py-3">
+                      <div className="flex items-start justify-between gap-1 md:gap-2">
+                        <div className="min-w-0">
+                          <h3 className="line-clamp-2 text-[11px] font-bold leading-4 text-slate-900 dark:text-white md:text-base md:line-clamp-1">{job.title}</h3>
+                          <p className="line-clamp-1 text-[10px] text-slate-500 md:text-xs">{job.company}</p>
                         </div>
-                        <span className="shrink-0 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">Open</span>
+                        <span className="hidden md:inline shrink-0 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">Open</span>
                       </div>
-                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">{job.location}</p>
+                      <p className="mt-1 hidden text-xs text-slate-600 dark:text-slate-400 md:mt-2 md:block">{job.location}</p>
                     <button
                       type="button"
                       onClick={async () => {
@@ -427,7 +428,7 @@ export const MockTestsSection: React.FC = () => {
                         setEmail((value) => value || user?.email || '');
                         setLinkedinUrl((value) => value || user?.linkedinUrl || '');
                       }}
-                      className="mt-3 w-full rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white hover:bg-emerald-500"
+                      className="mt-1.5 w-full rounded-lg bg-emerald-600 py-1.5 text-[10px] font-bold text-white hover:bg-emerald-500 md:mt-3 md:rounded-xl md:py-2 md:text-xs"
                     >
                       Apply
                     </button>
@@ -456,7 +457,7 @@ export const MockTestsSection: React.FC = () => {
         {interviewers.length > 0 && (
           <div className="mt-8">
             <h3 className="text-center text-lg font-black text-slate-900 dark:text-white">Clear the test. Get interviewed by experts.</h3>
-            <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <div className="mt-2 grid grid-cols-3 gap-2 md:mt-4 md:flex md:flex-wrap md:justify-center md:gap-3">
               {interviewers.map((person) => {
                 const initials = person.fullName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
                 const currentKey = (person.currentCompany || '').trim().toLowerCase();
@@ -466,22 +467,22 @@ export const MockTestsSection: React.FC = () => {
                 });
                 const past = (person.companies || []).filter((company) => company.logo && company.name !== currentLogo?.name).slice(0, 4);
                 return (
-                  <article key={person.id} className="flex w-[240px] flex-col items-center rounded-3xl border border-slate-200 bg-white px-4 pb-4 pt-5 text-center shadow-sm">
+                  <article key={person.id} className="flex w-full flex-col items-center overflow-hidden rounded-2xl border border-slate-200 bg-white px-1.5 pb-2 pt-3 text-center shadow-sm md:w-[240px] md:rounded-3xl md:px-4 md:pb-4 md:pt-5">
                     {person.photoUrl ? (
-                      <img src={person.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
+                      <img src={person.photoUrl} alt="" className="h-12 w-12 rounded-full object-cover md:h-16 md:w-16" />
                     ) : (
-                      <span className="grid h-16 w-16 place-items-center rounded-full bg-slate-900 text-sm font-black text-white">{initials || 'IN'}</span>
+                      <span className="grid h-12 w-12 place-items-center rounded-full bg-slate-900 text-xs font-black text-white md:h-16 md:w-16 md:text-sm">{initials || 'IN'}</span>
                     )}
-                    <p className="mt-3 text-sm font-black text-slate-950">{person.fullName}</p>
-                    <p className="mt-1 text-[11px] text-slate-500">{person.currentTitle}</p>
-                    <p className="mt-1 inline-flex items-center gap-1.5 text-[12px] font-bold text-violet-700">
-                      {currentLogo?.logo && <img src={currentLogo.logo} alt="" className="h-4 w-4 rounded bg-white object-contain" />}
-                      {person.currentCompany}
+                    <p className="mt-2 line-clamp-2 text-[11px] font-black leading-4 text-slate-950 md:mt-3 md:text-sm">{person.fullName}</p>
+                    <p className="line-clamp-2 text-[10px] leading-3 text-slate-500 md:mt-1 md:text-[11px]">{person.currentTitle}</p>
+                    <p className="mt-1 inline-flex max-w-full items-center justify-center gap-1 text-[10px] font-bold leading-3 text-violet-700 md:text-[12px]">
+                      {currentLogo?.logo && <img src={currentLogo.logo} alt="" className="h-3.5 w-3.5 shrink-0 rounded bg-white object-contain md:h-4 md:w-4" />}
+                      <span className="line-clamp-1">{person.currentCompany}</span>
                     </p>
                     {past.length > 0 && (
-                      <div className="mt-3 flex items-center justify-center gap-1.5">
+                      <div className="mt-2 flex max-w-full flex-wrap items-center justify-center gap-1 md:mt-3 md:gap-1.5">
                         {past.map((company) => (
-                          <img key={company.name} src={company.logo} alt={company.name} title={company.name} className="h-7 w-7 rounded-lg border border-slate-200 bg-white object-contain p-0.5" />
+                          <img key={company.name} src={company.logo} alt={company.name} title={company.name} className="h-5 w-5 rounded-md border border-slate-200 bg-white object-contain md:h-7 md:w-7 md:rounded-lg md:p-0.5" />
                         ))}
                       </div>
                     )}

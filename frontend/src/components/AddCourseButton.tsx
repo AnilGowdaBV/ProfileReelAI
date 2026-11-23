@@ -15,7 +15,7 @@ const PAPERS = [
 
 const fieldClass = 'mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900';
 
-export const AddCourseButton: React.FC<{ submittedBy: string; className?: string }> = ({ submittedBy, className }) => {
+export const AddCourseButton: React.FC<{ submittedBy: string; className?: string; label?: string }> = ({ submittedBy, className, label = 'Add your course' }) => {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
@@ -38,7 +38,7 @@ export const AddCourseButton: React.FC<{ submittedBy: string; className?: string
         onClick={() => { setOpen(true); setSaved(false); setError(''); }}
         className={className || 'px-3 py-1.5 text-xs font-semibold text-emerald-700'}
       >
-        Add your course
+        {label}
       </button>
       {open && createPortal(
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">

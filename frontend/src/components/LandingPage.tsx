@@ -272,12 +272,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </header>
       <main className="mx-auto max-w-[1080px] px-6 pb-8">
         <div className="pb-3 text-center">
-          <h1 className="text-3xl font-black tracking-tight text-slate-950">
+          <h1 className="text-xl font-black tracking-tight text-slate-950 md:text-3xl">
             Best suitable for <span className="bg-gradient-to-r from-sky-600 to-violet-600 bg-clip-text text-transparent">Product companies</span>
           </h1>
           <p className="mt-1 text-sm text-slate-500">75 min · 4 questions · Swiggy, Flipkart, Zepto, Uber</p>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 md:gap-3">
           {MOCK_TESTS.filter((test) => !test.comingSoon).map((test, index) => {
             const soon = Boolean(test.comingSoon);
             return (
@@ -286,31 +286,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               type="button"
               onClick={soon ? undefined : onOpenLogin}
               disabled={soon}
-              className={`flex w-full flex-col rounded-3xl border bg-white p-3.5 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)] ${soon ? 'cursor-default border-slate-200 opacity-80' : 'border-slate-200 transition hover:-translate-y-0.5 hover:border-emerald-200'}`}
+              className={`flex w-full flex-col overflow-hidden rounded-2xl border bg-white p-2 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)] md:rounded-3xl md:p-3.5 ${soon ? 'cursor-default border-slate-200 opacity-80' : 'border-slate-200 transition hover:-translate-y-0.5 hover:border-emerald-200'}`}
             >
               <div className={`mb-2 h-1 w-full rounded-full bg-gradient-to-r ${accents[index % accents.length]}`} />
-              <div className="flex items-center justify-between">
-                <div className="flex gap-1.5">
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex min-w-0 flex-wrap gap-1">
                   {!soon && companies.map((company) => (
                     <img
                       key={company.name}
                       src={`https://www.google.com/s2/favicons?domain=${company.domain}&sz=64`}
                       alt={company.name}
                       title={company.name}
-                      className="h-6 w-6 rounded-md border border-slate-200 bg-white object-contain p-0.5"
+                      className="h-4 w-4 rounded border border-slate-200 bg-white object-contain md:h-6 md:w-6 md:rounded-md md:p-0.5"
                     />
                   ))}
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${soon ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-700'}`}>
+                <span className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold md:inline ${soon ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-700'}`}>
                   {soon ? 'Soon' : '₹10'}
                 </span>
               </div>
-              <h2 className="mt-2 text-base font-black text-slate-950">{test.title}</h2>
-              <p className="mt-0.5 line-clamp-1 text-[11px] leading-4 text-slate-500">
+              <h2 className="mt-1 text-xs font-black text-slate-950 md:mt-2 md:text-base">{test.title}</h2>
+              <p className="mt-0.5 hidden text-[11px] leading-4 text-slate-500 md:line-clamp-1 md:block">
                 {soon ? 'This track is not open yet.' : `${test.minutes} min · ${test.questionCount} questions · open for 1 hour after payment`}
               </p>
-              <span className={`mt-2 flex w-full items-center justify-center gap-1 rounded-xl py-2 text-xs font-bold ${soon ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white'}`}>
-                {soon ? 'Coming soon' : 'Pay ₹10 to take test'}
+              <span className={`mt-1.5 flex w-full items-center justify-center gap-1 rounded-lg py-1.5 text-[10px] font-bold md:mt-2 md:rounded-xl md:py-2 md:text-xs ${soon ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white'}`}>
+                {soon ? 'Soon' : 'Pay ₹10'}
                 {!soon && <ArrowRight className="h-3.5 w-3.5" />}
               </span>
             </button>
@@ -321,7 +321,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="mt-3">
             <h2 className="text-center text-base font-black text-slate-950">Open roles</h2>
             {landingJobsLoading && landingJobs.length === 0 ? (
-              <div className="mt-2 grid grid-cols-3 gap-3">
+              <div className="mt-2 grid grid-cols-3 gap-2 md:gap-3">
                 {[0, 1, 2].map((slot) => (
                   <div key={slot} className="animate-pulse overflow-hidden rounded-3xl border border-slate-200 bg-white">
                     <div className="h-12 bg-slate-100" />
@@ -334,25 +334,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 ))}
               </div>
             ) : (
-            <div className="mt-2 grid grid-cols-3 gap-3">
+            <div className="mt-2 grid grid-cols-3 gap-2 md:gap-3">
               {landingJobs.map((job) => (
                 <button
                   key={job.id}
                   type="button"
                   onClick={onOpenLogin}
-                  className="flex w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5"
+                  className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 md:rounded-3xl"
                 >
-                  <span className="flex h-12 items-center justify-center border-b border-slate-100 bg-slate-50 px-3">
-                    {job.logo ? <img src={job.logo} alt="" className="max-h-8 max-w-[120px] object-contain" /> : <span className="text-[10px] font-black text-slate-400">JOB</span>}
+                  <span className="flex h-8 items-center justify-center border-b border-slate-100 bg-slate-50 px-2 md:h-12 md:px-3">
+                    {job.logo ? <img src={job.logo} alt="" className="max-h-6 max-w-full object-contain md:max-h-8 md:max-w-[120px]" /> : <span className="text-[10px] font-black text-slate-400">JOB</span>}
                   </span>
-                  <span className="flex flex-col p-3">
-                    <span className="flex items-start justify-between gap-2">
-                      <span className="line-clamp-1 text-sm font-black text-slate-950">{job.title}</span>
+                  <span className="flex flex-col p-2 md:p-3">
+                    <span className="flex items-start justify-between gap-1">
+                      <span className="line-clamp-2 text-[11px] font-black leading-4 text-slate-950 md:line-clamp-1 md:text-sm">{job.title}</span>
                       <span className="shrink-0 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-extrabold text-sky-700">Open</span>
                     </span>
                     <span className="line-clamp-1 text-[11px] font-semibold text-slate-600">{job.company}</span>
                     <span className="text-[11px] text-slate-400">{job.location}</span>
-                    <span className="mt-2 flex w-full items-center justify-center rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white">Apply</span>
+                    <span className="mt-1.5 flex w-full items-center justify-center rounded-lg bg-emerald-600 py-1.5 text-[10px] font-bold text-white md:mt-2 md:rounded-xl md:py-2 md:text-xs">Apply</span>
                   </span>
                 </button>
               ))}
@@ -363,7 +363,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {landingPeople.length > 0 && (
           <div className="mt-3">
             <h2 className="text-center text-base font-black text-slate-950">Clear the test. Get interviewed by experts.</h2>
-            <div className="mt-2 flex justify-center gap-3">
+            <div className="mt-2 grid grid-cols-3 gap-2 md:flex md:justify-center md:gap-3">
               {landingPeople.map((person) => {
                 const initials = person.fullName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('');
                 const currentKey = (person.currentCompany || '').trim().toLowerCase();
@@ -373,22 +373,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 });
                 const past = (person.companies || []).filter((company) => company.logo && company.name !== currentLogo?.name).slice(0, 4);
                 return (
-                  <button key={person.id} type="button" onClick={onOpenLogin} className="flex w-[230px] flex-col items-center rounded-3xl border border-slate-200 bg-white px-4 pb-3 pt-4 text-center shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+                  <button key={person.id} type="button" onClick={onOpenLogin} className="flex w-full flex-col items-center rounded-2xl border border-slate-200 bg-white px-2 pb-2 pt-3 text-center shadow-[0_8px_24px_rgba(15,23,42,0.05)] md:w-[230px] md:rounded-3xl md:px-4 md:pb-3 md:pt-4">
                     {person.photoUrl ? (
                       <img src={person.photoUrl} alt="" className="h-14 w-14 rounded-full object-cover" />
                     ) : (
                       <span className="grid h-14 w-14 place-items-center rounded-full bg-slate-900 text-sm font-black text-white">{initials || 'IN'}</span>
                     )}
-                    <p className="mt-2 text-sm font-black text-slate-950">{person.fullName}</p>
-                    <p className="text-[11px] text-slate-500">{person.currentTitle}</p>
-                    <p className="mt-1 inline-flex items-center gap-1.5 text-[12px] font-bold text-violet-700">
-                      {currentLogo?.logo && <img src={currentLogo.logo} alt="" className="h-4 w-4 rounded bg-white object-contain" />}
-                      {person.currentCompany}
+                    <p className="mt-2 line-clamp-2 text-[11px] font-black leading-4 text-slate-950 md:text-sm">{person.fullName}</p>
+                    <p className="line-clamp-2 text-[10px] leading-3 text-slate-500 md:text-[11px]">{person.currentTitle}</p>
+                    <p className="mt-1 inline-flex max-w-full items-center justify-center gap-1 text-[10px] font-bold leading-3 text-violet-700 md:text-[12px]">
+                      {currentLogo?.logo && <img src={currentLogo.logo} alt="" className="h-3.5 w-3.5 shrink-0 rounded bg-white object-contain md:h-4 md:w-4" />}
+                      <span className="line-clamp-1">{person.currentCompany}</span>
                     </p>
                     {past.length > 0 && (
-                      <span className="mt-2 flex items-center justify-center gap-1.5">
+                      <span className="mt-2 flex max-w-full flex-wrap items-center justify-center gap-1">
                         {past.map((company) => (
-                          <img key={company.name} src={company.logo} alt={company.name} title={company.name} className="h-7 w-7 rounded-lg border border-slate-200 bg-white object-contain p-0.5" />
+                          <img key={company.name} src={company.logo} alt={company.name} title={company.name} className="h-5 w-5 rounded-md border border-slate-200 bg-white object-contain md:h-7 md:w-7 md:rounded-lg md:p-0.5" />
                         ))}
                       </span>
                     )}
@@ -399,7 +399,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         )}
         <div className="mt-3 pb-4">
-          <PracticeCourseCards heading="Courses" onSelect={onOpenLogin} />
+          <PracticeCourseCards heading="Courses" onSelect={onOpenLogin} compact />
         </div>
       </main>
     </div>

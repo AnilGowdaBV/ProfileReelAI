@@ -52,8 +52,8 @@ export const CandidateRequestsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f3f0ff] text-slate-900">
-      <div className="flex min-h-screen">
-        <aside className="flex w-[230px] shrink-0 flex-col border-r border-violet-100 bg-[#f7f5ff] px-4 py-5">
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <aside className="hidden w-[230px] shrink-0 flex-col border-r border-violet-100 bg-[#f7f5ff] px-4 py-5 md:flex">
           <div className="flex items-center gap-2 px-2">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-violet-600 text-white">
               <LayoutList className="h-4 w-4" />
@@ -89,15 +89,28 @@ export const CandidateRequestsPage: React.FC = () => {
             </div>
           </div>
         </aside>
-        <main className="flex-1 px-6 py-5 sm:px-8">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-violet-100 text-violet-700">
+        <div className="flex gap-1 overflow-x-auto border-b border-violet-100 bg-[#f7f5ff] px-3 py-2 md:hidden">
+          {([
+            ['requested', 'Requested', waiting.length],
+            ['accepted', 'Accepted', accepted.length],
+            ['rejected', 'Rejected', rejected.length],
+            ['jobs', 'Jobs', jobs.length],
+          ] as const).map(([key, label, count]) => (
+            <button key={key} type="button" onClick={() => setFilter(key)} className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold ${filter === key ? 'bg-violet-600 text-white' : 'bg-white text-slate-600'}`}>
+              {label} {count}
+            </button>
+          ))}
+          <button type="button" onClick={() => navigate('/dashboard')} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600">Home</button>
+        </div>
+        <main className="min-w-0 flex-1 px-3 py-4 md:px-8 md:py-5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-700 md:h-11 md:w-11">
                 {filter === 'accepted' ? <Check className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
               </span>
-              <div>
-                <h1 className="text-2xl font-black">{filter === 'jobs' ? 'Applied jobs' : filter === 'accepted' ? 'Accepted' : filter === 'rejected' ? 'Rejected' : 'Requested'}</h1>
-                <p className="text-sm text-slate-500">{filter === 'jobs' ? 'Roles you have applied for.' : filter === 'accepted' ? 'Interviewers who accepted you.' : filter === 'rejected' ? 'Requests that were turned down.' : 'Waiting for the interviewer to respond.'}</p>
+              <div className="min-w-0">
+                <h1 className="text-xl font-black md:text-2xl">{filter === 'jobs' ? 'Applied jobs' : filter === 'accepted' ? 'Accepted' : filter === 'rejected' ? 'Rejected' : 'Requested'}</h1>
+                <p className="text-xs text-slate-500 md:text-sm">{filter === 'jobs' ? 'Roles you have applied for.' : filter === 'accepted' ? 'Interviewers who accepted you.' : filter === 'rejected' ? 'Requests that were turned down.' : 'Waiting for the interviewer to respond.'}</p>
               </div>
             </div>
             <span className="relative grid h-10 w-10 place-items-center rounded-full bg-white text-slate-600 shadow-sm">
@@ -112,7 +125,7 @@ export const CandidateRequestsPage: React.FC = () => {
               jobs.length === 0 ? (
                 <p className="rounded-2xl bg-white px-5 py-8 text-sm text-slate-500">You have not applied for a job yet.</p>
               ) : (
-                <ul className="grid gap-4 sm:grid-cols-2">
+                <ul className="grid gap-3 md:grid-cols-2 md:gap-4">
                   {jobs.map((job) => {
                     const mark = (job.companyName || 'J').slice(0, 1).toUpperCase();
                     const applied = new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -140,11 +153,11 @@ export const CandidateRequestsPage: React.FC = () => {
             ) : (
               <ul className="space-y-3">
                 {visible.map((row) => (
-                  <li key={row.id} className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-sm">
+                  <li key={row.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-100 bg-white px-3 py-3 shadow-sm md:flex-nowrap md:gap-4 md:px-4 md:py-4">
                     {row.photoUrl ? (
-                      <img src={row.photoUrl} alt="" className="h-20 w-20 shrink-0 rounded-2xl object-cover" />
+                      <img src={row.photoUrl} alt="" className="h-14 w-14 shrink-0 rounded-2xl object-cover md:h-20 md:w-20" />
                     ) : (
-                      <span className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-slate-950 text-lg font-black text-white">{row.interviewerName.slice(0, 1).toUpperCase()}</span>
+                      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-slate-950 text-lg font-black text-white md:h-20 md:w-20">{row.interviewerName.slice(0, 1).toUpperCase()}</span>
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-black">{row.interviewerName} {row.notice === 'RESCHEDULED' && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">Rescheduled</span>}</p>
