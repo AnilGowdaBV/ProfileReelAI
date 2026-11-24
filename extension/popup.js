@@ -69,7 +69,7 @@ document.getElementById('show-login').addEventListener('click', () => {
   forgotForm.hidden = true;
   loginForm.hidden = false;
 });
-document.getElementById('show-forgot').addEventListener('click', () => {
+document.getElementById('show-forgot')?.addEventListener('click', () => {
   loginForm.hidden = true;
   createForm.hidden = true;
   forgotForm.hidden = false;

@@ -359,6 +359,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
               )}
             </button>
 
+            {/* Forgot password is hidden until live mail can send.
             {!isRegisterMode && (
               <div className="text-center">
                 <button
@@ -374,6 +375,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
                 </button>
               </div>
             )}
+            */}
 
             <div className="text-center pt-1">
               <button
