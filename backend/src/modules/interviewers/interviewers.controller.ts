@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, Param, Patch, Post, Query, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsString } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { AdminService } from '../admin/admin.service';
 import { AddInterviewerDto } from './dto/add-interviewer.dto';
 import { ApplyInterviewerDto } from './dto/apply-interviewer.dto';
@@ -9,6 +9,22 @@ import { RequestInterviewDto } from './dto/request-interview.dto';
 import { ScheduleInterviewDto } from './dto/schedule-interview.dto';
 import { GoogleMeetService } from './google-meet.service';
 import { InterviewersService } from './interviewers.service';
+
+class ReviewDto {
+  @IsString()
+  @IsIn(['GOOD', 'BAD', 'NOT_YET'])
+  outcome: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(5)
+  rating?: number;
+
+  @IsOptional()
+  @IsString()
+  feedback?: string;
+}
 
 class StatusDto {
   @IsString()
@@ -88,6 +104,35 @@ export class InterviewersController {
   @ApiOperation({ summary: 'Approved interviewer accepts a request' })
   accept(@Param('id') id: string, @Query('email') email?: string) {
     return this.interviewers.acceptRequest(id, email || '');
+  }
+
+  @Get('resume/:id/:file')
+  @ApiOperation({ summary: 'Open a shared candidate resume by its file name' })
+  async sharedResume(@Param('id') id: string, @Res() response: Response) {
+    const file = await this.interviewers.sharedResume(id);
+    response.setHeader('Content-Type', file.type);
+    response.setHeader('Content-Disposition', `inline; filename="${file.name}"`);
+    response.send(file.bytes);
+  }
+
+  @Get('portrait')
+  @ApiOperation({ summary: 'Reuse a saved candidate photo for the LinkedIn card' })
+  async portrait(@Query('url') url: string | undefined, @Res() response: Response) {
+    const file = await this.interviewers.savedPortrait(url || '');
+    response.setHeader('Content-Type', file.type);
+    response.send(file.bytes);
+  }
+
+  @Patch('inbox/:id/start')
+  @ApiOperation({ summary: 'Interviewer joins early and opens the Meet link' })
+  start(@Param('id') id: string, @Query('email') email?: string) {
+    return this.interviewers.startMeeting(id, email || '');
+  }
+
+  @Post('inbox/:id/review')
+  @ApiOperation({ summary: 'Interviewer marks the finished candidate good or bad' })
+  review(@Param('id') id: string, @Query('email') email: string | undefined, @Body() body: ReviewDto) {
+    return this.interviewers.reviewCandidate(id, email || '', body);
   }
 
   @Patch('inbox/:id/reject')

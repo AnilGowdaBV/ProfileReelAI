@@ -135,6 +135,24 @@ export class ApifyProfileDataProvider implements IProfileDataProvider {
     }
   }
 
+  private companyName(exp: any) {
+    const direct = [
+      exp.companyName,
+      typeof exp.company === 'string' ? exp.company : exp.company?.name,
+      exp.subtitle,
+      exp.company_name,
+    ].find((value) => typeof value === 'string' && value.trim() && value.trim().toLowerCase() !== 'company');
+    if (direct) return String(direct).trim();
+    const link = String(exp.companyUrl || exp.companyLink || exp.companyLinkedinUrl || exp.company?.url || '');
+    const slug = link.match(/company\/([^/?#]+)/i)?.[1];
+    if (slug) return decodeURIComponent(slug).replace(/[-_]+/g, ' ').trim();
+    const logo = String(exp.logoUrl || exp.logo || exp.companyLogo || '');
+    const file = logo.match(/\/([^/?#]+)_logo(?:\?|$)/i)?.[1];
+    if (!file) return '';
+    const cleaned = decodeURIComponent(file).replace(/_(events|media)$/i, '').replace(/[-_]+/g, ' ').trim();
+    return cleaned.split(' ').map((word) => (/^[a-z]/.test(word) ? word.charAt(0).toUpperCase() + word.slice(1) : word)).join(' ');
+  }
+
   private mapApifyItemToCandidateProfile(
     item: any,
     slug: string,
@@ -157,17 +175,18 @@ export class ApifyProfileDataProvider implements IProfileDataProvider {
     const followers = item.followersText || undefined;
     const postsCount = Array.isArray(item.posts) ? item.posts.length : 0;
 
-    const experiences: RawExperienceItem[] = (item.experience || [])
+    const experiences: RawExperienceItem[] = (item.experience || item.experiences || [])
       .slice(0, 6)
       .map((exp: any) => ({
-        company: exp.company || exp.companyName || 'Company',
-        title: exp.title || 'Role',
+        company: this.companyName(exp),
+        title: exp.title || exp.position || 'Role',
         startDate: exp.startDate || undefined,
         endDate: exp.current ? 'Present' : exp.dateRange || exp.endDate || undefined,
         isCurrentRole: !!exp.current,
         description: exp.description || undefined,
         logo: exp.logoUrl || exp.logo || exp.companyLogo || undefined,
-      }));
+      }))
+      .filter((exp: RawExperienceItem) => exp.company);
 
     const educations: RawEducationItem[] = (item.education || [])
       .slice(0, 3)

@@ -44,6 +44,24 @@ export class InterviewRequest {
   @Column({ name: 'notice_for', length: 255, default: '' })
   noticeFor: string;
 
+  @Column({ name: 'reminder_sent', type: 'boolean', default: false })
+  reminderSent: boolean;
+
+  @Column({ name: 'started_at', type: 'timestamp', nullable: true })
+  startedAt: Date | null;
+
+  @Column({ name: 'review_outcome', length: 10, default: '' })
+  reviewOutcome: string;
+
+  @Column({ name: 'review_rating', type: 'int', default: 0 })
+  reviewRating: number;
+
+  @Column({ name: 'review_feedback', type: 'text', nullable: true })
+  reviewFeedback: string;
+
+  @Column({ name: 'review_post', type: 'text', nullable: true })
+  reviewPost: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
@@ -9,11 +9,12 @@ import { ApplyInterviewerDto } from './dto/apply-interviewer.dto';
 import { RequestInterviewDto } from './dto/request-interview.dto';
 import { JobApplication } from '../jobs/entities/job-application.entity';
 import { GoogleMeetService } from './google-meet.service';
+import { InterviewMailService, meetingStart } from './interview-mail.service';
 import { InterviewRequest } from './interview-request.entity';
 import { InterviewerApplication } from './interviewer-application.entity';
 
 @Injectable()
-export class InterviewersService {
+export class InterviewersService implements OnModuleInit {
   private readonly logger = new Logger(InterviewersService.name);
   private tableReady: Promise<void>;
 
@@ -28,8 +29,15 @@ export class InterviewersService {
     private readonly users: Repository<User>,
     private readonly apify: ApifyProfileDataProvider,
     private readonly googleMeet: GoogleMeetService,
+    private readonly mail: InterviewMailService,
   ) {
     this.tableReady = this.ensureTable();
+  }
+
+  onModuleInit() {
+    setInterval(() => {
+      void this.sendDueReminders();
+    }, 60 * 1000);
   }
 
   async recordings() {
@@ -165,6 +173,7 @@ export class InterviewersService {
         meetLink: meeting.meetLink,
         meetSpace: meeting.meetSpace,
         note: (dto.note || '').trim(),
+        reminderSent: false,
       }),
     );
     return { success: true, message: 'Request sent.' };
@@ -193,7 +202,8 @@ export class InterviewersService {
       interviewDate: row.interviewDate || '',
       interviewTime: row.interviewTime || '',
       note: row.note || '',
-      meetLink: row.meetLink || '',
+      meetLink: this.scheduledOpen(row) ? row.meetLink || '' : '',
+      linkOpen: this.scheduledOpen(row),
       notice: row.notice === 'RESCHEDULED' ? 'RESCHEDULED' : '',
       createdAt: row.createdAt,
     }));
@@ -218,7 +228,7 @@ export class InterviewersService {
       const sameRole = applications.find((job) => job.email.toLowerCase() === row.candidateEmail.toLowerCase() && job.jobTitle === row.jobTitle && job.companyName === row.companyName);
       const anyResume = applications.find((job) => job.email.toLowerCase() === row.candidateEmail.toLowerCase() && (job.resumeUrl || job.resumeData || job.resumeFileName));
       const file = sameRole || anyResume;
-      const profile = await this.savedCandidateProfile(row.candidateEmail, file?.linkedinUrl);
+      const profile = await this.savedCandidateProfile(row.candidateEmail, file?.linkedinUrl, row.candidateName);
       requests.push({
         id: row.id,
         candidateName: row.candidateName,
@@ -229,16 +239,97 @@ export class InterviewersService {
         interviewDate: row.interviewDate || '',
         interviewTime: row.interviewTime || '',
         note: row.note || '',
-        meetLink: row.meetLink || '',
+        meetLink: row.status === 'ACCEPTED' ? row.meetLink || '' : '',
+        linkClicked: !!row.startedAt,
         notice: row.notice === 'RESCHEDULED' ? 'RESCHEDULED' : '',
         resumeFileName: file?.resumeFileName || '',
         resumeUrl: file?.resumeUrl || file?.resumeData || '',
         photoUrl: profile.photoUrl,
         headline: profile.headline,
+        experience: profile.experience,
+        reviewOutcome: row.reviewOutcome || '',
+        reviewFeedback: row.reviewFeedback || '',
+        reviewRating: row.reviewRating || 0,
         createdAt: row.createdAt,
+        needsReview: (row.status || '') === 'ACCEPTED' && !(row.reviewOutcome || '') && !!row.startedAt,
       });
     }
     return { approved: true, requests };
+  }
+
+  async startMeeting(id: string, email: string) {
+    await this.tableReady;
+    const interviewer = await this.applications
+      .createQueryBuilder('application')
+      .where('LOWER(application.email) = LOWER(:email)', { email: email.trim() })
+      .andWhere('application.status = :status', { status: 'APPROVED' })
+      .getOne();
+    if (!interviewer) throw new BadRequestException('That interviewer is not available.');
+    const row = await this.requests.findOne({ where: { id, interviewerId: interviewer.id } });
+    if (!row || row.status !== 'ACCEPTED') throw new BadRequestException('Accept the meeting before joining.');
+    if (!row.startedAt) {
+      row.startedAt = new Date();
+      await this.requests.save(row);
+    }
+    return { success: true, meetLink: row.meetLink || '', linkOpen: true };
+  }
+
+  private scheduledOpen(row: InterviewRequest) {
+    const start = meetingStart(row.interviewDate || '', row.interviewTime || '');
+    return !!start && start.getTime() <= Date.now();
+  }
+
+  async reviewCandidate(id: string, email: string, body: { outcome: string; rating?: number; feedback?: string }) {
+    await this.tableReady;
+    const interviewer = await this.applications
+      .createQueryBuilder('application')
+      .where('LOWER(application.email) = LOWER(:email)', { email: email.trim() })
+      .andWhere('application.status = :status', { status: 'APPROVED' })
+      .getOne();
+    if (!interviewer) throw new BadRequestException('That interviewer is not available.');
+    const row = await this.requests.findOne({ where: { id, interviewerId: interviewer.id } });
+    if (!row || row.status !== 'ACCEPTED') throw new BadRequestException('Accept the meeting before reviewing the candidate.');
+    if (body.outcome === 'NOT_YET') {
+      row.startedAt = null;
+      await this.requests.save(row);
+      return { success: true, outcome: 'NOT_YET', post: '' };
+    }
+    if (row.reviewOutcome) throw new BadRequestException('This interview is already reviewed.');
+    const outcome = body.outcome === 'GOOD' ? 'GOOD' : body.outcome === 'BAD' ? 'BAD' : '';
+    if (!outcome) throw new BadRequestException('Choose good or bad.');
+    if (outcome === 'BAD') {
+      row.reviewOutcome = 'BAD';
+      await this.requests.save(row);
+      return { success: true, outcome: 'BAD', post: '' };
+    }
+    const rating = Number(body.rating || 0);
+    const feedback = (body.feedback || '').trim();
+    if (rating < 1 || rating > 5) throw new BadRequestException('Rate the candidate from 1 to 5.');
+    if (!feedback) throw new BadRequestException('Write a note about the candidate.');
+    const application = await this.jobApplications
+      .createQueryBuilder('job')
+      .where('LOWER(job.email) = LOWER(:email)', { email: row.candidateEmail })
+      .orderBy('job.createdAt', 'DESC')
+      .getOne();
+    const linkedin = (application?.linkedinUrl || '').includes('linkedin.com') ? application?.linkedinUrl || '' : '';
+    const profile = await this.savedCandidateProfile(row.candidateEmail, application?.linkedinUrl, row.candidateName);
+    const story = this.experienceStory(row.candidateName, profile.experience);
+    const post = [
+      `I just interviewed ${row.candidateName}.`,
+      '',
+      feedback,
+      story ? '' : '',
+      story,
+      '',
+      `Strong yes for ${row.jobTitle} at ${row.companyName}. ${rating}/5.`,
+      linkedin ? linkedin : '',
+    ].filter((line) => line !== undefined && line !== null).join('\n').replace(/\n{3,}/g, '\n\n');
+    row.reviewOutcome = 'GOOD';
+    row.reviewRating = rating;
+    row.reviewFeedback = feedback;
+    row.reviewPost = post;
+    await this.requests.save(row);
+    return { success: true, outcome: 'GOOD', post, linkedinUrl: linkedin, resumeUrl: application?.resumeUrl || application?.resumeData || '', resumeFileName: application?.resumeFileName || '' };
   }
 
   async candidateProfile(id: string, email: string) {
@@ -288,6 +379,19 @@ export class InterviewersService {
     if (!row) throw new BadRequestException('Request not found.');
     row.status = 'ACCEPTED';
     await this.requests.save(row);
+    await this.mail.sendPair({
+      kind: 'scheduled',
+      candidateName: row.candidateName,
+      candidateEmail: row.candidateEmail,
+      interviewerName: interviewer.fullName,
+      interviewerEmail: interviewer.email,
+      jobTitle: row.jobTitle,
+      companyName: row.companyName,
+      date: row.interviewDate,
+      time: row.interviewTime,
+      meetLink: row.meetLink,
+      note: row.note || '',
+    });
     return { success: true };
   }
 
@@ -314,7 +418,23 @@ export class InterviewersService {
     row.note = (schedule.note || '').trim();
     row.notice = 'RESCHEDULED';
     row.noticeFor = who === row.candidateEmail.toLowerCase() ? (interviewer?.email || '') : row.candidateEmail;
+    row.reminderSent = false;
     await this.requests.save(row);
+    if (interviewer && row.status === 'ACCEPTED') {
+      await this.mail.sendPair({
+        kind: 'rescheduled',
+        candidateName: row.candidateName,
+        candidateEmail: row.candidateEmail,
+        interviewerName: interviewer.fullName,
+        interviewerEmail: interviewer.email,
+        jobTitle: row.jobTitle,
+        companyName: row.companyName,
+        date: row.interviewDate,
+        time: row.interviewTime,
+        meetLink: row.meetLink,
+        note: row.note || '',
+      });
+    }
     return { success: true, interviewDate: date, interviewTime: time, meetLink: row.meetLink, note: row.note, notice: '' };
   }
 
@@ -509,7 +629,7 @@ export class InterviewersService {
       const result = await this.apify.fetchProfile(url, slug);
       const names = (result.data?.experiences || [])
         .map((item) => item.company.trim())
-        .filter(Boolean);
+        .filter((name) => name && name.toLowerCase() !== 'company');
       const current = currentCompany.trim().toLowerCase();
       const companies = (result.data?.experiences || [])
         .map((item) => ({ name: item.company.trim(), logo: item.logo || '', title: item.title && item.title !== 'Role' ? item.title : '' }))
@@ -526,19 +646,30 @@ export class InterviewersService {
     }
   }
 
-  private async savedCandidateProfile(email: string, linkedinUrl?: string) {
+  private experienceStory(name: string, roles: string[]) {
+    const lines = (roles || []).map((role) => role.split(':')[0].replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 3);
+    if (!lines.length) return '';
+    if (lines.length === 1) return `${name} came into this interview from ${lines[0]}.`;
+    const earlier = lines.slice(0, -1).join(', then ');
+    return `${name} started with ${earlier}, and is now ${lines[lines.length - 1]}.`;
+  }
+
+  private async savedCandidateProfile(email: string, linkedinUrl?: string, candidateName?: string) {
     const user = await this.users
       .createQueryBuilder('user')
       .where('LOWER(user.email) = LOWER(:email)', { email })
       .getOne();
     let photoUrl = user?.avatarUrl || '';
     let headline = user?.headline || '';
-    if (!linkedinUrl) return { photoUrl, headline };
+    let experience: string[] = [];
     try {
-      const slug = this.slugFrom(linkedinUrl);
+      const linkedIn = (linkedinUrl || '').includes('linkedin.com');
+      const slug = linkedIn ? this.slugFrom(linkedinUrl || '') : '';
       const rows = await this.applications.query(
-        `SELECT id, profilePictureUrl FROM candidates WHERE normalizedProfileUrl LIKE ? OR submittedProfileUrl LIKE ? ORDER BY updatedAt DESC LIMIT 1`,
-        [`%${slug}%`, `%${slug}%`],
+        linkedIn
+          ? `SELECT id, profilePictureUrl FROM candidates WHERE normalizedProfileUrl LIKE ? OR submittedProfileUrl LIKE ? ORDER BY updatedAt DESC LIMIT 1`
+          : `SELECT id, profilePictureUrl FROM candidates WHERE displayName = ? ORDER BY updatedAt DESC LIMIT 1`,
+        linkedIn ? [`%${slug}%`, `%${slug}%`] : [candidateName || ''],
       ) as Array<{ id: string; profilePictureUrl?: string }>;
       const saved = rows[0];
       if (saved?.profilePictureUrl) photoUrl = saved.profilePictureUrl;
@@ -548,11 +679,16 @@ export class InterviewersService {
           [saved.id],
         ) as Array<{ factText?: string }>;
         if (facts[0]?.factText) headline = facts[0].factText;
+        const roles = await this.applications.query(
+          `SELECT factText FROM candidate_facts WHERE candidateId = ? AND category = 'experience' ORDER BY createdAt ASC LIMIT 4`,
+          [saved.id],
+        ) as Array<{ factText?: string }>;
+        experience = roles.map((role) => role.factText || '').filter(Boolean);
       }
     } catch (error) {
       this.logger.warn(`Saved profile lookup failed: ${error instanceof Error ? error.message : error}`);
     }
-    return { photoUrl, headline };
+    return { photoUrl, headline, experience };
   }
 
   private readCompanies(raw: string) {
@@ -562,6 +698,39 @@ export class InterviewersService {
     } catch {
       return [];
     }
+  }
+
+  async sharedResume(id: string) {
+    await this.tableReady;
+    const row = await this.requests.findOne({ where: { id } });
+    if (!row) throw new BadRequestException('Resume not found.');
+    const application = await this.jobApplications
+      .createQueryBuilder('job')
+      .where('LOWER(job.email) = LOWER(:email)', { email: row.candidateEmail })
+      .orderBy('job.createdAt', 'DESC')
+      .getOne();
+    const url = application?.resumeUrl || '';
+    if (!url.startsWith('http')) throw new BadRequestException('Resume not found.');
+    const response = await fetch(url);
+    if (!response.ok) throw new BadRequestException('Resume not found.');
+    const name = (application?.resumeFileName || 'resume.pdf').replace(/[^\w.\- ]+/g, '') || 'resume.pdf';
+    return { bytes: Buffer.from(await response.arrayBuffer()), name, type: response.headers.get('content-type') || 'application/pdf' };
+  }
+
+  async savedPortrait(url: string) {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new BadRequestException('Candidate photo is not available.');
+    }
+    const host = parsed.hostname;
+    const allowed = host === 'media.licdn.com' || host.endsWith('.licdn.com') || host.endsWith('.supabase.co');
+    if (parsed.protocol !== 'https:' || !allowed) throw new BadRequestException('Candidate photo is not available.');
+    const response = await fetch(url);
+    if (!response.ok) throw new BadRequestException('Candidate photo is not available.');
+    const bytes = Buffer.from(await response.arrayBuffer());
+    return { bytes, type: response.headers.get('content-type') || 'image/jpeg' };
   }
 
   private async profilePhoto(url: string) {
@@ -619,6 +788,40 @@ export class InterviewersService {
     return parts[index + 1] || 'profile';
   }
 
+  private async sendDueReminders() {
+    try {
+      await this.tableReady;
+      const rows = await this.requests.find({ where: { reminderSent: false } });
+      const now = Date.now();
+      for (const row of rows) {
+        if (row.status !== 'ACCEPTED' || !row.interviewDate || !row.interviewTime) continue
+        const start = meetingStart(row.interviewDate, row.interviewTime);
+        if (!start) continue;
+        const until = start.getTime() - now;
+        if (until <= 0 || until > 10 * 60 * 1000) continue;
+        const interviewer = await this.applications.findOne({ where: { id: row.interviewerId } });
+        if (!interviewer) continue;
+        await this.mail.sendPair({
+          kind: 'reminder',
+          candidateName: row.candidateName,
+          candidateEmail: row.candidateEmail,
+          interviewerName: interviewer.fullName,
+          interviewerEmail: interviewer.email,
+          jobTitle: row.jobTitle,
+          companyName: row.companyName,
+          date: row.interviewDate,
+          time: row.interviewTime,
+          meetLink: row.meetLink,
+          note: row.note || '',
+        });
+        row.reminderSent = true;
+        await this.requests.save(row);
+      }
+    } catch (error) {
+      this.logger.warn(`Interview reminder check failed: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
   private async ensureTable() {
     const createdAt = this.applications.manager.connection.options.type === 'postgres'
       ? 'timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP'
@@ -670,6 +873,16 @@ export class InterviewersService {
       `ALTER TABLE interview_requests ADD COLUMN meet_space varchar(200) NOT NULL DEFAULT ''`,
       `ALTER TABLE interview_requests ADD COLUMN notice varchar(40) NOT NULL DEFAULT ''`,
       `ALTER TABLE interview_requests ADD COLUMN notice_for varchar(255) NOT NULL DEFAULT ''`,
+      this.applications.manager.connection.options.type === 'postgres'
+        ? `ALTER TABLE interview_requests ADD COLUMN reminder_sent boolean NOT NULL DEFAULT false`
+        : `ALTER TABLE interview_requests ADD COLUMN reminder_sent tinyint NOT NULL DEFAULT 0`,
+      `ALTER TABLE interview_requests ADD COLUMN review_outcome varchar(10) NOT NULL DEFAULT ''`,
+      `ALTER TABLE interview_requests ADD COLUMN review_rating int NOT NULL DEFAULT 0`,
+      `ALTER TABLE interview_requests ADD COLUMN review_feedback text`,
+      `ALTER TABLE interview_requests ADD COLUMN review_post text`,
+      this.applications.manager.connection.options.type === 'postgres'
+        ? `ALTER TABLE interview_requests ADD COLUMN started_at timestamp NULL`
+        : `ALTER TABLE interview_requests ADD COLUMN started_at datetime NULL`,
     ]) {
       try { await this.applications.query(statement); } catch { /* column already exists */ }
     }

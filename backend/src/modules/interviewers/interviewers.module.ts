@@ -7,12 +7,13 @@ import { JobApplication } from '../jobs/entities/job-application.entity';
 import { InterviewRequest } from './interview-request.entity';
 import { InterviewerApplication } from './interviewer-application.entity';
 import { GoogleMeetService } from './google-meet.service';
+import { InterviewMailService } from './interview-mail.service';
 import { InterviewersController } from './interviewers.controller';
 import { InterviewersService } from './interviewers.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([InterviewerApplication, InterviewRequest, JobApplication, User]), ProfileRetrievalModule, AdminModule],
   controllers: [InterviewersController],
-  providers: [InterviewersService, GoogleMeetService],
+  providers: [InterviewersService, GoogleMeetService, InterviewMailService],
 })
 export class InterviewersModule {}
